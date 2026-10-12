@@ -3,7 +3,9 @@
 import { useState, type ReactElement, type ReactNode } from 'react';
 import { useReactFlow, useStore } from '@xyflow/react';
 import {
+  ChevronDown,
   Container,
+  Eraser,
   FileJson,
   LayoutDashboard,
   Lock,
@@ -11,17 +13,20 @@ import {
   Minus,
   MoreHorizontal,
   MousePointerSquareDashed,
+  Pencil,
   Plus,
   Redo2,
   SquareDashed,
   StickyNote,
   Trash2,
+  Type,
   Undo2,
 } from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { useIsNarrow } from '@/hooks/useMediaQuery';
 import { Button } from '@/components/ui/button';
 import { SimpleTooltip } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,8 +51,10 @@ import { getLayoutedElements } from '@/lib/auto-layout';
 import { getShortcutKeys } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 import type { SystemEdge, SystemNode } from '@/types';
+import { BRUSH_COLORS } from '@/types';
 import { AddComponentSubmenus } from './AddComponentMenu';
 import { getFitViewOptions, shortcutLabel, useAddNodeAtCenter } from './canvas-helpers';
+import { ContextualDrawingToolbar } from './ContextualDrawingToolbar';
 
 const COARSE_HIT = '[@media(pointer:coarse)]:size-11';
 
@@ -255,6 +262,301 @@ function ClearCanvasDialog({ open, onOpenChange }: { open: boolean; onOpenChange
   );
 }
 
+const PENCIL_SIZE_PRESETS = [
+  { label: 'Small', value: 1.5, dotSize: 3.5 },
+  { label: 'Medium', value: 2.5, dotSize: 5.5 },
+  { label: 'Large', value: 5, dotSize: 9 },
+  { label: 'Extra Large', value: 8, dotSize: 13 },
+] as const;
+
+const ERASER_SIZE_PRESETS = [
+  { label: 'Small', value: 10, dotSize: 3.5 },
+  { label: 'Medium', value: 18, dotSize: 5.5 },
+  { label: 'Large', value: 28, dotSize: 9 },
+  { label: 'Extra Large', value: 42, dotSize: 13 },
+] as const;
+
+function DrawingToolbar() {
+  const activeTool = useCanvasStore((s) => s.activeTool);
+  const setActiveTool = useCanvasStore((s) => s.setActiveTool);
+  const brushColor = useCanvasStore((s) => s.brushColor);
+  const setBrushColor = useCanvasStore((s) => s.setBrushColor);
+  const strokeWidth = useCanvasStore((s) => s.strokeWidth);
+  const setStrokeWidth = useCanvasStore((s) => s.setStrokeWidth);
+  const eraserRadius = useCanvasStore((s) => s.eraserRadius);
+  const setEraserRadius = useCanvasStore((s) => s.setEraserRadius);
+  const undo = useCanvasStore((s) => s.undo);
+  const redo = useCanvasStore((s) => s.redo);
+  const canUndo = useCanvasStore((s) => s.historyIndex >= 0);
+  const canRedo = useCanvasStore((s) => s.historyIndex < s.history.length - 1);
+
+  const isPencil = activeTool === 'pencil';
+  const presets = isPencil ? PENCIL_SIZE_PRESETS : ERASER_SIZE_PRESETS;
+
+  // Active preset index
+  const activePresetIndex = isPencil
+    ? strokeWidth <= 1.8
+      ? 0
+      : strokeWidth <= 3.5
+      ? 1
+      : strokeWidth <= 6.5
+      ? 2
+      : 3
+    : eraserRadius <= 14
+    ? 0
+    : eraserRadius <= 23
+    ? 1
+    : eraserRadius <= 35
+    ? 2
+    : 3;
+
+  return (
+    <div
+      role="toolbar"
+      aria-label="Drawing toolbar"
+      className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-xl border border-white/10 bg-[#18181b]/95 p-1.5 text-white shadow-[0_8px_30px_rgb(0,0,0,0.5)] backdrop-blur-md whitespace-nowrap"
+    >
+      {/* 1. Pencil button */}
+      <SimpleTooltip label="Draw Tab" keys={['Tab']} side="top">
+        <button
+          type="button"
+          onClick={() => setActiveTool('pencil')}
+          aria-label="Draw Tab"
+          className={cn(
+            'flex size-8 items-center justify-center rounded-lg transition-colors cursor-pointer',
+            isPencil
+              ? 'bg-[#2a2a2a] text-white shadow-sm ring-1 ring-white/10'
+              : 'text-neutral-400 hover:bg-white/10 hover:text-white'
+          )}
+        >
+          <Pencil className="size-[15px]" />
+        </button>
+      </SimpleTooltip>
+
+      {/* 2. Eraser button */}
+      <SimpleTooltip label="Erase Tab" keys={['Tab']} side="top">
+        <button
+          type="button"
+          onClick={() => setActiveTool('eraser')}
+          aria-label="Erase Tab"
+          className={cn(
+            'flex size-8 items-center justify-center rounded-lg transition-colors cursor-pointer',
+            activeTool === 'eraser'
+              ? 'bg-[#2a2a2a] text-white shadow-sm ring-1 ring-white/10'
+              : 'text-neutral-400 hover:bg-white/10 hover:text-white'
+          )}
+        >
+          <Eraser className="size-[15px]" />
+        </button>
+      </SimpleTooltip>
+
+      {/* 3. Color dropdown with current preview (shown when pencil is active) */}
+      {isPencil && (
+        <Popover>
+          <SimpleTooltip label="Color" side="top">
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="Color"
+                className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-neutral-300 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+              >
+                <span
+                  className="size-3.5 rounded-full border border-white/30 shadow-sm"
+                  style={{
+                    backgroundColor: brushColor === 'var(--ink)' ? '#ffffff' : brushColor,
+                  }}
+                />
+                <ChevronDown className="size-3 text-neutral-400" />
+              </button>
+            </PopoverTrigger>
+          </SimpleTooltip>
+          <PopoverContent
+            side="top"
+            align="center"
+            sideOffset={12}
+            className="w-auto border-white/15 bg-[#18181b]/95 p-3 text-white shadow-2xl backdrop-blur-md rounded-xl"
+          >
+            <div className="grid grid-cols-5 gap-2">
+              {BRUSH_COLORS.map((c) => {
+                const isSelected =
+                  brushColor === c.value ||
+                  (c.name === 'Black' && (brushColor === '#000000' || brushColor === 'var(--ink)')) ||
+                  (c.name === 'White' && brushColor === '#ffffff');
+                return (
+                  <button
+                    key={c.name}
+                    type="button"
+                    title={c.name}
+                    aria-label={c.name}
+                    onClick={() => setBrushColor(c.value)}
+                    className={cn(
+                      'relative flex size-6 items-center justify-center rounded-md transition-transform hover:scale-110 cursor-pointer',
+                      c.name === 'White' && 'border border-neutral-600',
+                      c.name === 'Black' && 'border border-neutral-700',
+                      isSelected && 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#18181b]'
+                    )}
+                    style={{ backgroundColor: c.value }}
+                  />
+                );
+              })}
+              {/* Rainbow / Custom color picker swatch */}
+              <label
+                className="relative flex size-6 cursor-pointer items-center justify-center rounded-md bg-[conic-gradient(at_center,_red,_orange,_yellow,_green,_blue,_purple,_red)] shadow-sm transition-transform hover:scale-110"
+                title="Custom Color"
+              >
+                <input
+                  type="color"
+                  value={brushColor.startsWith('#') ? brushColor : '#ffffff'}
+                  onChange={(e) => setBrushColor(e.target.value)}
+                  className="sr-only"
+                />
+              </label>
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+
+      {/* 4. Four quick size presets: Small, Medium, Large, Extra Large */}
+      <div className="flex items-center gap-0.5">
+        {presets.map((preset, index) => {
+          const isActive = index === activePresetIndex;
+          return (
+            <SimpleTooltip key={preset.label} label={preset.label} side="top">
+              <button
+                type="button"
+                onClick={() => {
+                  if (isPencil) setStrokeWidth(preset.value);
+                  else setEraserRadius(preset.value);
+                }}
+                aria-label={preset.label}
+                className={cn(
+                  'flex size-8 items-center justify-center rounded-lg transition-colors cursor-pointer',
+                  isActive
+                    ? 'bg-[#2a2a2a] text-white shadow-sm ring-1 ring-white/10'
+                    : 'text-neutral-400 hover:bg-white/10 hover:text-white'
+                )}
+              >
+                <span
+                  className={cn(
+                    'rounded-full transition-colors',
+                    isActive ? 'bg-white' : 'bg-[#71717a]'
+                  )}
+                  style={{
+                    width: preset.dotSize,
+                    height: preset.dotSize,
+                  }}
+                />
+              </button>
+            </SimpleTooltip>
+          );
+        })}
+      </div>
+
+      {/* Vertical divider */}
+      <div aria-hidden className="mx-1 h-4 w-px bg-white/15" />
+
+      {/* 5. Three-dot More menu */}
+      <DropdownMenu>
+        <SimpleTooltip label="Drawing options" side="top">
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="Drawing options"
+              className="flex size-8 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+            >
+              <MoreHorizontal className="size-4" />
+            </button>
+          </DropdownMenuTrigger>
+        </SimpleTooltip>
+        <DropdownMenuContent
+          side="top"
+          align="end"
+          sideOffset={12}
+          className="w-56 border-white/15 bg-[#18181b]/95 p-2 text-white shadow-2xl backdrop-blur-md rounded-xl"
+        >
+          {isPencil ? (
+            <div className="px-2 py-1.5">
+              <div className="flex items-center justify-between pb-1 text-[11px] font-medium text-neutral-400">
+                <span>Stroke Width</span>
+                <span className="font-mono text-white">{strokeWidth}px</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="16"
+                step="0.5"
+                value={strokeWidth}
+                onChange={(e) => setStrokeWidth(Number(e.target.value))}
+                className="my-1.5 h-1.5 w-full cursor-pointer accent-white"
+              />
+            </div>
+          ) : (
+            <div className="px-2 py-1.5">
+              <div className="flex items-center justify-between pb-1 text-[11px] font-medium text-neutral-400">
+                <span>Eraser Size</span>
+                <span className="font-mono text-white">{eraserRadius * 2}px</span>
+              </div>
+              <input
+                type="range"
+                min="6"
+                max="48"
+                step="2"
+                value={eraserRadius}
+                onChange={(e) => setEraserRadius(Number(e.target.value))}
+                className="my-1.5 h-1.5 w-full cursor-pointer accent-white"
+              />
+            </div>
+          )}
+
+          <DropdownMenuSeparator className="my-1.5 bg-white/15" />
+
+          <DropdownMenuItem
+            onClick={() => setActiveTool('select')}
+            className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-white/10 hover:text-white"
+          >
+            <span>Exit drawing mode</span>
+            <DropdownMenuShortcut className="text-neutral-500">Esc</DropdownMenuShortcut>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={() => setActiveTool('hand')}
+            className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-white/10 hover:text-white"
+          >
+            <span>Hand (Pan) mode</span>
+            <DropdownMenuShortcut className="text-neutral-500">H</DropdownMenuShortcut>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="my-1.5 bg-white/15" />
+
+          <DropdownMenuItem
+            onClick={undo}
+            disabled={!canUndo}
+            className={cn(
+              'flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-white/10 hover:text-white',
+              !canUndo && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-neutral-300'
+            )}
+          >
+            <span>Undo</span>
+            <DropdownMenuShortcut className="text-neutral-500">Ctrl+Z</DropdownMenuShortcut>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={redo}
+            disabled={!canRedo}
+            className={cn(
+              'flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-white/10 hover:text-white',
+              !canRedo && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-neutral-300'
+            )}
+          >
+            <span>Redo</span>
+            <DropdownMenuShortcut className="text-neutral-500">Ctrl+Y</DropdownMenuShortcut>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 export function CanvasToolbar() {
   const narrow = useIsNarrow();
   const { zoomIn, zoomOut, fitView } = useReactFlow();
@@ -266,11 +568,39 @@ export function CanvasToolbar() {
   const canRedo = useCanvasStore((s) => s.historyIndex < s.history.length - 1);
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
+  const activeTool = useCanvasStore((s) => s.activeTool);
+  const setActiveTool = useCanvasStore((s) => s.setActiveTool);
   const setLibraryCollapsed = useCanvasStore((s) => s.setLibraryCollapsed);
   const [clearOpen, setClearOpen] = useState(false);
 
   const zoomPct = `${Math.round(zoom * 100)}%`;
   const fit = () => fitView(getFitViewOptions(200));
+
+  const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
+  const selectedEdgeId = useCanvasStore((s) => s.selectedEdgeId);
+  const nodes = useCanvasStore((s) => s.nodes);
+  const selectedNode = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : null;
+
+  const isShapeDrawingTool =
+    activeTool === 'rectangle' ||
+    activeTool === 'circle' ||
+    activeTool === 'arrow' ||
+    activeTool === 'line';
+
+  // Contextual toolbar for shapes, lines, arrows, drawings, and edges
+  if (
+    isShapeDrawingTool ||
+    selectedNode?.type === 'shape' ||
+    selectedNode?.type === 'drawing' ||
+    (selectedEdgeId && activeTool === 'select')
+  ) {
+    return <ContextualDrawingToolbar />;
+  }
+
+  // When Pencil or Eraser mode is active, show the compact drawing toolbar
+  if (activeTool === 'pencil' || activeTool === 'eraser') {
+    return <DrawingToolbar />;
+  }
 
   const moreProps = {
     narrow,
@@ -344,6 +674,17 @@ export function CanvasToolbar() {
           <Button variant="ghost" size="toolbar" onClick={() => addAtCenter('note')}>
             <StickyNote />
             Note
+          </Button>
+        </SimpleTooltip>
+        <SimpleTooltip label="Text" keys={['T']} side="top">
+          <Button
+            variant="ghost"
+            size="toolbar"
+            onClick={() => setActiveTool(activeTool === 'text' ? 'select' : 'text')}
+            className={cn(activeTool === 'text' && 'bg-ink text-paper hover:bg-ink hover:text-paper')}
+          >
+            <Type />
+            Text
           </Button>
         </SimpleTooltip>
 

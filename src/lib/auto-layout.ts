@@ -11,9 +11,16 @@ const ROW_OVERLAP = 16;
 /** Async protocols can bend; synchronous call chains should stay straight. */
 const ASYNC_EDGES = new Set(['pub-sub', 'mqtt', 'event-stream', 'websocket']);
 
-/** Only component nodes take part in layout; groups and notes keep their positions. */
+/** Only component nodes take part in layout; groups, notes, and drawings keep their positions. */
 function isLayoutNode(node: SystemNode) {
-  return node.type !== 'group' && node.type !== 'note';
+  return (
+    node.type !== 'group' &&
+    node.type !== 'note' &&
+    node.type !== 'drawing' &&
+    node.type !== 'text' &&
+    node.type !== 'shape' &&
+    node.type !== 'step'
+  );
 }
 
 /**

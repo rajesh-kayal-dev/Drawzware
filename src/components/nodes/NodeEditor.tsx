@@ -1,7 +1,16 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, ChevronRight, Copy, ExternalLink, Plus, Trash2, X } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  ExternalLink,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { useIsNarrow } from '@/hooks/useMediaQuery';
 import { NODE_REGISTRY, getNodesByCategory } from './node-registry';
@@ -32,7 +41,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-const TYPE_GROUPS = getNodesByCategory().filter((group) => group.category !== 'Other');
+const TYPE_GROUPS = getNodesByCategory().filter((group) => group.category !== 'Shapes');
 
 const ENV_OPTIONS: { value: 'none' | NodeEnvironment; label: string }[] = [
   { value: 'none', label: 'None' },
@@ -450,11 +459,12 @@ export function NodeEditor() {
   const isOpen = useCanvasStore((s) => {
     if (s.presentation.active || !s.selectedNodeId) return false;
     const node = s.nodes.find((n) => n.id === s.selectedNodeId);
-    if (!node || node.type === 'group' || node.type === 'note' || node.data.nodeType === 'group') return false;
+    if (!node || node.type === 'group' || node.type === 'note' || node.type === 'drawing' || node.type === 'shape' || node.type === 'text' || node.data.nodeType === 'group') return false;
     let selectedCount = 0;
     for (const n of s.nodes) {
       if (n.selected && ++selectedCount >= 2) return false;
     }
+    if (s.edges.some((e) => e.selected)) return false;
     return true;
   });
   const setSelectedNodeId = useCanvasStore((s) => s.setSelectedNodeId);

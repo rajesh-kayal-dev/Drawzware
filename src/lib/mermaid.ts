@@ -33,7 +33,7 @@ export function exportToMermaid(nodes: SystemNode[], edges: SystemEdge[]): strin
   // Nodes
   for (const node of nodes) {
     const data = node.data as SystemNodeData;
-    if (!data || node.type === 'note' || node.type === 'group') continue;
+    if (!data || node.type === 'note' || node.type === 'group' || node.type === 'drawing' || node.type === 'text' || node.type === 'shape' || node.type === 'step') continue;
 
     const id = sanitizeId(node.id);
     const label = sanitizeLabel(data.label || data.nodeType);

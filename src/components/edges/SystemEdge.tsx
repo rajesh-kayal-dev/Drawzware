@@ -1,14 +1,16 @@
 'use client';
 
-import { memo, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import {
   BaseEdge,
   EdgeLabelRenderer,
   getBezierPath,
+  getSmoothStepPath,
+  getStraightPath,
   useStore,
   type EdgeProps,
 } from '@xyflow/react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { ChevronDown, Pencil, Trash2 } from 'lucide-react';
 import { EDGE_REGISTRY, edgeAnimationClass } from './edge-registry';
 import { ProtocolMenu, ProtocolMenuItem, ProtocolMenuSeparator } from './ProtocolPicker';
 import { useCanvasStore } from '@/stores/useCanvasStore';
@@ -48,21 +50,54 @@ function SystemEdgeComponent({
   // Set once an edit is committed or cancelled, so a trailing blur doesn't commit again.
   const editDone = useRef(true);
 
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-  });
+  const routeType = data?.routeType ?? 'smoothstep';
+
+  const [edgePath, labelX, labelY] =
+    routeType === 'straight'
+      ? getStraightPath({
+          sourceX,
+          sourceY,
+          targetX,
+          targetY,
+        })
+      : routeType === 'bezier'
+      ? getBezierPath({
+          sourceX,
+          sourceY,
+          targetX,
+          targetY,
+          sourcePosition,
+          targetPosition,
+        })
+      : getSmoothStepPath({
+          sourceX,
+          sourceY,
+          targetX,
+          targetY,
+          sourcePosition,
+          targetPosition,
+          borderRadius: 8,
+        });
 
   const isSelected = !!selected || isStoreSelected;
+  const isSingleEdgeSelected = useCanvasStore((s) => {
+    const selectedEdges = s.edges.filter((e) => e.selected || e.id === s.selectedEdgeId);
+    const selectedNodes = s.nodes.filter((n) => n.selected);
+    return selectedNodes.length === 0 && selectedEdges.length === 1 && selectedEdges[0].id === id;
+  });
+
+  const isPopoverOpen = useCanvasStore(
+    (s) => s.activePopover?.type === 'edge-protocol' && s.activePopover?.id === id
+  );
+  const setActivePopover = useCanvasStore((s) => s.setActivePopover);
+  const closePopover = useCanvasStore((s) => s.closePopover);
+
   const label = data?.label || config.label;
   const meta = [data?.latency, data?.dataFormat, data?.throughput].filter(Boolean).join(' · ');
 
   const startEditing = () => {
     if (presenting) return;
+    closePopover();
     editDone.current = false;
     setDraft(data?.label ?? '');
     setEditing(true);
@@ -87,10 +122,17 @@ function SystemEdgeComponent({
         className={edgeAnimationClass(config)}
         style={{
           ...style,
-          stroke: isSelected ? 'var(--accent)' : edgeStroke(config.color),
-          strokeWidth: isSelected ? 2.5 : 1.75,
+          stroke: isSelected ? 'var(--accent)' : (data?.color || edgeStroke(config.color)),
+          strokeWidth: isSelected ? (data?.strokeWidth ? data.strokeWidth + 1 : 2.5) : (data?.strokeWidth ?? 1.75),
           strokeLinecap: 'round',
-          strokeDasharray: config.strokeDasharray,
+          strokeDasharray:
+            data?.strokeStyle === 'dashed'
+              ? '6 4'
+              : data?.strokeStyle === 'dotted'
+              ? '2 3'
+              : data?.strokeStyle === 'solid'
+              ? undefined
+              : config.strokeDasharray,
         }}
       />
       <EdgeLabelRenderer>
@@ -105,16 +147,26 @@ function SystemEdgeComponent({
         >
           <div
             className={cn(
-              'nodrag nopan absolute top-0 left-0 cursor-pointer rounded-full border px-[9px] py-0.5 text-[10.5px] leading-[14px] font-medium whitespace-nowrap shadow-[var(--shadow)] transition-colors duration-[120ms]',
+              'nodrag nopan absolute top-0 left-0 cursor-pointer rounded-full border px-[9px] py-0.5 text-[10.5px] leading-[14px] font-medium whitespace-nowrap shadow-[var(--shadow)] transition-colors duration-[120ms] inline-flex items-center gap-1',
               isSelected ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-paper text-ink-2'
             )}
             style={{ transform: 'translate(-50%, -50%)' }}
             onClick={(e) => {
               e.stopPropagation();
-              setSelectedEdgeId(id);
+              if (isSelected && isSingleEdgeSelected) {
+                if (isPopoverOpen) {
+                  closePopover();
+                } else {
+                  setActivePopover({ type: 'edge-protocol', id });
+                }
+              } else {
+                setSelectedEdgeId(id);
+                closePopover();
+              }
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
+              closePopover();
               startEditing();
             }}
           >
@@ -137,7 +189,26 @@ function SystemEdgeComponent({
                 style={{ width: `${Math.max(draft.length, config.label.length, 4) + 1}ch` }}
               />
             ) : (
-              label
+              <>
+                <span>{label}</span>
+                {isSingleEdgeSelected && (
+                  <button
+                    type="button"
+                    aria-label="Change protocol"
+                    className="inline-flex items-center justify-center rounded p-0.5 hover:opacity-80 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isPopoverOpen) {
+                        closePopover();
+                      } else {
+                        setActivePopover({ type: 'edge-protocol', id });
+                      }
+                    }}
+                  >
+                    <ChevronDown className={cn('size-3 transition-transform duration-150', isPopoverOpen && 'rotate-180')} />
+                  </button>
+                )}
+              </>
             )}
           </div>
           {meta && (
@@ -148,7 +219,7 @@ function SystemEdgeComponent({
               {meta}
             </div>
           )}
-          {isSelected && !presenting && !editing && (
+          {isPopoverOpen && isSingleEdgeSelected && !presenting && !editing && (
             <EdgeProtocolMenu
               edgeId={id}
               edgeType={edgeType}
@@ -178,26 +249,63 @@ function EdgeProtocolMenu({
   const isNarrow = useIsNarrow();
   const updateEdgeData = useCanvasStore((s) => s.updateEdgeData);
   const deleteEdge = useCanvasStore((s) => s.deleteEdge);
+  const closePopover = useCanvasStore((s) => s.closePopover);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handlePointerDown = (e: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        closePopover();
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        closePopover();
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [closePopover]);
 
   // On narrow screens the edge editor drawer covers this; it has the same controls.
   if (isNarrow) return null;
 
   return (
     <div
-      className="nodrag nopan nowheel animate-fade-in absolute left-0 pt-3"
+      ref={menuRef}
+      className="nodrag nopan nowheel animate-fade-in absolute left-0 pt-3 z-50"
       style={{ top, transform: `scale(${1 / zoom}) translateX(-50%)`, transformOrigin: '0 0' }}
     >
       <ProtocolMenu
         value={edgeType}
         onSelect={(type) => {
           if (type !== edgeType) updateEdgeData(edgeId, { edgeType: type });
+          closePopover();
         }}
       >
         <ProtocolMenuSeparator />
-        <ProtocolMenuItem icon={<Pencil />} onClick={onEditLabel}>
+        <ProtocolMenuItem
+          icon={<Pencil />}
+          onClick={() => {
+            closePopover();
+            onEditLabel();
+          }}
+        >
           Edit label
         </ProtocolMenuItem>
-        <ProtocolMenuItem icon={<Trash2 />} danger onClick={() => deleteEdge(edgeId)}>
+        <ProtocolMenuItem
+          icon={<Trash2 />}
+          danger
+          onClick={() => {
+            closePopover();
+            deleteEdge(edgeId);
+          }}
+        >
           Remove
         </ProtocolMenuItem>
       </ProtocolMenu>

@@ -30,7 +30,7 @@ export type NodeCategory =
   | 'Data'
   | 'Async'
   | 'Observability'
-  | 'Other';
+  | 'Shapes';
 
 export const NODE_CATEGORIES: NodeCategory[] = [
   'Client & Edge',
@@ -38,7 +38,7 @@ export const NODE_CATEGORIES: NodeCategory[] = [
   'Data',
   'Async',
   'Observability',
-  'Other',
+  'Shapes',
 ];
 
 /** One icon per category, used by the collapsed library rail. */
@@ -48,7 +48,7 @@ export const CATEGORY_ICONS: Record<NodeCategory, LucideIcon> = {
   Data: Database,
   Async: Radio,
   Observability: Activity,
-  Other: Shapes,
+  Shapes: Shapes,
 };
 
 export interface NodeTypeConfig {
@@ -225,14 +225,14 @@ export const NODE_REGISTRY: Record<SystemNodeType, NodeTypeConfig> = {
     category: 'Observability',
   },
 
-  // Other
+  // Shapes
   group: {
     label: 'Group',
     icon: SquareDashed,
     color: '#64748b', // slate-500
     defaultTechStack: [],
     suggestedTech: [],
-    category: 'Other',
+    category: 'Shapes',
   },
 };
 

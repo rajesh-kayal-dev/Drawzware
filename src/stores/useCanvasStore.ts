@@ -7,7 +7,7 @@ import {
   type Connection,
   type Viewport,
 } from '@xyflow/react';
-import type { SystemNode, SystemEdge, SystemNodeData, SystemEdgeData } from '@/types';
+import type { SystemNode, SystemEdge, SystemNodeData, SystemEdgeData, CanvasTool, PlacementItem, DrawingFormatting } from '@/types';
 
 interface HistoryEntry {
   nodes: SystemNode[];
@@ -46,6 +46,11 @@ function flipHandle(handle: string | null | undefined, role: 'source' | 'target'
   return `${side}-${role}`;
 }
 
+export interface ActivePopover {
+  type: 'edge-protocol';
+  id: string;
+}
+
 interface CanvasStore {
   // State
   nodes: SystemNode[];
@@ -54,6 +59,11 @@ interface CanvasStore {
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
   projectId: string | null;
+
+  // Contextual popover state (independent from selection)
+  activePopover: ActivePopover | null;
+  setActivePopover: (popover: ActivePopover | null) => void;
+  closePopover: () => void;
 
   // Pending edge type selection (right after connecting)
   pendingEdge: PendingEdge | null;
@@ -89,6 +99,37 @@ interface CanvasStore {
   saveStatus: SaveStatus;
   setSaveStatus: (status: SaveStatus) => void;
 
+  // Active canvas tool
+  activeTool: CanvasTool;
+  setActiveTool: (tool: CanvasTool) => void;
+  placementItem: PlacementItem | null;
+  setPlacementItem: (item: PlacementItem | null) => void;
+  brushColor: string;
+  setBrushColor: (color: string) => void;
+  strokeWidth: number;
+  setStrokeWidth: (width: number) => void;
+  eraserRadius: number;
+  setEraserRadius: (radius: number) => void;
+  isSpacePanning: boolean;
+  setIsSpacePanning: (panning: boolean) => void;
+  eraseDrawingNodes: (ids: string[]) => void;
+  eraseElements: (nodeIds: string[], edgeIds: string[]) => void;
+
+  // Text formatting defaults (remembers last used settings)
+  lastTextFormatting: {
+    fontSize: number;
+    fontFamily: string;
+    color: string;
+    bold: boolean;
+    italic: boolean;
+    underline: boolean;
+    align: 'left' | 'center' | 'right';
+  };
+  setLastTextFormatting: (formatting: Partial<CanvasStore['lastTextFormatting']>) => void;
+
+  lastDrawingFormatting: DrawingFormatting;
+  setLastDrawingFormatting: (formatting: Partial<DrawingFormatting>) => void;
+
   // Actions
   initCanvas: (projectId: string, nodes: SystemNode[], edges: SystemEdge[], viewport: Viewport) => void;
   onNodesChange: (changes: NodeChange<SystemNode>[]) => void;
@@ -99,8 +140,12 @@ interface CanvasStore {
   updateEdgeData: (edgeId: string, data: Partial<SystemEdgeData>) => void;
   deleteNode: (nodeId: string) => void;
   deleteEdge: (edgeId: string) => void;
+  deleteElements: (nodeIds: string[], edgeIds: string[]) => void;
+  clearSelection: () => void;
   reverseEdge: (edgeId: string) => void;
   setViewport: (viewport: Viewport) => void;
+  editingShapeId: string | null;
+  setEditingShapeId: (id: string | null) => void;
   setSelectedNodeId: (id: string | null) => void;
   setSelectedEdgeId: (id: string | null) => void;
   copySelection: () => void;
@@ -115,6 +160,7 @@ interface CanvasStore {
   alignSelection: () => void;
   toggleLock: (ids: string[]) => void;
   bringToFront: (id: string) => void;
+  sendToBack: (id: string) => void;
   clearCanvas: () => void;
   undo: () => void;
   redo: () => void;
@@ -123,12 +169,120 @@ interface CanvasStore {
   pushHistory: () => void;
 }
 
+function loadInitialTextFormatting() {
+  if (typeof window === 'undefined') {
+    return {
+      fontSize: 16,
+      fontFamily: 'sans',
+      color: 'var(--ink)',
+      bold: false,
+      italic: false,
+      underline: false,
+      align: 'left' as const,
+    };
+  }
+  try {
+    const raw = localStorage.getItem('sysdesign_last_text_formatting');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        fontSize: typeof parsed.fontSize === 'number' ? parsed.fontSize : 16,
+        fontFamily: typeof parsed.fontFamily === 'string' ? parsed.fontFamily : 'sans',
+        color: typeof parsed.color === 'string' ? parsed.color : 'var(--ink)',
+        bold: Boolean(parsed.bold),
+        italic: Boolean(parsed.italic),
+        underline: Boolean(parsed.underline),
+        align: parsed.align === 'center' || parsed.align === 'right' ? (parsed.align as 'center' | 'right') : ('left' as const),
+      };
+    }
+  } catch {
+    // fallback
+  }
+  return {
+    fontSize: 16,
+    fontFamily: 'sans',
+    color: 'var(--ink)',
+    bold: false,
+    italic: false,
+    underline: false,
+    align: 'left' as const,
+  };
+}
+
+function loadInitialDrawingFormatting(): DrawingFormatting {
+  if (typeof window === 'undefined') {
+    return {
+      strokeColor: '#3b82f6',
+      strokeWidth: 2.5,
+      strokeStyle: 'solid',
+      fillColor: 'transparent',
+      arrowStart: false,
+      arrowEnd: true,
+    };
+  }
+  try {
+    const raw = localStorage.getItem('sysdesign_last_drawing_formatting');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        strokeColor: typeof parsed.strokeColor === 'string' ? parsed.strokeColor : '#3b82f6',
+        strokeWidth: typeof parsed.strokeWidth === 'number' ? parsed.strokeWidth : 2.5,
+        strokeStyle: parsed.strokeStyle === 'dashed' || parsed.strokeStyle === 'dotted' ? parsed.strokeStyle : 'solid',
+        fillColor: typeof parsed.fillColor === 'string' ? parsed.fillColor : 'transparent',
+        arrowStart: Boolean(parsed.arrowStart),
+        arrowEnd: parsed.arrowEnd !== undefined ? Boolean(parsed.arrowEnd) : true,
+      };
+    }
+  } catch {
+    // fallback
+  }
+  return {
+    strokeColor: '#3b82f6',
+    strokeWidth: 2.5,
+    strokeStyle: 'solid',
+    fillColor: 'transparent',
+    arrowStart: false,
+    arrowEnd: true,
+  };
+}
+
 export const useCanvasStore = create<CanvasStore>((set, get) => ({
+  lastTextFormatting: loadInitialTextFormatting(),
+  setLastTextFormatting: (formatting) => {
+    set((state) => {
+      const updated = { ...state.lastTextFormatting, ...formatting };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('sysdesign_last_text_formatting', JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+      }
+      return { lastTextFormatting: updated };
+    });
+  },
+  lastDrawingFormatting: loadInitialDrawingFormatting(),
+  setLastDrawingFormatting: (formatting) => {
+    set((state) => {
+      const updated = { ...state.lastDrawingFormatting, ...formatting };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('sysdesign_last_drawing_formatting', JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+      }
+      return { lastDrawingFormatting: updated };
+    });
+  },
   nodes: [],
   edges: [],
   viewport: { x: 0, y: 0, zoom: 1 },
   selectedNodeId: null,
   selectedEdgeId: null,
+  activePopover: null,
+  setActivePopover: (activePopover) => set({ activePopover }),
+  closePopover: () => set({ activePopover: null }),
   projectId: null,
   history: [],
   historyIndex: -1,
@@ -149,12 +303,39 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   setShareOpen: (shareOpen) => set({ shareOpen }),
 
   presentation: { active: false, index: 0 },
-  startPresentation: () => set({ presentation: { active: true, index: 0 }, pendingEdge: null }),
+  startPresentation: () => set({ presentation: { active: true, index: 0 }, pendingEdge: null, activeTool: 'select' }),
   stopPresentation: () => set((state) => ({ presentation: { ...state.presentation, active: false } })),
   setPresentationIndex: (index) => set((state) => ({ presentation: { ...state.presentation, index } })),
 
   saveStatus: 'saved',
   setSaveStatus: (saveStatus) => set({ saveStatus }),
+
+  activeTool: 'select',
+  setActiveTool: (activeTool) => set({ activeTool }),
+  placementItem: null,
+  setPlacementItem: (placementItem) => set({ placementItem }),
+  brushColor: 'var(--ink)',
+  setBrushColor: (brushColor) => set({ brushColor }),
+  strokeWidth: 2.5,
+  setStrokeWidth: (strokeWidth) => set({ strokeWidth }),
+  eraserRadius: 14,
+  setEraserRadius: (eraserRadius) => set({ eraserRadius }),
+  isSpacePanning: false,
+  setIsSpacePanning: (isSpacePanning) => set({ isSpacePanning }),
+  eraseDrawingNodes: (ids) => {
+    get().eraseElements(ids, []);
+  },
+  eraseElements: (nodeIds, edgeIds) => {
+    if (nodeIds.length === 0 && edgeIds.length === 0) return;
+    const nodeIdSet = new Set(nodeIds);
+    const edgeIdSet = new Set(edgeIds);
+    set((state) => ({
+      nodes: state.nodes.filter((n) => !nodeIdSet.has(n.id)),
+      edges: state.edges.filter((e) => !edgeIdSet.has(e.id) && !nodeIdSet.has(e.source) && !nodeIdSet.has(e.target)),
+      selectedNodeId: state.selectedNodeId && nodeIdSet.has(state.selectedNodeId) ? null : state.selectedNodeId,
+      selectedEdgeId: state.selectedEdgeId && edgeIdSet.has(state.selectedEdgeId) ? null : state.selectedEdgeId,
+    }));
+  },
 
   initCanvas: (projectId, nodes, edges, viewport) => {
     set({
@@ -164,23 +345,75 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       viewport,
       selectedNodeId: null,
       selectedEdgeId: null,
+      activePopover: null,
       history: [{ nodes, edges }],
       historyIndex: 0,
       presentation: { active: false, index: 0 },
       saveStatus: 'saved',
+      activeTool: 'select',
+      placementItem: null,
+      isSpacePanning: false,
+      brushColor: 'var(--ink)',
     });
   },
 
   onNodesChange: (changes) => {
-    set((state) => ({
-      nodes: applyNodeChanges(changes, state.nodes),
-    }));
+    set((state) => {
+      let nodes = applyNodeChanges(changes, state.nodes);
+      nodes = nodes.map((node) => {
+        if (node.type === 'text') {
+          const restStyle = { ...node.style };
+          delete restStyle.width;
+          delete restStyle.height;
+          return {
+            ...node,
+            width: undefined,
+            height: undefined,
+            style: Object.keys(restStyle).length > 0 ? restStyle : undefined,
+            data: node.data?.widthMode === 'fixed' ? { ...node.data, widthMode: 'auto' as const } : node.data,
+          };
+        }
+        return node;
+      });
+      const hasSelectionChange = changes.some((c) => c.type === 'select');
+      if (!hasSelectionChange) return { nodes };
+
+      const selected = nodes.filter((n) => n.selected);
+      let selectedNodeId = state.selectedNodeId;
+      if (selectedNodeId && (!selected.some((n) => n.id === selectedNodeId) || selected.length > 1)) {
+        selectedNodeId = null;
+      }
+      if (!selectedNodeId && selected.length === 1) {
+        selectedNodeId = selected[0].id;
+      }
+      let editingShapeId = state.editingShapeId;
+      if (editingShapeId && selectedNodeId !== editingShapeId) {
+        editingShapeId = null;
+      }
+      const activePopover = selected.length > 1 ? null : state.activePopover;
+
+      return { nodes, selectedNodeId, editingShapeId, activePopover };
+    });
   },
 
   onEdgesChange: (changes) => {
-    set((state) => ({
-      edges: applyEdgeChanges(changes, state.edges),
-    }));
+    set((state) => {
+      const edges = applyEdgeChanges(changes, state.edges);
+      const hasSelectionChange = changes.some((c) => c.type === 'select');
+      if (!hasSelectionChange) return { edges };
+
+      const selected = edges.filter((e) => e.selected);
+      let selectedEdgeId = state.selectedEdgeId;
+      if (selected.length === 1) {
+        selectedEdgeId = selected[0].id;
+      } else if (selected.length === 0 || (selectedEdgeId && !selected.some((e) => e.id === selectedEdgeId))) {
+        selectedEdgeId = selected.length > 0 ? selected[0].id : null;
+      }
+      const activePopover =
+        selected.length === 1 && state.activePopover?.id === selected[0].id ? state.activePopover : null;
+
+      return { edges, selectedEdgeId, activePopover };
+    });
   },
 
   onConnect: (connection) => {
@@ -207,6 +440,34 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   updateNodeData: (nodeId, data) => {
     get().pushHistory();
+    const node = get().nodes.find((n) => n.id === nodeId);
+    if (node?.type === 'text') {
+      const textFormattingUpdates: Partial<CanvasStore['lastTextFormatting']> = {};
+      if (typeof data.fontSize === 'number') textFormattingUpdates.fontSize = data.fontSize;
+      if (typeof data.fontFamily === 'string') textFormattingUpdates.fontFamily = data.fontFamily;
+      if (typeof data.color === 'string') textFormattingUpdates.color = data.color;
+      if (typeof data.bold === 'boolean') textFormattingUpdates.bold = data.bold;
+      if (typeof data.italic === 'boolean') textFormattingUpdates.italic = data.italic;
+      if (typeof data.underline === 'boolean') textFormattingUpdates.underline = data.underline;
+      if (data.align === 'left' || data.align === 'center' || data.align === 'right') {
+        textFormattingUpdates.align = data.align;
+      }
+      if (Object.keys(textFormattingUpdates).length > 0) {
+        get().setLastTextFormatting(textFormattingUpdates);
+      }
+    }
+    if (node?.type === 'shape' || node?.type === 'drawing') {
+      const drawingFormattingUpdates: Partial<DrawingFormatting> = {};
+      if (typeof data.shapeStroke === 'string') drawingFormattingUpdates.strokeColor = data.shapeStroke;
+      if (typeof data.strokeWidth === 'number') drawingFormattingUpdates.strokeWidth = data.strokeWidth;
+      if (data.strokeStyle) drawingFormattingUpdates.strokeStyle = data.strokeStyle;
+      if (typeof data.shapeFill === 'string') drawingFormattingUpdates.fillColor = data.shapeFill;
+      if (typeof data.arrowStart === 'boolean') drawingFormattingUpdates.arrowStart = data.arrowStart;
+      if (typeof data.arrowEnd === 'boolean') drawingFormattingUpdates.arrowEnd = data.arrowEnd;
+      if (Object.keys(drawingFormattingUpdates).length > 0) {
+        get().setLastDrawingFormatting(drawingFormattingUpdates);
+      }
+    }
     set((state) => ({
       nodes: state.nodes.map((n) =>
         n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n
@@ -229,6 +490,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       nodes: state.nodes.filter((n) => n.id !== nodeId),
       edges: state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
       selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
+      activePopover: null,
     }));
   },
 
@@ -237,6 +499,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set((state) => ({
       edges: state.edges.filter((e) => e.id !== edgeId),
       selectedEdgeId: state.selectedEdgeId === edgeId ? null : state.selectedEdgeId,
+      activePopover: state.activePopover?.id === edgeId ? null : state.activePopover,
     }));
   },
 
@@ -246,12 +509,12 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       edges: state.edges.map((e) =>
         e.id === edgeId
           ? {
-              ...e,
-              source: e.target,
-              target: e.source,
-              sourceHandle: flipHandle(e.targetHandle, 'source'),
-              targetHandle: flipHandle(e.sourceHandle, 'target'),
-            }
+            ...e,
+            source: e.target,
+            target: e.source,
+            sourceHandle: flipHandle(e.targetHandle, 'source'),
+            targetHandle: flipHandle(e.sourceHandle, 'target'),
+          }
           : e
       ),
     }));
@@ -263,8 +526,29 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   setEdges: (edges) => set({ edges }),
 
-  setSelectedNodeId: (id) => set({ selectedNodeId: id, selectedEdgeId: null }),
-  setSelectedEdgeId: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),
+  editingShapeId: null,
+  setEditingShapeId: (editingShapeId) => set({ editingShapeId }),
+
+  setSelectedNodeId: (id) =>
+    set((state) => ({
+      selectedNodeId: id,
+      selectedEdgeId: null,
+      editingShapeId: state.editingShapeId === id ? state.editingShapeId : null,
+      activePopover: null,
+      nodes: id
+        ? state.nodes.map((n) => (n.id === id ? { ...n, selected: true } : n.selected ? { ...n, selected: false } : n))
+        : state.nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+    })),
+
+  setSelectedEdgeId: (id) =>
+    set((state) => ({
+      selectedEdgeId: id,
+      selectedNodeId: null,
+      activePopover: state.activePopover?.id === id ? state.activePopover : null,
+      edges: id
+        ? state.edges.map((e) => (e.id === id ? { ...e, selected: true } : e.selected ? { ...e, selected: false } : e))
+        : state.edges.map((e) => (e.selected ? { ...e, selected: false } : e)),
+    })),
 
   copySelection: () => {
     const { nodes, edges } = get();
@@ -313,7 +597,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         ...newNodes,
       ],
       edges: [...state.edges, ...newEdges],
-      selectedNodeId: newNodes.length === 1 ? newNodes[0].id : null,
+      selectedNodeId: null,
       clipboard: {
         nodes: structuredClone(newNodes),
         edges: structuredClone(newEdges),
@@ -321,28 +605,69 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     }));
   },
 
-  deleteSelection: () => {
-    const { nodes } = get();
-    const selectedIds = new Set(
-      nodes.filter((n) => n.selected).map((n) => n.id)
-    );
-    if (selectedIds.size === 0) return;
-    get().pushHistory();
+  clearSelection: () => {
     set((state) => ({
-      nodes: state.nodes.filter((n) => !selectedIds.has(n.id)),
-      edges: state.edges.filter(
-        (e) => !selectedIds.has(e.source) && !selectedIds.has(e.target)
-      ),
-      selectedNodeId:
-        state.selectedNodeId && selectedIds.has(state.selectedNodeId)
-          ? null
-          : state.selectedNodeId,
+      nodes: state.nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+      edges: state.edges.map((e) => (e.selected ? { ...e, selected: false } : e)),
+      selectedNodeId: null,
+      selectedEdgeId: null,
+      editingShapeId: null,
+      activePopover: null,
     }));
+  },
+
+  deleteElements: (nodeIds, edgeIds) => {
+    if (nodeIds.length === 0 && edgeIds.length === 0) return;
+    const nodeIdSet = new Set(nodeIds);
+    const edgeIdSet = new Set(edgeIds);
+    get().pushHistory();
+    set((state) => {
+      const remainingNodes = state.nodes.filter((n) => !nodeIdSet.has(n.id));
+      const remainingEdges = state.edges.filter(
+        (e) => !edgeIdSet.has(e.id) && !nodeIdSet.has(e.source) && !nodeIdSet.has(e.target)
+      );
+      const remainingEdgeIds = new Set(remainingEdges.map((e) => e.id));
+      return {
+        nodes: remainingNodes,
+        edges: remainingEdges,
+        selectedNodeId: state.selectedNodeId && nodeIdSet.has(state.selectedNodeId) ? null : state.selectedNodeId,
+        selectedEdgeId: state.selectedEdgeId && remainingEdgeIds.has(state.selectedEdgeId) ? state.selectedEdgeId : null,
+        activePopover: null,
+      };
+    });
+  },
+
+  deleteSelection: () => {
+    const { nodes, edges, selectedNodeId, selectedEdgeId } = get();
+    const selectedNodeIds = new Set(nodes.filter((n) => n.selected).map((n) => n.id));
+    if (selectedNodeId) selectedNodeIds.add(selectedNodeId);
+
+    const selectedEdgeIds = new Set(edges.filter((e) => e.selected).map((e) => e.id));
+    if (selectedEdgeId) selectedEdgeIds.add(selectedEdgeId);
+
+    if (selectedNodeIds.size === 0 && selectedEdgeIds.size === 0) return;
+
+    get().pushHistory();
+    set((state) => {
+      const remainingNodes = state.nodes.filter((n) => !selectedNodeIds.has(n.id));
+      const remainingEdges = state.edges.filter(
+        (e) => !selectedEdgeIds.has(e.id) && !selectedNodeIds.has(e.source) && !selectedNodeIds.has(e.target)
+      );
+      const remainingEdgeIds = new Set(remainingEdges.map((e) => e.id));
+      return {
+        nodes: remainingNodes,
+        edges: remainingEdges,
+        selectedNodeId: state.selectedNodeId && selectedNodeIds.has(state.selectedNodeId) ? null : state.selectedNodeId,
+        selectedEdgeId: state.selectedEdgeId && remainingEdgeIds.has(state.selectedEdgeId) ? state.selectedEdgeId : null,
+        activePopover: null,
+      };
+    });
   },
 
   selectAll: () => {
     set((state) => ({
       nodes: state.nodes.map((n) => ({ ...n, selected: true })),
+      edges: state.edges.map((e) => ({ ...e, selected: true })),
     }));
   },
 
@@ -377,7 +702,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set((state) => ({
       nodes: [...state.nodes.map((n) => ({ ...n, selected: false })), ...copies],
       edges: [...state.edges, ...edgeCopies],
-      selectedNodeId: copies.length === 1 ? copies[0].id : null,
+      selectedNodeId: null,
       selectedEdgeId: null,
     }));
   },
@@ -464,6 +789,15 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     get().pushHistory();
     set((state) => ({
       nodes: [...state.nodes.filter((n) => n.id !== id), node],
+    }));
+  },
+
+  sendToBack: (id) => {
+    const node = get().nodes.find((n) => n.id === id);
+    if (!node) return;
+    get().pushHistory();
+    set((state) => ({
+      nodes: [node, ...state.nodes.filter((n) => n.id !== id)],
     }));
   },
 

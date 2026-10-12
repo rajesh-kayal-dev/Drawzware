@@ -187,8 +187,29 @@
   --xy-handle-border-color-default: var(--paper);
 }
 
+/* Remove the post-selection bounding box shadow around multi-selected nodes */
+.react-flow__nodesselection,
+.react-flow__nodesselection-rect {
+  display: none !important;
+}
+
 .react-flow__node {
   transition: opacity 200ms ease;
+}
+.react-flow__node.react-flow__node-text,
+.react-flow__node[data-type="text"] {
+  width: auto !important;
+  height: auto !important;
+  max-width: max-content !important;
+  max-height: max-content !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.react-flow__node.react-flow__node-text > * {
+  width: max-content !important;
+  height: auto !important;
 }
 .react-flow__edge {
   transition: opacity 200ms ease;

@@ -145,9 +145,13 @@ function EdgeEditorContent({ edgeId, onClose }: { edgeId: string; onClose: () =>
 /** Editor for the selected connection. Floating panel on desktop, right drawer on narrow screens. */
 export function EdgeEditor() {
   const selectedEdgeId = useCanvasStore((s) => s.selectedEdgeId);
-  const isOpen = useCanvasStore(
-    (s) => !s.presentation.active && !!s.selectedEdgeId && s.edges.some((e) => e.id === s.selectedEdgeId)
-  );
+  const isOpen = useCanvasStore((s) => {
+    if (s.presentation.active || !s.selectedEdgeId) return false;
+    const selectedNodesCount = s.nodes.filter((n) => n.selected).length;
+    const selectedEdgesCount = s.edges.filter((e) => e.selected).length;
+    if (selectedNodesCount > 0 || selectedEdgesCount > 1) return false;
+    return s.edges.some((e) => e.id === s.selectedEdgeId);
+  });
   const setSelectedEdgeId = useCanvasStore((s) => s.setSelectedEdgeId);
   const isNarrow = useIsNarrow();
 

@@ -38,7 +38,7 @@ import { createSystemNode } from '@/lib/node-factory';
 import { getMinimapColor } from '@/lib/minimap';
 import { computeIssues, ValidationWarningsContext } from '@/lib/validation';
 import { cn } from '@/lib/utils';
-import type { SystemNode, SystemEdge as SystemEdgeModel, SystemNodeType } from '@/types';
+import type { SystemNode, SystemEdge as SystemEdgeModel, SystemNodeType, PlacementItem } from '@/types';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
 import { ValidationPanel } from './ValidationPanel';
@@ -51,11 +51,28 @@ import { ShortcutsDialog } from './ShortcutsDialog';
 import { OnboardingOverlay } from './OnboardingOverlay';
 import { ShareDialog } from './ShareDialog';
 import { ExportDialog } from './ExportDialog';
+import { FreehandDrawingNode } from '@/components/nodes/FreehandDrawingNode';
+import { CanvasTextNode } from '@/components/nodes/CanvasTextNode';
+import { ShapeNode } from '@/components/nodes/ShapeNode';
+import { StepNode } from '@/components/nodes/StepNode';
+import { JunctionNode } from '@/components/nodes/JunctionNode';
+import { PencilOverlay } from './PencilOverlay';
+import { ShapeDrawingOverlay } from './ShapeDrawingOverlay';
+import { TextFormattingToolbar } from './TextFormattingToolbar';
+import { createCanvasTextNode, createShapeNode, createStepNode, createJunctionNode } from '@/lib/node-factory';
 import { getFitViewOptions, presentationOrder } from './canvas-helpers';
 
-const nodeTypes = { system: BaseSystemNode, group: GroupNode, note: StickyNote };
+const nodeTypes = {
+  system: BaseSystemNode,
+  group: GroupNode,
+  note: StickyNote,
+  drawing: FreehandDrawingNode,
+  text: CanvasTextNode,
+  shape: ShapeNode,
+  step: StepNode,
+  junction: JunctionNode,
+};
 const edgeTypes = { system: SystemEdge };
-const DELETE_KEYS = ['Backspace', 'Delete'];
 const LIBRARY_WIDTH = 260 + 16;
 
 /** Dot grid: gap scales with zoom, dots stay ~1px like the Studio canvas ground. */
@@ -78,15 +95,22 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const selectedEdgeId = useCanvasStore((s) => s.selectedEdgeId);
   const initCanvas = useCanvasStore((s) => s.initCanvas);
   const addNode = useCanvasStore((s) => s.addNode);
-  const deleteNode = useCanvasStore((s) => s.deleteNode);
   const deleteEdge = useCanvasStore((s) => s.deleteEdge);
+  const deleteElements = useCanvasStore((s) => s.deleteElements);
+  const clearSelection = useCanvasStore((s) => s.clearSelection);
   const pushHistory = useCanvasStore((s) => s.pushHistory);
   const setPendingEdge = useCanvasStore((s) => s.setPendingEdge);
+  const setNodes = useCanvasStore((s) => s.setNodes);
   const setEdges = useCanvasStore((s) => s.setEdges);
   const presentation = useCanvasStore((s) => s.presentation);
   const setPresentationIndex = useCanvasStore((s) => s.setPresentationIndex);
   const libraryCollapsed = useCanvasStore((s) => s.libraryCollapsed);
   const setLibraryCollapsed = useCanvasStore((s) => s.setLibraryCollapsed);
+  const activeTool = useCanvasStore((s) => s.activeTool);
+  const setActiveTool = useCanvasStore((s) => s.setActiveTool);
+  const placementItem = useCanvasStore((s) => s.placementItem);
+  const setPlacementItem = useCanvasStore((s) => s.setPlacementItem);
+  const isSpacePanning = useCanvasStore((s) => s.isSpacePanning);
 
   const snap = useSettingsStore((s) => s.snap);
   const showMinimapSetting = useSettingsStore((s) => s.minimap);
@@ -99,7 +123,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const connectEndPos = useRef<{ x: number; y: number } | null>(null);
   const edgeReconnectSuccessful = useRef(true);
 
-  const { screenToFlowPosition, fitView } = useReactFlow();
+  const { screenToFlowPosition, fitView, getViewport, setViewport: setFlowViewport } = useReactFlow();
   useAutoSave();
   useKeyboardShortcuts();
 
@@ -141,9 +165,9 @@ function CanvasInner({ projectId }: { projectId: string }) {
   // Stable identity while the set of warned nodes is unchanged, so nodes don't re-render on every drag frame.
   const warningKey = validationActive
     ? issues
-        .filter((i) => i.severity === 'warning')
-        .map((i) => i.nodeId)
-        .join('|')
+      .filter((i) => i.severity === 'warning')
+      .map((i) => i.nodeId)
+      .join('|')
     : '';
   const warningNodeIds = useMemo<ReadonlySet<string>>(
     () => new Set(warningKey ? warningKey.split('|') : []),
@@ -181,35 +205,167 @@ function CanvasInner({ projectId }: { projectId: string }) {
 
   // ── Handlers ───────────────────────────────────────────
   const onNodeClick = useCallback(
-    (_: ReactMouseEvent, node: SystemNode) => {
+    (e: ReactMouseEvent, node: SystemNode) => {
       if (useCanvasStore.getState().presentation.active) {
         const i = order.findIndex((n) => n.id === node.id);
         if (i >= 0) setPresentationIndex(i);
         return;
       }
-      setSelectedNodeId(node.id);
+      if (e.ctrlKey || e.metaKey) return;
+      if (useCanvasStore.getState().activeTool !== 'select') {
+        setActiveTool('select');
+      }
+      // Single-click selects/drags the component on canvas without opening the right bar
     },
-    [order, setPresentationIndex, setSelectedNodeId]
+    [order, setPresentationIndex, setActiveTool]
+  );
+
+  const onNodeDoubleClick = useCallback(
+    (e: ReactMouseEvent, node: SystemNode) => {
+      if (useCanvasStore.getState().presentation.active) return;
+      if (e.ctrlKey || e.metaKey) return;
+      if (node.type === 'system') {
+        setSelectedNodeId(node.id);
+      }
+    },
+    [setSelectedNodeId]
   );
 
   const onEdgeClick = useCallback(
-    (_: ReactMouseEvent, edge: SystemEdgeModel) => {
+    (e: ReactMouseEvent, edge: SystemEdgeModel) => {
       if (useCanvasStore.getState().presentation.active) return;
+      if (e.ctrlKey || e.metaKey) return;
       setSelectedEdgeId(edge.id);
     },
     [setSelectedEdgeId]
   );
 
-  const onPaneClick = useCallback(() => {
-    setSelectedNodeId(null);
-    setSelectedEdgeId(null);
-    setContextMenu(null);
-  }, [setSelectedNodeId, setSelectedEdgeId]);
+  const onPaneClick = useCallback(
+    (e: ReactMouseEvent) => {
+      if (placementItem) {
+        const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+        let newNode: SystemNode | null = null;
+        if (placementItem.kind === 'shape' && placementItem.shapeType) {
+          newNode = createShapeNode(placementItem.shapeType, flowPos, placementItem.label);
+        } else if (placementItem.kind === 'step' && placementItem.stepId) {
+          newNode = createStepNode(placementItem.stepId, flowPos);
+        } else if (placementItem.kind === 'component' && placementItem.type) {
+          newNode = createSystemNode(placementItem.type as SystemNodeType, flowPos);
+          if (placementItem.label) newNode.data.label = placementItem.label;
+        } else if (placementItem.kind === 'group') {
+          newNode = createSystemNode('group', flowPos);
+          if (placementItem.label) newNode.data.label = placementItem.label;
+        } else if (placementItem.kind === 'junction') {
+          newNode = createJunctionNode(flowPos);
+        } else if (placementItem.kind === 'connection' && placementItem.edgeType) {
+          const nodeA = createShapeNode('rounded-rectangle', { x: flowPos.x - 120, y: flowPos.y }, 'Source');
+          const nodeB = createShapeNode('rounded-rectangle', { x: flowPos.x + 120, y: flowPos.y }, 'Target');
+          const newEdge: SystemEdgeModel = {
+            id: crypto.randomUUID(),
+            source: nodeA.id,
+            target: nodeB.id,
+            sourceHandle: 'right-source',
+            targetHandle: 'left-target',
+            type: 'system',
+            data: { edgeType: placementItem.edgeType, label: '' },
+          };
+          pushHistory();
+          setNodes([...nodes, nodeA, nodeB]);
+          setEdges([...edges, newEdge]);
+          setPlacementItem(null);
+          return;
+        }
 
-  const onNodesDelete = useCallback((deleted: SystemNode[]) => deleted.forEach((n) => deleteNode(n.id)), [deleteNode]);
+        if (newNode) {
+          pushHistory();
+          addNode(newNode);
+          setPlacementItem(null);
+          return;
+        }
+      }
+
+      if (activeTool === 'text') {
+        const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+        const { lastTextFormatting } = useCanvasStore.getState();
+        const newTextNode: SystemNode = {
+          ...createCanvasTextNode(flowPos, '', {
+            ...lastTextFormatting,
+            isNew: true,
+          }),
+          selected: true,
+        };
+        pushHistory();
+        addNode(newTextNode);
+        setSelectedNodeId(newTextNode.id);
+        setActiveTool('select');
+        return;
+      }
+      clearSelection();
+      setContextMenu(null);
+      if (useCanvasStore.getState().activeTool !== 'select') {
+        setActiveTool('select');
+      }
+    },
+    [
+      placementItem,
+      nodes,
+      edges,
+      activeTool,
+      screenToFlowPosition,
+      pushHistory,
+      addNode,
+      setNodes,
+      setEdges,
+      setSelectedNodeId,
+      setPlacementItem,
+      setActiveTool,
+      clearSelection,
+    ]
+  );
+
+  const onPaneDoubleClick = useCallback(
+    (e: ReactMouseEvent) => {
+      e.stopPropagation();
+      if (useCanvasStore.getState().presentation.active) return;
+      if (
+        e.target instanceof Element &&
+        e.target.closest(
+          '.react-flow__node, .react-flow__edge, .react-flow__controls, .react-flow__minimap, [role="toolbar"], [role="dialog"], [role="menu"]'
+        )
+      ) {
+        return;
+      }
+      const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      const { lastTextFormatting } = useCanvasStore.getState();
+      const newTextNode: SystemNode = {
+        ...createCanvasTextNode(flowPos, '', {
+          ...lastTextFormatting,
+          isNew: true,
+        }),
+        selected: true,
+      };
+      pushHistory();
+      addNode(newTextNode);
+      setSelectedNodeId(newTextNode.id);
+      setActiveTool('select');
+    },
+    [screenToFlowPosition, pushHistory, addNode, setSelectedNodeId, setActiveTool]
+  );
+
+  const onNodesDelete = useCallback(
+    (deleted: SystemNode[]) => {
+      const nodeIds = deleted.map((n) => n.id);
+      deleteElements(nodeIds, []);
+    },
+    [deleteElements]
+  );
+
   const onEdgesDelete = useCallback(
-    (deleted: SystemEdgeModel[]) => deleted.forEach((e) => deleteEdge(e.id)),
-    [deleteEdge]
+    (deleted: SystemEdgeModel[]) => {
+      const edgeIds = deleted.map((e) => e.id);
+      deleteElements([], edgeIds);
+    },
+    [deleteElements]
   );
 
   const onMoveEnd = useCallback(
@@ -265,28 +421,158 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const onDrop = useCallback(
     (event: DragEvent) => {
       event.preventDefault();
+      const customItemJson = event.dataTransfer.getData('application/system-design-item');
+      if (customItemJson) {
+        try {
+          const item = JSON.parse(customItemJson) as PlacementItem;
+          const p = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+          let newNode: SystemNode | null = null;
+          if (item.kind === 'shape' && item.shapeType) {
+            newNode = createShapeNode(item.shapeType, { x: p.x - 70, y: p.y - 45 }, item.label);
+          } else if (item.kind === 'step' && item.stepId) {
+            newNode = createStepNode(item.stepId, { x: p.x - 170, y: p.y - 100 });
+          } else if (item.kind === 'component' && item.type) {
+            newNode = createSystemNode(item.type as SystemNodeType, { x: p.x - 100, y: p.y - 36 });
+            if (item.label) newNode.data.label = item.label;
+          } else if (item.kind === 'group') {
+            newNode = createSystemNode('group', { x: p.x - 160, y: p.y - 100 });
+            if (item.label) newNode.data.label = item.label;
+          }
+          if (newNode) {
+            pushHistory();
+            addNode(newNode);
+            return;
+          }
+        } catch {
+          // fallthrough
+        }
+      }
       const nodeType = event.dataTransfer.getData('application/reactflow-nodetype') as SystemNodeType;
       if (!nodeType || !(nodeType in NODE_REGISTRY)) return;
       const p = screenToFlowPosition({ x: event.clientX, y: event.clientY });
       const isGroup = nodeType === 'group';
-      addNode(createSystemNode(nodeType, { x: p.x - (isGroup ? 160 : 100), y: p.y - (isGroup ? 100 : 36) }));
+      const node = createSystemNode(nodeType, { x: p.x - (isGroup ? 160 : 100), y: p.y - (isGroup ? 100 : 36) });
+      pushHistory();
+      addNode(node);
     },
-    [screenToFlowPosition, addNode]
+    [screenToFlowPosition, addNode, pushHistory]
   );
 
-  const onPaneContextMenu = useCallback((event: MouseEvent | ReactMouseEvent) => {
-    event.preventDefault();
-    if (useCanvasStore.getState().presentation.active) return;
-    setContextMenu({ x: event.clientX, y: event.clientY });
-  }, []);
+  const onPaneContextMenu = useCallback(
+    (event: MouseEvent | ReactMouseEvent) => {
+      event.preventDefault();
+      if (useCanvasStore.getState().presentation.active) return;
+      setContextMenu(null);
+      if (useCanvasStore.getState().activeTool !== 'select') {
+        setActiveTool('select');
+      }
+      if (useCanvasStore.getState().placementItem) {
+        setPlacementItem(null);
+      }
+    },
+    [setActiveTool, setPlacementItem]
+  );
 
-  const onNodeContextMenu = useCallback((event: ReactMouseEvent, node: SystemNode) => {
-    event.preventDefault();
-    if (useCanvasStore.getState().presentation.active) return;
-    setContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id });
-  }, []);
+  const onNodeContextMenu = useCallback(
+    (event: ReactMouseEvent, node: SystemNode) => {
+      event.preventDefault();
+      if (useCanvasStore.getState().presentation.active) return;
+      setContextMenu(null);
+      if (useCanvasStore.getState().activeTool !== 'select') {
+        setActiveTool('select');
+      }
+      if (useCanvasStore.getState().placementItem) {
+        setPlacementItem(null);
+      }
+      const currentNodes = useCanvasStore.getState().nodes;
+      const isAlreadySelected = currentNodes.find((n) => n.id === node.id)?.selected;
+      if (!isAlreadySelected) {
+        setNodes(
+          currentNodes.map((n) =>
+            n.id === node.id ? { ...n, selected: true } : { ...n, selected: false }
+          )
+        );
+      }
+    },
+    [setActiveTool, setPlacementItem, setNodes]
+  );
+
+  const onEdgeContextMenu = useCallback(
+    (event: ReactMouseEvent, edge: SystemEdgeModel) => {
+      event.preventDefault();
+      if (useCanvasStore.getState().presentation.active) return;
+      setContextMenu(null);
+      if (useCanvasStore.getState().activeTool !== 'select') {
+        setActiveTool('select');
+      }
+      if (useCanvasStore.getState().placementItem) {
+        setPlacementItem(null);
+      }
+      setSelectedEdgeId(edge.id);
+    },
+    [setActiveTool, setPlacementItem, setSelectedEdgeId]
+  );
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
+  const panStartRef = useRef<{ x: number; y: number; vpX: number; vpY: number; zoom: number } | null>(null);
+
+  const onPointerDownCapture = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button === 2) {
+        if (useCanvasStore.getState().activeTool !== 'select') {
+          setActiveTool('select');
+        }
+        if (useCanvasStore.getState().placementItem) {
+          setPlacementItem(null);
+        }
+      }
+
+      const isMiddle = e.button === 1;
+      const isSpaceDrag = e.button === 0 && isSpacePanning;
+      const isHandDrag = e.button === 0 && activeTool === 'hand';
+
+      if (isMiddle || isSpaceDrag || isHandDrag) {
+        e.preventDefault();
+        e.stopPropagation();
+        const currentVp = getViewport();
+        panStartRef.current = {
+          x: e.clientX,
+          y: e.clientY,
+          vpX: currentVp.x,
+          vpY: currentVp.y,
+          zoom: currentVp.zoom,
+        };
+
+        const prevCursor = document.body.style.cursor;
+        document.body.style.cursor = 'grabbing';
+
+        const onPointerMove = (ev: PointerEvent) => {
+          if (!panStartRef.current) return;
+          const dx = ev.clientX - panStartRef.current.x;
+          const dy = ev.clientY - panStartRef.current.y;
+          setFlowViewport({
+            x: panStartRef.current.vpX + dx,
+            y: panStartRef.current.vpY + dy,
+            zoom: panStartRef.current.zoom,
+          });
+        };
+
+        const onPointerUp = () => {
+          panStartRef.current = null;
+          document.body.style.cursor = prevCursor;
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', onPointerUp);
+          window.removeEventListener('pointercancel', onPointerUp);
+        };
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
+      }
+    },
+    [isSpacePanning, activeTool, getViewport, setFlowViewport, setActiveTool, setPlacementItem]
+  );
 
   const showMinimap = showMinimapSetting && !narrow && !presenting && !editorOpen;
   const showValidation = validationActive && !(narrow && editorOpen);
@@ -295,7 +581,26 @@ function CanvasInner({ projectId }: { projectId: string }) {
   return (
     <div className="flex h-dvh w-screen flex-col bg-bg">
       {!presenting && <CanvasHeader projectId={projectId} projectName={currentProject?.name} />}
-      <div className={cn('relative flex-1 overflow-hidden', !animatedEdges && 'edges-static')}>
+      <div
+        className={cn(
+          'relative flex-1 overflow-hidden',
+          !animatedEdges && 'edges-static',
+          activeTool === 'text' && 'cursor-text',
+          placementItem && 'cursor-crosshair',
+          (activeTool === 'hand' || isSpacePanning) &&
+          'cursor-grab active:cursor-grabbing [&_.react-flow__node]:pointer-events-none [&_.react-flow__edge]:pointer-events-none'
+        )}
+        onPointerDownCapture={onPointerDownCapture}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          if (useCanvasStore.getState().activeTool !== 'select') {
+            setActiveTool('select');
+          }
+          if (useCanvasStore.getState().placementItem) {
+            setPlacementItem(null);
+          }
+        }}
+      >
         <ValidationWarningsContext.Provider value={warningNodeIds}>
           <ReactFlow<SystemNode, SystemEdgeModel>
             nodes={flowNodes}
@@ -308,16 +613,20 @@ function CanvasInner({ projectId }: { projectId: string }) {
             onReconnectStart={onReconnectStart}
             onReconnectEnd={onReconnectEnd}
             onNodeClick={onNodeClick}
+            onNodeDoubleClick={onNodeDoubleClick}
             onEdgeClick={onEdgeClick}
             onPaneClick={onPaneClick}
+            onDoubleClick={onPaneDoubleClick}
             onNodesDelete={onNodesDelete}
             onEdgesDelete={onEdgesDelete}
             onMoveEnd={onMoveEnd}
             onNodeDragStop={onNodeDragStop}
+            onSelectionDragStop={onNodeDragStop}
             onDragOver={onDragOver}
             onDrop={onDrop}
             onPaneContextMenu={onPaneContextMenu}
             onNodeContextMenu={onNodeContextMenu}
+            onEdgeContextMenu={onEdgeContextMenu}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             defaultViewport={viewport}
@@ -326,16 +635,23 @@ function CanvasInner({ projectId }: { projectId: string }) {
             fitViewOptions={getFitViewOptions()}
             connectionMode={ConnectionMode.Loose}
             selectionMode={SelectionMode.Partial}
+            zoomOnDoubleClick={false}
+            selectionKeyCode={null}
+            selectionOnDrag={!presenting && activeTool === 'select' && !isSpacePanning}
+            multiSelectionKeyCode={['Control', 'Meta', 'Shift']}
             snapToGrid={snap}
             snapGrid={[20, 20]}
-            nodesDraggable={!presenting}
-            nodesConnectable={!presenting}
-            elementsSelectable={!presenting}
-            edgesReconnectable={!presenting}
-            deleteKeyCode={presenting ? null : DELETE_KEYS}
+            nodesDraggable={!presenting && activeTool === 'select' && !isSpacePanning}
+            nodesConnectable={!presenting && activeTool === 'select' && !isSpacePanning}
+            elementsSelectable={!presenting && activeTool === 'select' && !isSpacePanning}
+            edgesReconnectable={!presenting && activeTool === 'select' && !isSpacePanning}
+            panOnDrag={activeTool === 'hand' || isSpacePanning ? [0] : false}
+            deleteKeyCode={null}
             className="bg-bg"
           >
             <DotGrid />
+            <PencilOverlay />
+            <ShapeDrawingOverlay />
             {showMinimap && (
               <MiniMap<SystemNode>
                 position="bottom-right"
@@ -359,8 +675,18 @@ function CanvasInner({ projectId }: { projectId: string }) {
             <NodePalette />
             <CanvasToolbar />
             <SelectionActions />
+            <TextFormattingToolbar />
             {showValidation && <ValidationPanel issues={issues} editorOpen={editorOpen} />}
             {nodes.length === 0 && <EmptyCanvas offsetLeft={libraryOffset} />}
+            {placementItem && (
+              <div className="pointer-events-none fixed top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full border border-line bg-card/95 px-4 py-1.5 text-xs font-medium text-text shadow-[var(--shadow-lg)] backdrop-blur-md">
+                <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+                <span>
+                  Click canvas to place <strong className="font-semibold text-accent">{placementItem.label}</strong>
+                </span>
+                <span className="text-text-muted">· Esc to cancel</span>
+              </div>
+            )}
           </>
         )}
 

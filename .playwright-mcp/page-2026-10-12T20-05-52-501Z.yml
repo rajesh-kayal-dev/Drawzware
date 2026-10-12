@@ -1,0 +1,112 @@
+- generic:
+  - generic:
+    - banner:
+      - link [aria-hidden]:
+        - /url: /
+      - navigation [aria-hidden]:
+        - link:
+          - /url: /
+          - text: Projects
+      - status: Saved
+      - generic [aria-hidden]:
+        - button [disabled]: Present
+        - button: Export
+        - button: Share
+        - button
+    - generic:
+      - application:
+        - generic [aria-hidden]:
+          - link:
+            - /url: https://reactflow.dev
+            - text: React Flow
+      - generic [aria-hidden]:
+        - generic:
+          - generic:
+            - heading [level=2]: Design Library
+          - button
+        - generic:
+          - generic:
+            - button: Components
+            - button: Shapes
+            - button: Steps
+        - generic:
+          - generic:
+            - searchbox
+        - generic:
+          - generic:
+            - generic:
+              - button [expanded]: Client & Edge
+              - generic:
+                - button:
+                  - generic: Client
+                - button:
+                  - generic: CDN
+                - button:
+                  - generic: DNS
+                - button:
+                  - generic: WAF
+                - button:
+                  - generic: Load Balancer
+                - button:
+                  - generic: API Gateway
+            - generic:
+              - button: Compute
+            - generic:
+              - button: Data
+            - generic:
+              - button: Async
+            - generic:
+              - button: Observability
+            - generic:
+              - button: Shapes
+      - toolbar [aria-hidden]:
+        - button: Add
+        - button: Note
+        - button: Text
+        - button
+        - button: 100%
+        - button
+        - button [disabled]
+        - button [disabled]
+        - button [disabled]
+        - button
+      - generic [ref=e114]:
+        - heading [level=2] [ref=e138]: Start with a component
+        - generic [ref=e116]:
+          - button [ref=e139] [cursor=pointer]: Client
+          - button [ref=e140] [cursor=pointer]: CDN
+          - button [ref=e141] [cursor=pointer]: Load Balancer
+          - button [ref=e142] [cursor=pointer]: API Gateway
+          - button [ref=e143] [cursor=pointer]: Service
+          - button [ref=e144] [cursor=pointer]: Database
+          - button [ref=e145] [cursor=pointer]: Cache
+        - paragraph [ref=e124]:
+          - text: or press
+          - generic [ref=e125]:
+            - generic [ref=e126]: Ctrl
+            - generic [ref=e127]: K
+        - paragraph [ref=e128]: Drag from the library
+  - button "Open Next.js Dev Tools" [ref=e134] [cursor=pointer]
+  - alert
+  - dialog [ref=e147]:
+    - generic [aria-hidden] [ref=e148]:
+      - generic [ref=e149]:
+        - generic [ref=e151]: Client
+        - generic [ref=e155]: CDN
+        - generic [ref=e160]: API Gateway
+        - generic [ref=e164]: Serverless
+        - generic [ref=e169]: Database
+      - generic [ref=e175]: REST
+      - generic [ref=e180]:
+        - generic [ref=e181]: API Gateway
+        - generic [ref=e182]: AWS API Gateway
+      - generic [ref=e190]:
+        - generic [ref=e191]: API Lambda
+        - generic [ref=e192]: AWS Lambda
+    - generic [ref=e193]:
+      - generic [ref=e194]: 1 of 3
+      - heading "Drag components onto the canvas" [level=2] [ref=e195]
+      - paragraph [ref=e196]: The library on the left has clients, compute, data, async and observability blocks. Drop one anywhere; snap keeps it tidy.
+    - generic [ref=e197]:
+      - button "Skip" [ref=e202] [cursor=pointer]
+      - button "Next" [active] [ref=e203] [cursor=pointer]

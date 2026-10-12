@@ -28,6 +28,10 @@ export const MINIMAP_COLORS: Record<string, string> = {
 export function getMinimapColor(node: SystemNode): string {
   if (node.type === 'note') return MINIMAP_COLORS.note;
   if (node.type === 'group') return MINIMAP_COLORS.group;
+  if (node.type === 'drawing') return '#64748b';
+  if (node.type === 'text') return '#94a3b8';
+  if (node.type === 'shape') return '#a1a1aa';
+  if (node.type === 'step') return '#60a5fa';
   const nodeType = (node.data as SystemNodeData | undefined)?.nodeType;
   return (nodeType && MINIMAP_COLORS[nodeType]) || '#94a3b8';
 }
