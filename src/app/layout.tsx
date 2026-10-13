@@ -76,7 +76,7 @@ export const metadata: Metadata = {
 const themeScript = `
 (function() {
   try {
-    var pref = 'system';
+    var pref = 'dark';
     var raw = localStorage.getItem('sdc.settings');
     if (raw) {
       var s = JSON.parse(raw);
@@ -88,7 +88,7 @@ const themeScript = `
     var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.setAttribute('data-theme', 'dark');
   }
 })();
 `;
@@ -99,7 +99,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

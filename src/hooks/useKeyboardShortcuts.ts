@@ -157,6 +157,13 @@ export function useKeyboardShortcuts() {
         }
       }
 
+      // V key always restores the Select tool immediately
+      if (key === 'v') {
+        e.preventDefault();
+        s.setActiveTool('select');
+        return;
+      }
+
       // If a text node is selected, don't trigger tool shortcuts that could break text editing
       if (s.nodes.some((n) => n.selected && n.type === 'text')) {
         return;
@@ -165,11 +172,6 @@ export function useKeyboardShortcuts() {
       if (key === 'h') {
         e.preventDefault();
         s.setActiveTool(s.activeTool === 'hand' ? 'select' : 'hand');
-        return;
-      }
-      if (key === 'v') {
-        e.preventDefault();
-        s.setActiveTool('select');
         return;
       }
       if (key === 'r') {

@@ -24,7 +24,7 @@ interface SettingsStore {
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
-      theme: 'system',
+      theme: 'dark',
       snap: false,
       minimap: true,
       validation: true,

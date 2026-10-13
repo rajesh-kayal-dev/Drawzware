@@ -221,3 +221,35 @@ export const SYSTEM_DESIGN_STEPS: readonly SystemDesignStepConfig[] = [
 export function getStepConfig(id: string): SystemDesignStepConfig | undefined {
   return SYSTEM_DESIGN_STEPS.find((s) => s.id === id);
 }
+
+export interface StepFormattingPreferences {
+  fontSize?: number;
+  color?: string;
+  align?: 'left' | 'center' | 'right';
+  bold?: boolean;
+  italic?: boolean;
+}
+
+const STEP_FORMATTING_KEY = 'system-design-step-formatting';
+
+export function getStepFormatting(stepId: string): StepFormattingPreferences | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const raw = localStorage.getItem(STEP_FORMATTING_KEY);
+    if (!raw) return undefined;
+    const all = JSON.parse(raw);
+    return all[stepId];
+  } catch {
+    return undefined;
+  }
+}
+
+export function saveStepFormatting(stepId: string, formatting: StepFormattingPreferences) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(STEP_FORMATTING_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    all[stepId] = { ...(all[stepId] ?? {}), ...formatting };
+    localStorage.setItem(STEP_FORMATTING_KEY, JSON.stringify(all));
+  } catch {}
+}

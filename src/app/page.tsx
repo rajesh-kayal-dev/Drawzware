@@ -10,9 +10,9 @@ export default function DashboardPage() {
   const { handleFiles, importJson, importDockerCompose } = useProjectImport();
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg dot-grid [background-size:20px_20px] bg-fixed text-ink">
       <Header onImportJson={importJson} onImportDockerCompose={importDockerCompose} />
-      <main className="mx-auto w-full max-w-[1128px] px-6 pt-10 pb-20">
+      <main className="mx-auto w-full max-w-[1400px] px-6 sm:px-8 pt-8 pb-20">
         <MigrationBanner />
         <ProjectList />
       </main>

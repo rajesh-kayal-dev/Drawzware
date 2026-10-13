@@ -1,39 +1,59 @@
 import type { SystemNode, SystemEdge, SystemNodeData } from '@/types';
 
-/** Soft fills for minimap and thumbnail rects, per node type. */
+/** Vibrant fills for minimap and thumbnail rects, per node type and service name. */
 export const MINIMAP_COLORS: Record<string, string> = {
-  service: '#93bbfd',
-  database: '#86e0a5',
-  cache: '#fcd68d',
-  queue: '#f9a8d4',
-  'load-balancer': '#a5b4fc',
-  client: '#c4b5fd',
-  cdn: '#7dd3c4',
-  'api-gateway': '#fca5a5',
+  service: '#10b981',
+  database: '#0891b2',
+  cache: '#dc2626',
+  queue: '#9333ea',
+  'load-balancer': '#2563eb',
+  client: '#8b5cf6',
+  cdn: '#06b6d4',
+  'api-gateway': '#38bdf8',
   group: '#94a3b8',
-  note: '#fcd68d',
-  dns: '#7dd3fc',
-  waf: '#fdba74',
-  worker: '#94a3b8',
-  serverless: '#c4b5fd',
-  'container-cluster': '#67e8f9',
-  'object-storage': '#6ee7b7',
-  'search-index': '#fde047',
-  stream: '#fda4af',
-  scheduler: '#a8a29e',
-  logging: '#bef264',
-  monitoring: '#f0abfc',
+  note: '#f59e0b',
+  dns: '#0284c7',
+  waf: '#f97316',
+  worker: '#64748b',
+  serverless: '#f97316',
+  'container-cluster': '#06b6d4',
+  'object-storage': '#16a34a',
+  'search-index': '#eab308',
+  stream: '#ec4899',
+  scheduler: '#78716c',
+  logging: '#84cc16',
+  monitoring: '#d946ef',
 };
 
 export function getMinimapColor(node: SystemNode): string {
+  if (node.data?.color) return node.data.color;
   if (node.type === 'note') return MINIMAP_COLORS.note;
   if (node.type === 'group') return MINIMAP_COLORS.group;
   if (node.type === 'drawing') return '#64748b';
   if (node.type === 'text') return '#94a3b8';
   if (node.type === 'shape') return '#a1a1aa';
-  if (node.type === 'step') return '#60a5fa';
+  if (node.type === 'step') return '#8b5cf6';
+
+  const label = (node.data?.label || '').toLowerCase();
+  if (label.includes('auth')) return '#10b981';
+  if (label.includes('user')) return '#0284c7';
+  if (label.includes('order')) return '#f97316';
+  if (label.includes('redis')) return '#dc2626';
+  if (label.includes('kafka')) return '#9333ea';
+  if (label.includes('lambda')) return '#f97316';
+  if (label.includes('dynamo')) return '#0284c7';
+  if (label.includes('s3')) return '#16a34a';
+  if (label.includes('producer')) return '#16a34a';
+  if (label.includes('consumer')) return '#2563eb';
+  if (label.includes('balancer') || label.includes('lb')) return '#2563eb';
+  if (label.includes('gateway')) return '#0284c7';
+  if (label.includes('client')) return '#8b5cf6';
+  if (label.includes('monolith')) return '#7c3aed';
+  if (label.includes('web')) return '#16a34a';
+  if (label.includes('db') || label.includes('database')) return '#0891b2';
+
   const nodeType = (node.data as SystemNodeData | undefined)?.nodeType;
-  return (nodeType && MINIMAP_COLORS[nodeType]) || '#94a3b8';
+  return (nodeType && MINIMAP_COLORS[nodeType]) || '#64748b';
 }
 
 export interface Rect {

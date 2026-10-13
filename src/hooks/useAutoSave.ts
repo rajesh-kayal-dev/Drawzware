@@ -9,12 +9,23 @@ const RETRY_MS = 3000;
 
 /** Write the active canvas into its project. Returns false when localStorage refused the write. */
 function persistCanvas(): boolean {
-  const { nodes, edges, viewport, projectId } = useCanvasStore.getState();
+  const { nodes, edges, viewport, projectId, diagramType, diagramData } = useCanvasStore.getState();
   if (!projectId) return true;
   const projectStore = useProjectStore.getState();
   const project = projectStore.projects.find((p) => p.id === projectId);
   if (!project) return true;
-  return projectStore.saveProject({ ...project, nodes, edges, viewport });
+  const updatedDiagramData = {
+    ...diagramData,
+    [diagramType]: { nodes, edges },
+  };
+  return projectStore.saveProject({
+    ...project,
+    nodes,
+    edges,
+    viewport,
+    diagramType,
+    diagramData: updatedDiagramData,
+  });
 }
 
 /** Debounced save (500ms) + beforeunload. Drives saveStatus; retries every 3s after a failure. */

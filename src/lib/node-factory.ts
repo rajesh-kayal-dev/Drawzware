@@ -1,6 +1,6 @@
 import { NODE_REGISTRY } from '@/components/nodes/node-registry';
-import type { ShapeType, StepId, SystemNode, SystemNodeData, SystemNodeType } from '@/types';
-import { getStepConfig, SYSTEM_DESIGN_STEPS } from './steps-registry';
+import type { ERColumn, ShapeType, StepId, SystemNode, SystemNodeData, SystemNodeType } from '@/types';
+import { getStepConfig, getStepFormatting, SYSTEM_DESIGN_STEPS } from './steps-registry';
 
 let counter = 0;
 
@@ -105,7 +105,7 @@ export function createShapeNode(
   let height = dimensions?.height ?? 90;
 
   if (!dimensions) {
-    if (shapeType === 'circle' || shapeType === 'star') {
+    if (shapeType === 'circle' || shapeType === 'star' || shapeType === 'user') {
       width = 110;
       height = 110;
     } else if (shapeType === 'diamond') {
@@ -173,6 +173,8 @@ export function createStepNode(
   customData?: Partial<SystemNodeData>
 ): SystemNode {
   const stepConfig = getStepConfig(stepId) ?? SYSTEM_DESIGN_STEPS[0];
+  const savedFormatting = getStepFormatting(stepId);
+
   return {
     id: nextId('step'),
     type: 'step',
@@ -188,7 +190,87 @@ export function createStepNode(
       stepTitle: stepConfig.title,
       stepDescription: stepConfig.subtitle,
       stepContent: stepConfig.defaultContent,
+      ...savedFormatting,
       ...customData,
     },
   };
 }
+
+/** New sequence participant (actor, service, database) at a flow position. */
+export function createSequenceParticipantNode(
+  participantType: 'actor' | 'service' | 'database' = 'service',
+  position: { x: number; y: number },
+  label?: string,
+  color?: string
+): SystemNode {
+  const defaultLabel = participantType === 'actor' ? 'Actor' : participantType === 'database' ? 'Database' : 'Service';
+  return {
+    id: nextId('seq-part'),
+    type: 'sequence-participant',
+    position,
+    data: {
+      label: label || defaultLabel,
+      nodeType: 'service',
+      description: '',
+      techStack: [],
+      participantType,
+      color: color || (participantType === 'actor' ? '#a855f7' : participantType === 'database' ? '#06b6d4' : '#22c55e'),
+      lifelineLength: 380,
+    },
+  };
+}
+
+/** New sequence combined fragment (alt, loop, opt, par) at a flow position. */
+export function createSequenceFragmentNode(
+  fragmentType: 'alt' | 'loop' | 'opt' | 'par' = 'alt',
+  position: { x: number; y: number },
+  label?: string,
+  color?: string
+): SystemNode {
+  return {
+    id: nextId('seq-frag'),
+    type: 'sequence-fragment',
+    position,
+    style: { width: 320, height: 160 },
+    data: {
+      label: label || `${fragmentType} [Condition]`,
+      nodeType: 'service',
+      description: '',
+      techStack: [],
+      fragmentType,
+      fragmentCondition: label || `${fragmentType} [Condition]`,
+      color,
+    },
+  };
+}
+
+/** New ER entity table at a flow position. */
+export function createERTableNode(
+  tableType: 'table' | 'view' | 'enum' = 'table',
+  position: { x: number; y: number },
+  label?: string,
+  columns?: ERColumn[],
+  color?: string
+): SystemNode {
+  const defaultCols = columns || [
+    { id: 'col-1', name: 'id', type: 'UUID', isPk: true },
+    { id: 'col-2', name: 'name', type: 'string' },
+    { id: 'col-3', name: 'created_at', type: 'timestamp' },
+  ];
+
+  return {
+    id: nextId('er-table'),
+    type: 'er-table',
+    position,
+    data: {
+      label: label || 'table_name',
+      nodeType: 'database',
+      description: '',
+      techStack: [],
+      tableType,
+      columns: defaultCols,
+      color: color || (tableType === 'table' ? '#38bdf8' : tableType === 'view' ? '#8b5cf6' : '#10b981'),
+    },
+  };
+}
+

@@ -186,6 +186,9 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
     (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!presenting) {
+        if (useCanvasStore.getState().activeTool !== 'select') {
+          useCanvasStore.getState().setActiveTool('select');
+        }
         const current = data?.text ?? data?.label ?? '';
         setDraftText(current);
         initialTextRef.current = current;
@@ -223,6 +226,11 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
     <div
       ref={nodeRef}
       onDoubleClick={onDoubleClick}
+      onPointerDownCapture={() => {
+        if (useCanvasStore.getState().activeTool !== 'select') {
+          useCanvasStore.getState().setActiveTool('select');
+        }
+      }}
       className={cn(
         'group relative inline-block cursor-move select-none px-0.5 py-0 transition-colors w-fit h-auto',
         fontFamilyClass,

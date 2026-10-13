@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpDown, Check, ChevronDown, Plus, Search, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, LayoutGrid, List, Plus, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SearchInput } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,12 +15,12 @@ import { useProjectStore } from '@/stores/useProjectStore';
 import { toast } from '@/stores/useToastStore';
 import type { Project } from '@/types';
 import { DeleteProjectDialog } from './DeleteProjectDialog';
-import { ProjectCard } from './ProjectCard';
+import { ProjectCard, ProjectListItem } from './ProjectCard';
 import { ProjectModal } from './ProjectModal';
 import { TemplateStrip } from './TemplateStrip';
 import { createFromTemplate, exportProjectFile } from './project-io';
-
 import { canvasPath } from '@/lib/routes';
+
 type SortKey = 'edited' | 'name' | 'created';
 
 const SORT_LABEL: Record<SortKey, string> = {
@@ -37,7 +36,6 @@ function isTypingTarget(target: EventTarget | null) {
   return !!el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 }
 
-/** Latest stored copy of a project (cards may hold a slightly older object). */
 function latest(project: Project) {
   return useProjectStore.getState().projects.find((p) => p.id === project.id) ?? project;
 }
@@ -52,6 +50,7 @@ export function ProjectList() {
 
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('edited');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [modal, setModal] = useState<ModalState>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -60,7 +59,6 @@ export function ProjectList() {
     if (!loaded) loadProjects();
   }, [loaded, loadProjects]);
 
-  // `/` focuses search unless the user is typing somewhere or a dialog is open.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -128,89 +126,166 @@ export function ProjectList() {
   };
 
   return (
-    <div>
-      <div className="mb-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+    <div className="space-y-10">
+      {/* ── Main Hero Header ── */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[28px] leading-[1.2] font-semibold tracking-[-0.02em] text-ink">Projects</h1>
-          <p className="mt-1 min-h-[21px] text-[14px] text-ink-2">
-            {loaded && `${plural(projects.length, 'project')} · saved in this browser`}
-          </p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">Projects</h1>
+          <p className="mt-1 text-sm text-ink-2">Your diagrams, all in one place</p>
+          {loaded && (
+            <div className="mt-2.5 inline-flex items-center gap-2 rounded-full border border-line bg-paper px-3 py-1 text-xs text-ink-2 font-medium shadow-2xs">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{plural(projects.length, 'project')}</span>
+            </div>
+          )}
         </div>
-        <Button variant="primary" size="md" onClick={() => openCreate()}>
-          <Plus className="size-4" />
-          New project
-        </Button>
+
+        <button
+          type="button"
+          onClick={() => openCreate()}
+          className="inline-flex items-center gap-2 rounded-full bg-accent hover:opacity-90 px-5 py-2.5 text-sm font-medium text-accent-ink shadow-sm transition-all duration-150 cursor-pointer active:scale-95"
+        >
+          <Plus className="size-4 stroke-[2.5]" />
+          <span>New project</span>
+        </button>
       </div>
 
-      <div className="mb-11">
+      {/* ── Start from a template ── */}
+      <div>
         <TemplateStrip onSelect={handleUseTemplate} defaultExpanded={loaded && projects.length === 0} />
       </div>
 
-      {loaded &&
-        (projects.length === 0 ? (
-          <EmptyState onCreate={() => openCreate()} />
-        ) : (
-          <section aria-labelledby="recent-heading">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-              <div className="flex items-center gap-1">
-                <h2 id="recent-heading" className="text-[13px] font-medium text-ink-2">
-                  Recent
-                </h2>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-7 gap-1.5 px-2.5 text-[12.5px] font-normal">
-                      <ArrowUpDown className="size-[13px]" />
-                      {SORT_LABEL[sort]}
-                      <ChevronDown className="size-[13px] text-ink-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="min-w-[160px]">
-                    {(Object.keys(SORT_LABEL) as SortKey[]).map((key) => (
-                      <DropdownMenuItem key={key} onSelect={() => setSort(key)}>
-                        {SORT_LABEL[key]}
-                        <Check className={cn('ml-auto text-accent', key !== sort && 'invisible')} />
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+      {/* ── Your Projects Section ── */}
+      {loaded && (
+        <section aria-labelledby="your-projects-heading" className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="your-projects-heading" className="text-base font-semibold text-ink tracking-tight">
+              Your projects
+            </h2>
+
+            {/* Controls: Search, Sort, View mode */}
+            <div className="flex items-center gap-2.5">
+              {/* Search input */}
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-ink-3" />
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setQuery('');
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  placeholder="Search projects…"
+                  aria-label="Search projects"
+                  className="h-8 w-44 sm:w-60 rounded-lg border border-line bg-paper pl-8 pr-3 text-xs text-ink placeholder:text-ink-3 outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/30"
+                />
               </div>
-              <SearchInput
-                ref={searchRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    setQuery('');
-                    e.currentTarget.blur();
-                  }
-                }}
-                placeholder="Search projects…"
-                aria-label="Search projects"
-                className="h-8"
-                containerClassName="w-full sm:w-[260px]"
-              />
+
+              {/* Sort dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex h-8 items-center gap-1.5 rounded-lg border border-line bg-paper px-3 text-xs font-medium text-ink-2 hover:border-ink-3 hover:text-ink transition-colors cursor-pointer"
+                  >
+                    <span>{SORT_LABEL[sort]}</span>
+                    <ChevronDown className="size-3 text-ink-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-paper border-line text-ink min-w-[140px]">
+                  {(Object.keys(SORT_LABEL) as SortKey[]).map((key) => (
+                    <DropdownMenuItem
+                      key={key}
+                      onSelect={() => setSort(key)}
+                      className="cursor-pointer text-xs"
+                    >
+                      {SORT_LABEL[key]}
+                      <Check className={cn('ml-auto size-3.5 text-accent', key !== sort && 'invisible')} />
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* View toggle (Grid / List) */}
+              <div className="flex items-center rounded-lg border border-line bg-paper p-0.5">
+                <button
+                  type="button"
+                  aria-label="Grid view"
+                  onClick={() => setViewMode('grid')}
+                  className={cn(
+                    'flex size-7 items-center justify-center rounded-md transition-colors cursor-pointer',
+                    viewMode === 'grid'
+                      ? 'bg-line-2 text-ink shadow-2xs'
+                      : 'text-ink-3 hover:text-ink'
+                  )}
+                >
+                  <LayoutGrid className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="List view"
+                  onClick={() => setViewMode('list')}
+                  className={cn(
+                    'flex size-7 items-center justify-center rounded-md transition-colors cursor-pointer',
+                    viewMode === 'list'
+                      ? 'bg-line-2 text-ink shadow-2xs'
+                      : 'text-ink-3 hover:text-ink'
+                  )}
+                >
+                  <List className="size-3.5" />
+                </button>
+              </div>
             </div>
+          </div>
 
-            {visible.length === 0 ? (
-              <NoResults query={q} onCreate={() => openCreate(q)} />
-            ) : (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
-                {visible.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    onRename={handleRename}
-                    onDuplicate={handleDuplicate}
-                    onExport={handleExport}
-                    onDelete={handleDelete}
-                  />
-                ))}
-                {!q && <NewProjectCard onCreate={() => openCreate()} />}
-              </div>
-            )}
-          </section>
-        ))}
+          {/* Cards content */}
+          {visible.length === 0 && q ? (
+            <NoResults query={q} onCreate={() => openCreate(q)} />
+          ) : viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+              {visible.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onRename={handleRename}
+                  onDuplicate={handleDuplicate}
+                  onExport={handleExport}
+                  onDelete={handleDelete}
+                />
+              ))}
+              {!q && <CreateNewProjectDashedCard onCreate={() => openCreate()} />}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {visible.map((project) => (
+                <ProjectListItem
+                  key={project.id}
+                  project={project}
+                  onRename={handleRename}
+                  onDuplicate={handleDuplicate}
+                  onExport={handleExport}
+                  onDelete={handleDelete}
+                />
+              ))}
+              {!q && (
+                <button
+                  type="button"
+                  onClick={() => openCreate()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-line py-3 text-xs font-medium text-ink-2 hover:border-ink-3 hover:text-ink transition-colors cursor-pointer bg-paper/30"
+                >
+                  <Plus className="size-3.5 text-accent" />
+                  <span>Create a new project</span>
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
+      {/* Modals */}
       <ProjectModal
         open={!!modal}
         onClose={() => setModal(null)}
@@ -230,58 +305,40 @@ export function ProjectList() {
   );
 }
 
-function EmptyState({ onCreate }: { onCreate: () => void }) {
-  return (
-    <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-[14px] border border-dashed border-line p-6 text-center">
-      <div className="relative h-[72px] w-[120px]" aria-hidden>
-        <div className="absolute top-[18px] left-0 h-9 w-16 rounded-[8px] border border-line bg-paper shadow-[var(--shadow)]" />
-        <div className="absolute top-0 right-0 h-9 w-16 rounded-[8px] border border-line bg-paper shadow-[var(--shadow)]" />
-        <div className="absolute right-3 bottom-0 h-9 w-16 rounded-[8px] border border-dashed border-ink-3" />
-      </div>
-      <div className="grid gap-1">
-        <div className="text-[15px] font-semibold">No projects yet</div>
-        <div className="text-[13px] text-pretty text-ink-2">
-          Start from a template above, or draw your first system from scratch.
-        </div>
-      </div>
-      <Button variant="primary" size="md" onClick={onCreate}>
-        <Plus className="size-4" />
-        New project
-      </Button>
-    </div>
-  );
-}
-
-function NewProjectCard({ onCreate }: { onCreate: () => void }) {
+function CreateNewProjectDashedCard({ onCreate }: { onCreate: () => void }) {
   return (
     <button
       type="button"
       onClick={onCreate}
-      className="focus-ring group flex min-h-[232px] flex-col items-center justify-center gap-3 rounded-[14px] border border-dashed border-line text-center transition-[border-color,background-color] duration-[120ms] hover:border-ink-3 hover:bg-paper"
+      className="group flex min-h-[250px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-line hover:border-ink-3 bg-paper/20 hover:bg-paper/50 p-6 text-center transition-all duration-150 cursor-pointer"
     >
-      <span className="inline-flex size-10 items-center justify-center rounded-full bg-line-2 text-ink-2 transition-colors duration-[120ms] group-hover:bg-accent-soft group-hover:text-accent">
-        <Plus className="size-[18px]" />
-      </span>
-      <span className="grid gap-0.5">
-        <span className="text-[13.5px] font-medium text-ink">New project</span>
-        <span className="text-[12.5px] text-ink-3">Blank canvas or a template</span>
-      </span>
+      <div className="flex size-11 items-center justify-center rounded-full bg-accent/15 border border-accent/30 text-accent group-hover:scale-105 group-hover:bg-accent/25 transition-all">
+        <Plus className="size-5 stroke-[2.5]" />
+      </div>
+      <div>
+        <h3 className="text-sm font-semibold text-ink tracking-tight group-hover:text-accent transition-colors">
+          Create a new project
+        </h3>
+        <p className="mt-1 text-xs text-ink-2 max-w-[220px] leading-relaxed">
+          Start with a blank canvas or use a template to get going.
+        </p>
+      </div>
     </button>
   );
 }
 
 function NoResults({ query, onCreate }: { query: string; onCreate: () => void }) {
   return (
-    <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-[14px] border border-dashed border-line p-6 text-center">
-      <span className="inline-flex size-10 items-center justify-center rounded-[12px] bg-line-2 text-ink-3">
-        <Search className="size-[18px]" />
+    <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-line p-6 text-center bg-paper/20">
+      <span className="flex size-10 items-center justify-center rounded-xl bg-paper border border-line text-ink-3">
+        <Search className="size-4" />
       </span>
       <div className="grid gap-1">
-        <div className="text-[15px] font-semibold break-words">Nothing for “{query}”</div>
-        <div className="text-[13px] text-pretty text-ink-2">Try another name, or create a project with it.</div>
+        <div className="text-sm font-semibold text-ink">Nothing for “{query}”</div>
+        <div className="text-xs text-ink-2">Try another name, or create a project with it.</div>
       </div>
-      <Button variant="secondary" onClick={onCreate} className="max-w-full">
-        <span className="truncate">Create “{query}”</span>
+      <Button variant="secondary" onClick={onCreate} className="mt-2 text-xs">
+        <span>Create “{query}”</span>
       </Button>
     </div>
   );

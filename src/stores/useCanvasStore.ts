@@ -7,7 +7,8 @@ import {
   type Connection,
   type Viewport,
 } from '@xyflow/react';
-import type { SystemNode, SystemEdge, SystemNodeData, SystemEdgeData, CanvasTool, PlacementItem, DrawingFormatting } from '@/types';
+import type { SystemNode, SystemEdge, SystemNodeData, SystemEdgeData, CanvasTool, PlacementItem, DrawingFormatting, DiagramType } from '@/types';
+import { getInitialSequenceDiagram, getInitialERDiagram } from '@/lib/diagram-templates';
 
 interface HistoryEntry {
   nodes: SystemNode[];
@@ -59,6 +60,11 @@ interface CanvasStore {
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
   projectId: string | null;
+
+  // Diagram mode and multi-diagram separation
+  diagramType: DiagramType;
+  diagramData: Record<DiagramType, { nodes: SystemNode[]; edges: SystemEdge[] }>;
+  setDiagramType: (type: DiagramType) => void;
 
   // Contextual popover state (independent from selection)
   activePopover: ActivePopover | null;
@@ -114,6 +120,7 @@ interface CanvasStore {
   setIsSpacePanning: (panning: boolean) => void;
   eraseDrawingNodes: (ids: string[]) => void;
   eraseElements: (nodeIds: string[], edgeIds: string[]) => void;
+  applyEraseBatch: (updatedNodes: SystemNode[], deletedNodeIds: string[], deletedEdgeIds: string[]) => void;
 
   // Text formatting defaults (remembers last used settings)
   lastTextFormatting: {
@@ -131,7 +138,14 @@ interface CanvasStore {
   setLastDrawingFormatting: (formatting: Partial<DrawingFormatting>) => void;
 
   // Actions
-  initCanvas: (projectId: string, nodes: SystemNode[], edges: SystemEdge[], viewport: Viewport) => void;
+  initCanvas: (
+    projectId: string,
+    nodes: SystemNode[],
+    edges: SystemEdge[],
+    viewport: Viewport,
+    initialDiagramType?: DiagramType,
+    initialDiagramData?: Record<DiagramType, { nodes: SystemNode[]; edges: SystemEdge[] }>
+  ) => void;
   onNodesChange: (changes: NodeChange<SystemNode>[]) => void;
   onEdgesChange: (changes: EdgeChange<SystemEdge>[]) => void;
   onConnect: (connection: Connection) => void;
@@ -284,6 +298,49 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   setActivePopover: (activePopover) => set({ activePopover }),
   closePopover: () => set({ activePopover: null }),
   projectId: null,
+  diagramType: 'architecture',
+  diagramData: {
+    architecture: { nodes: [], edges: [] },
+    sequence: { nodes: [], edges: [] },
+    er: { nodes: [], edges: [] },
+  },
+  setDiagramType: (newType: DiagramType) => {
+    const current = get().diagramType;
+    if (current === newType) return;
+    const currentNodes = get().nodes;
+    const currentEdges = get().edges;
+
+    const prevDiagrams = {
+      ...get().diagramData,
+      [current]: { nodes: currentNodes, edges: currentEdges },
+    };
+
+    let next = prevDiagrams[newType];
+    if (!next || next.nodes.length === 0) {
+      if (newType === 'sequence') {
+        next = getInitialSequenceDiagram();
+      } else if (newType === 'er') {
+        next = getInitialERDiagram();
+      } else {
+        next = next || { nodes: [], edges: [] };
+      }
+    }
+
+    set({
+      diagramType: newType,
+      diagramData: {
+        ...prevDiagrams,
+        [newType]: next,
+      },
+      nodes: next.nodes,
+      edges: next.edges,
+      history: [{ nodes: next.nodes, edges: next.edges }],
+      historyIndex: 0,
+      selectedNodeId: null,
+      selectedEdgeId: null,
+      activePopover: null,
+    });
+  },
   history: [],
   historyIndex: -1,
   clipboard: null,
@@ -311,7 +368,15 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   setSaveStatus: (saveStatus) => set({ saveStatus }),
 
   activeTool: 'select',
-  setActiveTool: (activeTool) => set({ activeTool }),
+  setActiveTool: (activeTool) => {
+    set((state) => ({
+      activeTool,
+      placementItem: activeTool === 'select' ? null : state.placementItem,
+    }));
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.style.cursor = '';
+    }
+  },
   placementItem: null,
   setPlacementItem: (placementItem) => set({ placementItem }),
   brushColor: 'var(--ink)',
@@ -336,17 +401,64 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       selectedEdgeId: state.selectedEdgeId && edgeIdSet.has(state.selectedEdgeId) ? null : state.selectedEdgeId,
     }));
   },
+  applyEraseBatch: (updatedNodes, deletedNodeIds, deletedEdgeIds) => {
+    const delNodeSet = new Set(deletedNodeIds);
+    const delEdgeSet = new Set(deletedEdgeIds);
+    const updatedMap = new Map(updatedNodes.map((n) => [n.id, n]));
 
-  initCanvas: (projectId, nodes, edges, viewport) => {
+    set((state) => {
+      const nextNodes: SystemNode[] = [];
+      const handledUpdated = new Set<string>();
+
+      for (const n of state.nodes) {
+        if (delNodeSet.has(n.id)) continue;
+        if (updatedMap.has(n.id)) {
+          nextNodes.push(updatedMap.get(n.id)!);
+          handledUpdated.add(n.id);
+        } else {
+          nextNodes.push(n);
+        }
+      }
+
+      for (const un of updatedNodes) {
+        if (!handledUpdated.has(un.id) && !delNodeSet.has(un.id)) {
+          nextNodes.push(un);
+        }
+      }
+
+      const nextEdges = state.edges.filter(
+        (e) => !delEdgeSet.has(e.id) && !delNodeSet.has(e.source) && !delNodeSet.has(e.target)
+      );
+
+      return {
+        nodes: nextNodes,
+        edges: nextEdges,
+        selectedNodeId: state.selectedNodeId && delNodeSet.has(state.selectedNodeId) ? null : state.selectedNodeId,
+        selectedEdgeId: state.selectedEdgeId && delEdgeSet.has(state.selectedEdgeId) ? null : state.selectedEdgeId,
+      };
+    });
+  },
+
+  initCanvas: (projectId, nodes, edges, viewport, initialDiagramType = 'architecture', initialDiagramData) => {
+    const diagramData = initialDiagramData || {
+      architecture: { nodes, edges },
+      sequence: { nodes: [], edges: [] },
+      er: { nodes: [], edges: [] },
+    };
+    const activeNodes = diagramData[initialDiagramType]?.nodes || nodes;
+    const activeEdges = diagramData[initialDiagramType]?.edges || edges;
+
     set({
       projectId,
-      nodes,
-      edges,
+      diagramType: initialDiagramType,
+      diagramData,
+      nodes: activeNodes,
+      edges: activeEdges,
       viewport,
       selectedNodeId: null,
       selectedEdgeId: null,
       activePopover: null,
-      history: [{ nodes, edges }],
+      history: [{ nodes: activeNodes, edges: activeEdges }],
       historyIndex: 0,
       presentation: { active: false, index: 0 },
       saveStatus: 'saved',
@@ -418,6 +530,12 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   onConnect: (connection) => {
     const id = crypto.randomUUID();
+    const sourceNode = get().nodes.find((n) => n.id === connection.source);
+    const targetNode = get().nodes.find((n) => n.id === connection.target);
+    const isSourceArch = sourceNode?.type === 'system' && !sourceNode?.data?.shapeType;
+    const isTargetArch = targetNode?.type === 'system' && !targetNode?.data?.shapeType;
+    const isShapeConn = !isSourceArch || !isTargetArch;
+
     const newEdge: SystemEdge = {
       id,
       source: connection.source,
@@ -425,7 +543,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       sourceHandle: connection.sourceHandle,
       targetHandle: connection.targetHandle,
       type: 'system',
-      data: { edgeType: 'rest', label: '' },
+      data: {
+        edgeType: 'rest',
+        label: '',
+        isShapeConnection: isShapeConn,
+      },
     };
     get().pushHistory();
     set((state) => ({

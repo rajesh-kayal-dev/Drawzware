@@ -97,6 +97,19 @@ function ShapeSvg({
         />
       );
 
+    case 'user':
+      return (
+        <g {...commonProps}>
+          {/* Head */}
+          <circle cx="50" cy="28" r="18" fill={isTransparent ? 'none' : fill} />
+          {/* Body */}
+          <path
+            d="M 16 92 C 16 66, 32 58, 50 58 C 68 58, 84 66, 84 92 Z"
+            fill={isTransparent ? 'none' : fill}
+          />
+        </g>
+      );
+
     case 'line': {
       const hasPoints = points && points.length >= 2;
       const pathD = hasPoints ? pointsToSvgPath(points, 8) : 'M 3 50 L 97 50';
