@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState, Fragment, type DragEvent } from 'react';
 import {
-  LayoutGrid,
   Layers,
   FileText,
   Check,
@@ -71,7 +70,7 @@ import { useCanvasStore } from '@/stores/useCanvasStore';
 import { useIsNarrow } from '@/hooks/useMediaQuery';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/input';
-import { IconChip, Panel } from '@/components/ui/panel';
+import { Panel } from '@/components/ui/panel';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { getShortcutKeys } from '@/lib/shortcuts';
@@ -88,7 +87,7 @@ import {
   type SystemDesignStepConfig,
 } from '@/lib/steps-registry';
 
-export type LibraryTab = 'diagrams' | 'components' | 'shapes' | 'steps';
+export type LibraryTab = 'diagrams' | 'shapes' | 'steps';
 export type DiagramType = 'architecture' | 'sequence' | 'er';
 
 export interface DiagramItem {
@@ -1256,7 +1255,7 @@ function LibraryPanel({
       {/* Header matching reference image: Title on left with icon, collapse button on right */}
       <div className="flex items-center justify-between pt-2.5 pr-2.5 pb-2 pl-3.5 border-b border-line/60 h-[42px] shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          {activeTab === 'diagrams' || activeTab === 'components' ? (
+          {activeTab === 'diagrams' ? (
             <>
               <Network className="size-4 text-accent shrink-0" />
               <h2 className="text-[13.5px] font-semibold text-text tracking-tight truncate">Diagrams</h2>
@@ -1281,7 +1280,7 @@ function LibraryPanel({
       </div>
 
       {/* Three Selectors at top: Architecture, Sequence, ER Diagram (All 3 visible at all times) */}
-      {(activeTab === 'diagrams' || activeTab === 'components') && (
+      {activeTab === 'diagrams' && (
         <div className="px-2.5 pt-2.5 pb-1 shrink-0">
           <div className="grid grid-cols-3 gap-1.5 p-1 rounded-[10px] bg-line/25 border border-line/50">
             {/* 1. Architecture */}
@@ -1337,7 +1336,7 @@ function LibraryPanel({
         <SearchInput
           variant="inset"
           placeholder={
-            activeTab === 'diagrams' || activeTab === 'components'
+            activeTab === 'diagrams'
               ? 'Search components...'
               : activeTab === 'shapes'
                 ? 'Search shapes & symbols...'
@@ -1351,8 +1350,8 @@ function LibraryPanel({
 
       {/* Content Area - switches content of this same panel */}
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-3">
-        {/* ── TAB 0 & 1: DIAGRAMS & COMPONENTS (MATCHING REFERENCE IMAGE) ──────────── */}
-        {(activeTab === 'diagrams' || activeTab === 'components') && (
+        {/* ── TAB 0: DIAGRAMS (MATCHING REFERENCE IMAGE) ──────────── */}
+        {activeTab === 'diagrams' && (
           <div className="pt-1">
             {diagramType === 'architecture' && renderArchitectureComponents()}
             {diagramType === 'sequence' && (
@@ -1686,21 +1685,6 @@ function LibraryRail({
         <span className="text-[9px] leading-none tracking-tight truncate max-w-full">Diagrams</span>
       </button>
 
-      {/* 1. Components */}
-      <button
-        type="button"
-        aria-label="Components"
-        onClick={() => onSelectTab('components')}
-        className={cn(
-          'focus-ring flex flex-col items-center justify-center gap-1 w-full py-2 px-0.5 rounded-[8px] transition-colors cursor-pointer overflow-hidden',
-          activeTab === 'components' && !collapsed
-            ? 'bg-accent/15 text-accent shadow-2xs font-semibold'
-            : 'text-text-muted hover:text-text hover:bg-surface-2'
-        )}
-      >
-        <LayoutGrid className="size-[18px] shrink-0" />
-        <span className="text-[9px] leading-none tracking-tight truncate max-w-full">Components</span>
-      </button>
 
       {/* 2. Shapes */}
       <button
@@ -1742,7 +1726,6 @@ function LibrarySheet({
   onOpenChange,
   query,
   onQueryChange,
-  onAdd,
   diagramType = 'architecture',
   onDiagramTypeChange,
 }: {
@@ -1750,7 +1733,6 @@ function LibrarySheet({
   onOpenChange: (open: boolean) => void;
   query: string;
   onQueryChange: (q: string) => void;
-  onAdd: (type: SystemNodeType) => void;
   diagramType?: DiagramType;
   onDiagramTypeChange?: (dt: DiagramType) => void;
 }) {
@@ -1760,7 +1742,6 @@ function LibrarySheet({
   const setDiagType = onDiagramTypeChange ?? setLocalDiagramType;
   const setPlacementItem = useCanvasStore((s) => s.setPlacementItem);
 
-  const filteredComponents = useMemo(() => filterCategories(query), [query]);
   const filteredShapes = useMemo(() => filterShapeGroups(query), [query]);
   const filteredSteps = useMemo(() => filterSteps(query), [query]);
 
@@ -1796,16 +1777,6 @@ function LibrarySheet({
             )}
           >
             Diagrams
-          </button>
-          <button
-            type="button"
-            onClick={() => setSheetTab('components')}
-            className={cn(
-              'px-3 py-1 rounded-full text-xs font-medium transition-colors shrink-0',
-              sheetTab === 'components' ? 'bg-ink text-paper' : 'bg-surface-2 text-text-muted hover:text-text'
-            )}
-          >
-            Components
           </button>
           <button
             type="button"
@@ -1909,29 +1880,6 @@ function LibrarySheet({
             </div>
           )}
 
-          {sheetTab === 'components' && (
-            <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))' }}>
-              {filteredComponents.flatMap((g) => g.types).map(({ type, config }) => {
-                const Icon = config.icon;
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => {
-                      onAdd(type);
-                      onOpenChange(false);
-                    }}
-                    className="focus-ring flex h-11 items-center gap-2 rounded-[10px] border border-line bg-card px-2.5 text-left text-[12.5px] text-text transition-colors duration-[120ms] hover:bg-surface-2"
-                  >
-                    <IconChip color={config.color} size={24}>
-                      <Icon className="size-[14px]" />
-                    </IconChip>
-                    <span className="truncate">{config.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
 
           {sheetTab === 'shapes' && (
             <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))' }}>
@@ -2018,10 +1966,6 @@ export function NodePalette() {
         onQueryChange={setQuery}
         diagramType={diagramType}
         onDiagramTypeChange={setDiagramType}
-        onAdd={(type) => {
-          addAtCenter(type);
-          setCollapsed(true);
-        }}
       />
     );
   }
