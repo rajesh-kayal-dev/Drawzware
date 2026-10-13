@@ -5,8 +5,10 @@ import { ImportDropZone } from '@/components/project/ImportDropZone';
 import { MigrationBanner } from '@/components/project/MigrationBanner';
 import { ProjectList } from '@/components/project/ProjectList';
 import { useProjectImport } from '@/components/project/useProjectImport';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function DashboardPage() {
+  useDocumentTitle('Drawzware');
   const { handleFiles, importJson, importDockerCompose } = useProjectImport();
 
   return (

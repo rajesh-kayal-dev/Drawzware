@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl = "https://system-design-canvas-one.vercel.app";
-const title = "Drawzware — Visual System Architecture & Diagramming Tool";
+const title = "Drawzware";
 const description =
   "Free, open-source tool for designing system architectures, sequence diagrams, and ER models visually. " +
   "Drag-and-drop cloud components, services, databases, and more. " +
@@ -30,7 +30,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: {
     default: title,
-    template: "%s | Drawzware",
+    template: "%s",
   },
   description,
   keywords: [
@@ -81,7 +81,8 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/drawzware-icon.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.png", type: "image/png" },
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],

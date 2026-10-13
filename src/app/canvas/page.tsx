@@ -5,9 +5,14 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Canvas } from '@/components/canvas/Canvas';
 import { Button } from '@/components/ui/button';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useProjectStore } from '@/stores/useProjectStore';
 
 function CanvasRoute() {
   const id = useSearchParams().get('id');
+  const project = useProjectStore((s) => s.projects.find((p) => p.id === id));
+
+  useDocumentTitle(!id ? 'Drawzware' : (project?.name || undefined));
 
   if (!id) {
     return (

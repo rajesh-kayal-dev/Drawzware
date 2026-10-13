@@ -10,6 +10,7 @@ import { countComponents, createProjectWithContent } from '@/components/project/
 import { decodeCanvasFromUrl } from '@/lib/share';
 import { formatBytes, plural } from '@/lib/utils';
 import { useProjectStore } from '@/stores/useProjectStore';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 import { canvasPath } from '@/lib/routes';
 function SharedCanvasInner() {
@@ -21,6 +22,8 @@ function SharedCanvasInner() {
 
   const data = searchParams.get('d');
   const decoded = useMemo(() => (data ? decodeCanvasFromUrl(data) : null), [data]);
+
+  useDocumentTitle(decoded ? 'Shared Design' : 'Drawzware');
 
   useEffect(() => {
     if (!loaded) loadProjects();

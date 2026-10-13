@@ -27,6 +27,7 @@ import { cn, formatBytes, plural } from '@/lib/utils';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useSettingsStore, type ThemePreference } from '@/stores/useSettingsStore';
 import { toast } from '@/stores/useToastStore';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const SECTIONS = [
   { id: 'appearance', label: 'Appearance', icon: Monitor },
@@ -44,6 +45,7 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
 ];
 
 export default function SettingsPage() {
+  useDocumentTitle('Settings');
   const { preference, setPreference } = useTheme();
   const snap = useSettingsStore((s) => s.snap);
   const minimap = useSettingsStore((s) => s.minimap);

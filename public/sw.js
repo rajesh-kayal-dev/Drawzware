@@ -1,5 +1,5 @@
 // Drawzware Service Worker
-const CACHE_NAME = 'drawzware-pwa-v1';
+const CACHE_NAME = 'drawzware-pwa-v4';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -18,6 +18,8 @@ const PRECACHE_ASSETS = [
   '/icons/maskable-icon-512x512.png',
   '/icons/apple-touch-icon.png',
   '/favicon.ico',
+  '/favicon.png',
+  '/fevicon.png',
 ];
 
 // Install: Cache critical shell assets
