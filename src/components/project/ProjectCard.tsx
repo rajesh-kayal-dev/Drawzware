@@ -60,7 +60,7 @@ function ProjectCardComponent({ project, onRename, onDuplicate, onExport, onDele
             <span className="truncate">Edited {formatRelative(project.updatedAt)}</span>
             <span className="text-ink-3">·</span>
             <span className="font-mono text-[11px] text-ink-3 truncate">
-              {plural(connections, 'connection')}
+              {plural(components, 'component')} · {plural(connections, 'connection')}
             </span>
           </div>
         </div>

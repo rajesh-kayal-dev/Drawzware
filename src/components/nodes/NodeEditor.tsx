@@ -11,13 +11,10 @@ import {
   Trash2,
   X,
   Table,
-  Key,
   Box,
   User,
   Database,
   Split,
-  RefreshCw,
-  CheckSquare,
 } from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { useIsNarrow } from '@/hooks/useMediaQuery';

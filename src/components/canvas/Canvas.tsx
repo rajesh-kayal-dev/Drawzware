@@ -38,7 +38,7 @@ import { createSystemNode } from '@/lib/node-factory';
 import { getMinimapColor } from '@/lib/minimap';
 import { computeIssues, ValidationWarningsContext } from '@/lib/validation';
 import { cn } from '@/lib/utils';
-import type { SystemNode, SystemEdge as SystemEdgeModel, SystemNodeType, PlacementItem } from '@/types';
+import type { SystemNode, SystemEdge as SystemEdgeModel, SystemNodeType, PlacementItem, DiagramType } from '@/types';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
 import { ValidationPanel } from './ValidationPanel';
@@ -161,8 +161,8 @@ function CanvasInner({ projectId }: { projectId: string }) {
       project.nodes as SystemNode[],
       project.edges as SystemEdgeModel[],
       project.viewport,
-      (project as any).diagramType || 'architecture',
-      (project as any).diagramData
+      project.diagramType || 'architecture',
+      project.diagramData as Record<DiagramType, { nodes: SystemNode[]; edges: SystemEdgeModel[] }> | undefined
     );
     requestAnimationFrame(() => {
       fitView(getFitViewOptions(200));
@@ -728,7 +728,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
       pushHistory();
       addNode(node);
     },
-    [screenToFlowPosition, addNode, pushHistory]
+    [screenToFlowPosition, addNode, pushHistory, nodes, edges, setNodes, setEdges]
   );
 
   const onPaneContextMenu = useCallback(

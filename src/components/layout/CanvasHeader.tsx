@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useCanvasStore, type SaveStatus } from '@/stores/useCanvasStore';
 import { useProjectStore } from '@/stores/useProjectStore';
-import { useToastStore, toast } from '@/stores/useToastStore';
+import { toast } from '@/stores/useToastStore';
 import {
   exportToPng,
   exportToSvg,

@@ -1,5 +1,5 @@
 import { NODE_REGISTRY } from '@/components/nodes/node-registry';
-import type { ShapeType, StepId, SystemNode, SystemNodeData, SystemNodeType } from '@/types';
+import type { ERColumn, ShapeType, StepId, SystemNode, SystemNodeData, SystemNodeType } from '@/types';
 import { getStepConfig, getStepFormatting, SYSTEM_DESIGN_STEPS } from './steps-registry';
 
 let counter = 0;
@@ -249,7 +249,7 @@ export function createERTableNode(
   tableType: 'table' | 'view' | 'enum' = 'table',
   position: { x: number; y: number },
   label?: string,
-  columns?: any[],
+  columns?: ERColumn[],
   color?: string
 ): SystemNode {
   const defaultCols = columns || [

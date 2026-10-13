@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, ArrowLeft, ArrowLeftRight, ArrowRight, Clock, FileJson, GitFork, Trash2, Workflow } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowLeftRight, ArrowRight, Clock, FileJson, GitFork, Trash2 } from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { useIsNarrow } from '@/hooks/useMediaQuery';
 import { EDGE_REGISTRY } from './edge-registry';

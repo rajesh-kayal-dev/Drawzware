@@ -2,7 +2,7 @@
 
 import { memo, useState, useRef, useEffect } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Table, Plus, X, Key, Layers, Binary } from 'lucide-react';
+import { Table, Plus, X, Layers, Binary } from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { cn } from '@/lib/utils';
 import type { SystemNode, ERColumn } from '@/types';
@@ -15,7 +15,6 @@ const DEFAULT_COLUMNS: ERColumn[] = [
 function ERTableComponent({ id, data, selected }: NodeProps<SystemNode>) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(data.label || 'table_name');
-  const [editingColId, setEditingColId] = useState<string | null>(null);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
@@ -23,9 +22,13 @@ function ERTableComponent({ id, data, selected }: NodeProps<SystemNode>) {
   const tableType = data.tableType || 'table';
   const color = data.color || (tableType === 'table' ? '#38bdf8' : tableType === 'view' ? '#8b5cf6' : '#10b981');
 
-  useEffect(() => {
-    setDraftTitle(data.label || 'table_name');
-  }, [data.label]);
+  const [prevLabel, setPrevLabel] = useState(data.label);
+  if (prevLabel !== data.label) {
+    setPrevLabel(data.label);
+    if (!isEditingTitle) {
+      setDraftTitle(data.label || 'table_name');
+    }
+  }
 
   useEffect(() => {
     if (isEditingTitle) {
@@ -55,7 +58,6 @@ function ERTableComponent({ id, data, selected }: NodeProps<SystemNode>) {
       type: 'string',
     };
     updateColumns([...columns, newCol]);
-    setEditingColId(newCol.id);
   };
 
   const removeColumn = (colId: string) => {
@@ -151,7 +153,7 @@ function ERTableComponent({ id, data, selected }: NodeProps<SystemNode>) {
 
       {/* ── Columns Table Rows ── */}
       <div className="divide-y divide-line/40 py-0.5">
-        {columns.map((col, index) => {
+        {columns.map((col) => {
           const isPk = col.isPk;
           const isFk = col.isFk;
           const isUnique = col.isUnique;

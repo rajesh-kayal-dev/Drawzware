@@ -25,7 +25,7 @@ function persistCanvas(): boolean {
     viewport,
     diagramType,
     diagramData: updatedDiagramData,
-  } as any);
+  });
 }
 
 /** Debounced save (500ms) + beforeunload. Drives saveStatus; retries every 3s after a failure. */

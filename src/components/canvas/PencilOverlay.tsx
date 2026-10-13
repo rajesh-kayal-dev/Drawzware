@@ -357,7 +357,8 @@ export function PencilOverlay() {
         });
       }
 
-      let { nodes, edges } = useCanvasStore.getState();
+      let nodes = useCanvasStore.getState().nodes;
+      const edges = useCanvasStore.getState().edges;
 
       const toDeleteNodes = new Set<string>();
       const toDeleteEdges = new Set<string>();
@@ -451,24 +452,33 @@ export function PencilOverlay() {
     [activeTool]
   );
 
-  // Immediately deactivate drawing/erasing state when tool switches away or Escape is pressed
+  // Immediately deactivate drawing/erasing state when tool switches away
+  const [prevActiveTool, setPrevActiveTool] = useState(activeTool);
+  if (prevActiveTool !== activeTool) {
+    setPrevActiveTool(activeTool);
+    if (activeTool !== 'pencil' && activeTool !== 'eraser') {
+      setCurrentStroke([]);
+      setIsErasingActive(false);
+      setLastEraseFlowPos(null);
+    } else if (activeTool === 'pencil') {
+      setIsErasingActive(false);
+      setLastEraseFlowPos(null);
+    } else if (activeTool === 'eraser') {
+      setCurrentStroke([]);
+    }
+  }
+
   useEffect(() => {
     if (activeTool !== 'pencil' && activeTool !== 'eraser') {
       isDrawingRef.current = false;
       isErasingRef.current = false;
-      setCurrentStroke([]);
       pointsRef.current = [];
       if (cursorRef.current) cursorRef.current.style.display = 'none';
-      setIsErasingActive(false);
-      setLastEraseFlowPos(null);
     } else if (activeTool === 'pencil') {
       isErasingRef.current = false;
-      setIsErasingActive(false);
       if (cursorRef.current) cursorRef.current.style.display = 'none';
-      setLastEraseFlowPos(null);
     } else if (activeTool === 'eraser') {
       isDrawingRef.current = false;
-      setCurrentStroke([]);
       pointsRef.current = [];
     }
   }, [activeTool]);

@@ -44,10 +44,17 @@ export function ShapeDrawingOverlay() {
   const isDrawingRef = useRef(false);
 
   // Deactivate drawing state immediately when tool switches away from drawing tools
+  const [prevActiveTool, setPrevActiveTool] = useState(activeTool);
+  if (prevActiveTool !== activeTool) {
+    setPrevActiveTool(activeTool);
+    if (!DRAWING_TOOLS.has(activeTool)) {
+      setDragState(null);
+    }
+  }
+
   useEffect(() => {
     if (!DRAWING_TOOLS.has(activeTool)) {
       isDrawingRef.current = false;
-      setDragState(null);
     }
   }, [activeTool]);
 
@@ -116,7 +123,7 @@ export function ShapeDrawingOverlay() {
 
       e.currentTarget.setPointerCapture(e.pointerId);
     },
-    [activeTool, isSpacePanning, screenToFlowPosition, nodes]
+    [activeTool, isSpacePanning, screenToFlowPosition, nodes, setActiveTool]
   );
 
   const onPointerMove = useCallback(

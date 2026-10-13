@@ -13,9 +13,13 @@ function SequenceParticipantComponent({ id, data, selected }: NodeProps<SystemNo
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setDraftLabel(data.label || 'Participant');
-  }, [data.label]);
+  const [prevLabel, setPrevLabel] = useState(data.label);
+  if (prevLabel !== data.label) {
+    setPrevLabel(data.label);
+    if (!isEditing) {
+      setDraftLabel(data.label || 'Participant');
+    }
+  }
 
   useEffect(() => {
     if (isEditing) {

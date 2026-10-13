@@ -1,24 +1,16 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  Server,
-  Cloud,
   Database,
   Globe,
   Radio,
   ShieldCheck,
-  Activity,
-  Bot,
-  Layers,
   Box,
   Flame,
   KeyRound,
-  FileCheck2,
   HardDrive,
   Cpu,
   Table,
   LineChart,
-  Split,
-  Workflow,
   Sparkles,
 } from 'lucide-react';
 import type { SystemNodeType } from '@/types';

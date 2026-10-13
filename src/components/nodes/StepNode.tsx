@@ -11,7 +11,6 @@ import {
   ListOrdered,
   Minus,
   Palette,
-  Pencil,
   Plus,
 } from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
@@ -458,7 +457,6 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
   const presenting = useCanvasStore((s) => s.presentation.active);
   const pushHistory = useCanvasStore((s) => s.pushHistory);
 
-  const stepNumber = data?.stepNumber ?? 1;
   const title = data?.stepTitle ?? data?.label ?? 'System Design Step';
   const subtitle = data?.stepDescription ?? data?.description ?? '';
   const initialContent = data?.stepContent ?? '';
@@ -509,15 +507,22 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
         // ignore selection error
       }
     }
-  }, [isEditing]);
+  }, [isEditing, content]);
 
   // Keep local content in sync if data changes externally
-  useEffect(() => {
-    if (!isEditing && data?.stepContent !== undefined && data.stepContent !== initialContentRef.current) {
+  const [prevExternalContent, setPrevExternalContent] = useState(data?.stepContent);
+  if (prevExternalContent !== data?.stepContent) {
+    setPrevExternalContent(data?.stepContent);
+    if (!isEditing && data?.stepContent !== undefined) {
       setContent(data.stepContent);
+    }
+  }
+
+  useEffect(() => {
+    if (data?.stepContent !== undefined) {
       initialContentRef.current = data.stepContent;
     }
-  }, [data?.stepContent, isEditing]);
+  }, [data?.stepContent]);
 
   const finishEditing = useCallback(() => {
     if (editorRef.current) {

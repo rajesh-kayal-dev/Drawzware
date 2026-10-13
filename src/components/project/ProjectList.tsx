@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpDown, Check, ChevronDown, LayoutGrid, List, Plus, Search, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, LayoutGrid, List, Plus, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,

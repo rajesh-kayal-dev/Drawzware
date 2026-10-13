@@ -12,9 +12,13 @@ function SequenceFragmentComponent({ id, data, selected }: NodeProps<SystemNode>
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setDraftCondition(data.fragmentCondition || data.label || 'alt [Condition]');
-  }, [data.fragmentCondition, data.label]);
+  const [prevCondition, setPrevCondition] = useState(data.fragmentCondition || data.label);
+  if (prevCondition !== (data.fragmentCondition || data.label)) {
+    setPrevCondition(data.fragmentCondition || data.label);
+    if (!isEditing) {
+      setDraftCondition(data.fragmentCondition || data.label || 'alt [Condition]');
+    }
+  }
 
   useEffect(() => {
     if (isEditing) {

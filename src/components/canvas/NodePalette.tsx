@@ -13,8 +13,6 @@ import {
   PanelLeft,
   Pencil,
   Type,
-  Milestone,
-  Shapes as ShapesIcon,
   Search,
   Square,
   Circle,
@@ -59,7 +57,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  CATEGORY_ICONS,
   getNodesByCategory,
   type NodeCategory,
   type NodeTypeConfig,
@@ -69,7 +66,6 @@ import {
   CLOUD_PROVIDERS,
   CLOUD_CATEGORIES,
   type CloudServiceItem,
-  type CloudProvider,
 } from '@/lib/cloud-registry';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { useIsNarrow } from '@/hooks/useMediaQuery';
@@ -2011,7 +2007,7 @@ export function NodePalette() {
   const [expandedCategory, setExpandedCategory] = useState<CategoryKey | null>(
     ALL_CATEGORIES[0].category
   );
-  const [scrollTarget, setScrollTarget] = useState<ScrollTarget | null>(null);
+  const [scrollTarget] = useState<ScrollTarget | null>(null);
 
   if (narrow) {
     return (
