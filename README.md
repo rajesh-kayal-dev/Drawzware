@@ -5,11 +5,6 @@
   <img src="docs/screenshots/drawzware-logo.png" alt="Drawzware Logo" width="320">
 </picture>
 
-<br />
-
-<p align="center">
-  <img src="docs/screenshots/icon-512x512.png" alt="Drawzware App Icon" width="72" height="72" style="border-radius: 16px;" />
-</p>
 
 ### Modern System Design & Architecture Diagramming
 
@@ -23,7 +18,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss)](https://tailwindcss.com)
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable-1d6f42?logo=pwa)](https://web.dev/progressive-web-apps/)
 
-[**Features**](#features) • [**Screenshots**](#screenshots) • [**Quick Start**](#quick-start) • [**Templates**](#templates) • [**Tech Stack**](#tech-stack) • [**Keyboard Shortcuts**](#keyboard-shortcuts)
+[**Features**](#features) • [**Screenshots**](#screenshots) • [**Quick Start**](#quick-start) • [**Templates**](#templates) • [**Tech Stack**](#tech-stack) • [**Contributing**](CONTRIBUTING.md)
 
 ---
 
@@ -258,6 +253,16 @@ Because Drawzware is 100% client-side, it compiles to static assets (`output: "e
 - **Vercel**: Deploy directly by connecting your repository. Production and preview deployments work out of the box (`vercel.json` included).
 - **Cloudflare Workers / Pages**: Run `npm run deploy:cloudflare` to build and deploy static assets directly with Wrangler (`wrangler.jsonc` included).
 - **GitHub Pages / Netlify / AWS S3**: Deploy the generated `./out` directory to any static file server.
+
+---
+
+## Community & Contributing
+
+We welcome community contributions, suggestions, and feedback! Please review our community guidelines:
+
+- [**Contributing Guide**](CONTRIBUTING.md) — How to set up your environment, follow coding conventions, and submit pull requests.
+- [**Code of Conduct**](CODE_OF_CONDUCT.md) — Standards and expectations for an inclusive and respectful community.
+- [**Security Policy**](SECURITY.md) — How to responsibly and privately disclose security vulnerabilities.
 
 ---
 
