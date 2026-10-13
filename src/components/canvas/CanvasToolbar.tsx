@@ -667,15 +667,14 @@ export function CanvasToolbar() {
             </DropdownMenuTrigger>
           </SimpleTooltip>
           <DropdownMenuContent side="top" align="start" sideOffset={10} className="w-[200px]">
+            <DropdownMenuItem onSelect={() => addAtCenter('note')}>
+              <StickyNote />
+              Note
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <AddComponentSubmenus onAdd={addAtCenter} />
           </DropdownMenuContent>
         </DropdownMenu>
-        <SimpleTooltip label="Add note" side="top">
-          <Button variant="ghost" size="toolbar" onClick={() => addAtCenter('note')}>
-            <StickyNote />
-            Note
-          </Button>
-        </SimpleTooltip>
         <SimpleTooltip label="Text" keys={['T']} side="top">
           <Button
             variant="ghost"

@@ -59,7 +59,18 @@ import { JunctionNode } from '@/components/nodes/JunctionNode';
 import { PencilOverlay } from './PencilOverlay';
 import { ShapeDrawingOverlay } from './ShapeDrawingOverlay';
 import { TextFormattingToolbar } from './TextFormattingToolbar';
-import { createCanvasTextNode, createShapeNode, createStepNode, createJunctionNode } from '@/lib/node-factory';
+import {
+  createCanvasTextNode,
+  createShapeNode,
+  createStepNode,
+  createJunctionNode,
+  createSequenceParticipantNode,
+  createSequenceFragmentNode,
+  createERTableNode,
+} from '@/lib/node-factory';
+import { SequenceParticipantNode } from '@/components/nodes/SequenceParticipantNode';
+import { SequenceFragmentNode } from '@/components/nodes/SequenceFragmentNode';
+import { ERTableNode } from '@/components/nodes/ERTableNode';
 import { getFitViewOptions, presentationOrder } from './canvas-helpers';
 
 const nodeTypes = {
@@ -71,9 +82,12 @@ const nodeTypes = {
   shape: ShapeNode,
   step: StepNode,
   junction: JunctionNode,
+  'sequence-participant': SequenceParticipantNode,
+  'sequence-fragment': SequenceFragmentNode,
+  'er-table': ERTableNode,
 };
 const edgeTypes = { system: SystemEdge };
-const LIBRARY_WIDTH = 260 + 16;
+const LIBRARY_WIDTH = 288 + 76 + 16;
 
 /** Dot grid: gap scales with zoom, dots stay ~1px like the Studio canvas ground. */
 function DotGrid() {
@@ -142,7 +156,14 @@ function CanvasInner({ projectId }: { projectId: string }) {
     if (!loaded) return;
     const project = useProjectStore.getState().projects.find((p) => p.id === projectId);
     if (!project) return;
-    initCanvas(projectId, project.nodes as SystemNode[], project.edges as SystemEdgeModel[], project.viewport);
+    initCanvas(
+      projectId,
+      project.nodes as SystemNode[],
+      project.edges as SystemEdgeModel[],
+      project.viewport,
+      (project as any).diagramType || 'architecture',
+      (project as any).diagramData
+    );
     requestAnimationFrame(() => {
       fitView(getFitViewOptions(200));
     });
@@ -156,7 +177,13 @@ function CanvasInner({ projectId }: { projectId: string }) {
   // ── Derived chrome state ───────────────────────────────
   const selectedCount = useMemo(() => nodes.reduce((n, node) => n + (node.selected ? 1 : 0), 0), [nodes]);
   const selectedNode = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : undefined;
-  const nodeEditorOpen = selectedNode?.type === 'system' && selectedCount < 2;
+  const nodeEditorOpen =
+    !!selectedNode &&
+    (selectedNode.type === 'system' ||
+      selectedNode.type === 'sequence-participant' ||
+      selectedNode.type === 'sequence-fragment' ||
+      selectedNode.type === 'er-table') &&
+    selectedCount < 2;
   const edgeEditorOpen = !!selectedEdgeId && edges.some((e) => e.id === selectedEdgeId);
   const editorOpen = !presenting && (nodeEditorOpen || edgeEditorOpen);
 
@@ -257,7 +284,123 @@ function CanvasInner({ projectId }: { projectId: string }) {
           if (placementItem.label) newNode.data.label = placementItem.label;
         } else if (placementItem.kind === 'junction') {
           newNode = createJunctionNode(flowPos);
+        } else if (placementItem.kind === 'sequence-participant') {
+          newNode = createSequenceParticipantNode(placementItem.participantType || 'service', flowPos, placementItem.label);
+        } else if (placementItem.kind === 'sequence-fragment') {
+          newNode = createSequenceFragmentNode(placementItem.fragmentType || 'alt', flowPos, placementItem.label);
+        } else if (placementItem.kind === 'er-table') {
+          newNode = createERTableNode(placementItem.tableType || 'table', flowPos, placementItem.label || 'table_name', placementItem.columns);
         } else if (placementItem.kind === 'connection' && placementItem.edgeType) {
+          if (placementItem.messageType) {
+            const participants = nodes.filter((n) => n.type === 'sequence-participant');
+            if (participants.length >= 2) {
+              const sorted = [...participants].sort(
+                (a, b) => Math.abs(a.position.x - flowPos.x) - Math.abs(b.position.x - flowPos.x)
+              );
+              const [pA, pB] = [sorted[0], sorted[1]].sort((a, b) => a.position.x - b.position.x);
+              const newEdge: SystemEdgeModel = {
+                id: crypto.randomUUID(),
+                source: pA.id,
+                target: pB.id,
+                sourceHandle: 'right-out-0',
+                targetHandle: 'left-in-0',
+                type: 'system',
+                data: {
+                  edgeType: 'rest',
+                  messageType: placementItem.messageType,
+                  strokeStyle: placementItem.strokeStyle || (placementItem.messageType === 'sync' ? 'solid' : 'dashed'),
+                  arrowhead: placementItem.messageType === 'async' ? 'open' : 'filled',
+                  color: '#3b82f6',
+                  label: placementItem.label || 'Message',
+                  arrowEnd: true,
+                },
+              };
+              pushHistory();
+              setEdges([...edges, newEdge]);
+              setPlacementItem(null);
+              return;
+            } else {
+              const nodeA = createSequenceParticipantNode('service', { x: flowPos.x - 140, y: flowPos.y - 40 }, 'Participant A');
+              const nodeB = createSequenceParticipantNode('service', { x: flowPos.x + 140, y: flowPos.y - 40 }, 'Participant B');
+              const newEdge: SystemEdgeModel = {
+                id: crypto.randomUUID(),
+                source: nodeA.id,
+                target: nodeB.id,
+                sourceHandle: 'right-out-0',
+                targetHandle: 'left-in-0',
+                type: 'system',
+                data: {
+                  edgeType: 'rest',
+                  messageType: placementItem.messageType,
+                  strokeStyle: placementItem.strokeStyle || (placementItem.messageType === 'sync' ? 'solid' : 'dashed'),
+                  arrowhead: placementItem.messageType === 'async' ? 'open' : 'filled',
+                  color: '#3b82f6',
+                  label: placementItem.label || 'Message',
+                  arrowEnd: true,
+                },
+              };
+              pushHistory();
+              setNodes([...nodes, nodeA, nodeB]);
+              setEdges([...edges, newEdge]);
+              setPlacementItem(null);
+              return;
+            }
+          }
+
+          if (placementItem.relationshipType) {
+            const tables = nodes.filter((n) => n.type === 'er-table');
+            if (tables.length >= 2) {
+              const sorted = [...tables].sort(
+                (a, b) => Math.abs(a.position.x - flowPos.x) - Math.abs(b.position.x - flowPos.x)
+              );
+              const [tA, tB] = [sorted[0], sorted[1]].sort((a, b) => a.position.x - b.position.x);
+              const newEdge: SystemEdgeModel = {
+                id: crypto.randomUUID(),
+                source: tA.id,
+                target: tB.id,
+                type: 'system',
+                data: {
+                  edgeType: 'rest',
+                  relationshipType: placementItem.relationshipType,
+                  sourceCardinality: placementItem.sourceCardinality || '1',
+                  targetCardinality: placementItem.targetCardinality || 'N',
+                  label: '',
+                  strokeStyle: 'solid',
+                  color: '#64748b',
+                  arrowEnd: true,
+                },
+              };
+              pushHistory();
+              setEdges([...edges, newEdge]);
+              setPlacementItem(null);
+              return;
+            } else {
+              const nodeA = createERTableNode('table', { x: flowPos.x - 160, y: flowPos.y - 60 }, 'Table A');
+              const nodeB = createERTableNode('table', { x: flowPos.x + 160, y: flowPos.y - 60 }, 'Table B');
+              const newEdge: SystemEdgeModel = {
+                id: crypto.randomUUID(),
+                source: nodeA.id,
+                target: nodeB.id,
+                type: 'system',
+                data: {
+                  edgeType: 'rest',
+                  relationshipType: placementItem.relationshipType,
+                  sourceCardinality: placementItem.sourceCardinality || '1',
+                  targetCardinality: placementItem.targetCardinality || 'N',
+                  label: '',
+                  strokeStyle: 'solid',
+                  color: '#64748b',
+                  arrowEnd: true,
+                },
+              };
+              pushHistory();
+              setNodes([...nodes, nodeA, nodeB]);
+              setEdges([...edges, newEdge]);
+              setPlacementItem(null);
+              return;
+            }
+          }
+
           const nodeA = createShapeNode('rounded-rectangle', { x: flowPos.x - 120, y: flowPos.y }, 'Source');
           const nodeB = createShapeNode('rounded-rectangle', { x: flowPos.x + 120, y: flowPos.y }, 'Target');
           const newEdge: SystemEdgeModel = {
@@ -437,6 +580,136 @@ function CanvasInner({ projectId }: { projectId: string }) {
           } else if (item.kind === 'group') {
             newNode = createSystemNode('group', { x: p.x - 160, y: p.y - 100 });
             if (item.label) newNode.data.label = item.label;
+          } else if (item.kind === 'junction') {
+            newNode = createJunctionNode({ x: p.x - 12, y: p.y - 12 });
+          } else if (item.kind === 'sequence-participant') {
+            newNode = createSequenceParticipantNode(item.participantType || 'service', { x: p.x - 70, y: p.y - 25 }, item.label);
+          } else if (item.kind === 'sequence-fragment') {
+            newNode = createSequenceFragmentNode(item.fragmentType || 'alt', { x: p.x - 130, y: p.y - 80 }, item.label);
+          } else if (item.kind === 'er-table') {
+            newNode = createERTableNode(item.tableType || 'table', { x: p.x - 120, y: p.y - 80 }, item.label || 'table_name', item.columns);
+          } else if (item.kind === 'connection' && item.edgeType) {
+            if (item.messageType) {
+              const participants = nodes.filter((n) => n.type === 'sequence-participant');
+              if (participants.length >= 2) {
+                const sorted = [...participants].sort(
+                  (a, b) => Math.abs(a.position.x - p.x) - Math.abs(b.position.x - p.x)
+                );
+                const [pA, pB] = [sorted[0], sorted[1]].sort((a, b) => a.position.x - b.position.x);
+                const newEdge: SystemEdgeModel = {
+                  id: crypto.randomUUID(),
+                  source: pA.id,
+                  target: pB.id,
+                  sourceHandle: 'right-out-0',
+                  targetHandle: 'left-in-0',
+                  type: 'system',
+                  data: {
+                    edgeType: 'rest',
+                    messageType: item.messageType,
+                    strokeStyle: item.strokeStyle || (item.messageType === 'sync' ? 'solid' : 'dashed'),
+                    arrowhead: item.messageType === 'async' ? 'open' : 'filled',
+                    color: '#3b82f6',
+                    label: item.label || 'Message',
+                    arrowEnd: true,
+                  },
+                };
+                pushHistory();
+                setEdges([...edges, newEdge]);
+                return;
+              } else {
+                const nodeA = createSequenceParticipantNode('service', { x: p.x - 140, y: p.y - 40 }, 'Participant A');
+                const nodeB = createSequenceParticipantNode('service', { x: p.x + 140, y: p.y - 40 }, 'Participant B');
+                const newEdge: SystemEdgeModel = {
+                  id: crypto.randomUUID(),
+                  source: nodeA.id,
+                  target: nodeB.id,
+                  sourceHandle: 'right-out-0',
+                  targetHandle: 'left-in-0',
+                  type: 'system',
+                  data: {
+                    edgeType: 'rest',
+                    messageType: item.messageType,
+                    strokeStyle: item.strokeStyle || (item.messageType === 'sync' ? 'solid' : 'dashed'),
+                    arrowhead: item.messageType === 'async' ? 'open' : 'filled',
+                    color: '#3b82f6',
+                    label: item.label || 'Message',
+                    arrowEnd: true,
+                  },
+                };
+                pushHistory();
+                setNodes([...nodes, nodeA, nodeB]);
+                setEdges([...edges, newEdge]);
+                return;
+              }
+            }
+
+            if (item.relationshipType) {
+              const tables = nodes.filter((n) => n.type === 'er-table');
+              if (tables.length >= 2) {
+                const sorted = [...tables].sort(
+                  (a, b) => Math.abs(a.position.x - p.x) - Math.abs(b.position.x - p.x)
+                );
+                const [tA, tB] = [sorted[0], sorted[1]].sort((a, b) => a.position.x - b.position.x);
+                const newEdge: SystemEdgeModel = {
+                  id: crypto.randomUUID(),
+                  source: tA.id,
+                  target: tB.id,
+                  type: 'system',
+                  data: {
+                    edgeType: 'rest',
+                    relationshipType: item.relationshipType,
+                    sourceCardinality: item.sourceCardinality || '1',
+                    targetCardinality: item.targetCardinality || 'N',
+                    label: '',
+                    strokeStyle: 'solid',
+                    color: '#64748b',
+                    arrowEnd: true,
+                  },
+                };
+                pushHistory();
+                setEdges([...edges, newEdge]);
+                return;
+              } else {
+                const nodeA = createERTableNode('table', { x: p.x - 160, y: p.y - 60 }, 'Table A');
+                const nodeB = createERTableNode('table', { x: p.x + 160, y: p.y - 60 }, 'Table B');
+                const newEdge: SystemEdgeModel = {
+                  id: crypto.randomUUID(),
+                  source: nodeA.id,
+                  target: nodeB.id,
+                  type: 'system',
+                  data: {
+                    edgeType: 'rest',
+                    relationshipType: item.relationshipType,
+                    sourceCardinality: item.sourceCardinality || '1',
+                    targetCardinality: item.targetCardinality || 'N',
+                    label: '',
+                    strokeStyle: 'solid',
+                    color: '#64748b',
+                    arrowEnd: true,
+                  },
+                };
+                pushHistory();
+                setNodes([...nodes, nodeA, nodeB]);
+                setEdges([...edges, newEdge]);
+                return;
+              }
+            }
+
+            const nodeA = createShapeNode('rounded-rectangle', { x: p.x - 120, y: p.y }, 'Source');
+            const nodeB = createShapeNode('rounded-rectangle', { x: p.x + 120, y: p.y }, 'Target');
+            const newEdge: SystemEdgeModel = {
+              id: crypto.randomUUID(),
+              source: nodeA.id,
+              target: nodeB.id,
+              sourceHandle: 'right-source',
+              targetHandle: 'left-target',
+              type: 'system',
+              data: { edgeType: item.edgeType, label: item.label || '' },
+            };
+            pushHistory();
+            setNodes([...nodes, nodeA, nodeB]);
+            setEdges([...edges, newEdge]);
+            return;
           }
           if (newNode) {
             pushHistory();
@@ -520,7 +793,8 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const onPointerDownCapture = useCallback(
     (e: React.PointerEvent) => {
       if (e.button === 2) {
-        if (useCanvasStore.getState().activeTool !== 'select') {
+        const currentTool = useCanvasStore.getState().activeTool;
+        if (currentTool !== 'select' && currentTool !== 'eraser') {
           setActiveTool('select');
         }
         if (useCanvasStore.getState().placementItem) {
@@ -593,7 +867,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
         onPointerDownCapture={onPointerDownCapture}
         onContextMenu={(e) => {
           e.preventDefault();
-          if (useCanvasStore.getState().activeTool !== 'select') {
+          if (useCanvasStore.getState().activeTool !== 'select' && useCanvasStore.getState().activeTool !== 'eraser') {
             setActiveTool('select');
           }
           if (useCanvasStore.getState().placementItem) {

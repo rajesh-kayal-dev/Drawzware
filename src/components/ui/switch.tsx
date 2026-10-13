@@ -1,10 +1,9 @@
 "use client"
 
 import * as React from "react"
-
 import { cn } from "@/lib/utils"
 
-/** 36×22 toggle: line when off, accent when on. */
+/** Modern pill toggle switch: neutral when off, accent when on. */
 function Switch({
   checked,
   onCheckedChange,
@@ -22,16 +21,16 @@ function Switch({
       data-state={checked ? "checked" : "unchecked"}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative h-[22px] w-9 shrink-0 rounded-full p-0 outline-none transition-colors duration-[120ms] focus-visible:shadow-[0_0_0_3px_var(--accent-soft)] disabled:opacity-50",
-        checked ? "bg-accent" : "bg-line",
+        "relative h-6 w-11 shrink-0 rounded-full p-0.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-50 cursor-pointer",
+        checked ? "bg-accent" : "bg-line hover:bg-line-2",
         className
       )}
       {...props}
     >
       <span
         className={cn(
-          "absolute top-0.5 left-0.5 size-[18px] rounded-full bg-paper shadow-[var(--shadow)] transition-transform duration-[120ms]",
-          checked && "translate-x-3.5"
+          "block size-5 rounded-full bg-paper shadow-md transition-transform duration-200 pointer-events-none",
+          checked ? "translate-x-5" : "translate-x-0"
         )}
       />
     </button>

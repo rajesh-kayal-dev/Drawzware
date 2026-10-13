@@ -16,6 +16,7 @@ import {
   Share2,
   SunMoon,
   Undo2,
+  Workflow,
   type LucideIcon,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -232,9 +233,44 @@ function CommandMenuBody({ onClose }: { onClose: () => void }) {
     ];
     result.push(...actions.filter((a) => !q || includes(a.label, q)));
 
-    // ── Jump to (components on the canvas) ──
+    // ── Jump to (components and steps on the canvas) ──
     if (q) {
       for (const node of nodes) {
+        if (node.type === 'step') {
+          const stepData = node.data as Record<string, unknown> | undefined;
+          const stepTitle = String(stepData?.title || stepData?.stepTitle || stepData?.label || 'Step');
+          const stepSubtitle = String(stepData?.subtitle || stepData?.stepSubtitle || '');
+          const stepContent = String(stepData?.stepContent || stepData?.text || '');
+          const contentMatch = includes(stepContent, q);
+          const titleMatch = includes(stepTitle, q);
+          const subtitleMatch = includes(stepSubtitle, q);
+          if (titleMatch || subtitleMatch || contentMatch) {
+            result.push({
+              id: `jump-${node.id}`,
+              group: 'Jump to',
+              label: stepTitle,
+              hint: !titleMatch && contentMatch ? stepContent.slice(0, 45).replace(/\n/g, ' ') : stepSubtitle || undefined,
+              icon: (
+                <IconChip color="#8b5cf6" size={24}>
+                  <Workflow className="size-[13px]" />
+                </IconChip>
+              ),
+              meta: stepData?.stepNumber ? `Step ${stepData.stepNumber}` : 'Step',
+              run: () => {
+                const { setNodes, setSelectedNodeId } = store();
+                setNodes(store().nodes.map((n) => ({ ...n, selected: n.id === node.id })));
+                setSelectedNodeId(node.id);
+                const internal = getInternalNode(node.id);
+                const position = internal?.internals.positionAbsolute ?? node.position;
+                const width = internal?.measured.width ?? (typeof node.style?.width === 'number' ? node.style.width : 280);
+                const height = internal?.measured.height ?? (typeof node.style?.height === 'number' ? node.style.height : 220);
+                setCenter(position.x + width / 2, position.y + height / 2, { zoom: 1.5, duration: 300 });
+              },
+            });
+          }
+          continue;
+        }
+
         if (node.type !== 'system' && node.type !== 'group') continue;
         const data = node.data as SystemNodeData;
         const config = NODE_REGISTRY[data.nodeType];

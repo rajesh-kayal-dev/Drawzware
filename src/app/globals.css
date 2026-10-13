@@ -72,10 +72,10 @@
   }
 }
 
-/* Canvas dot grid used outside React Flow (thumbnails, empty states). */
+/* Canvas dot grid used outside React Flow (thumbnails, empty states, dashboard). */
 @utility dot-grid {
   background-color: var(--bg);
-  background-image: radial-gradient(var(--dots) 1px, transparent 1px);
+  background-image: radial-gradient(var(--dots) 1.2px, transparent 1.2px);
   background-size: 20px 20px;
 }
 

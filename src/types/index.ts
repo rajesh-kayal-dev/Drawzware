@@ -63,6 +63,66 @@ export const SYSTEM_NODE_TYPES = [
   'scheduler',
   'logging',
   'monitoring',
+  // Client & Edge
+  'rate-limiter',
+  'reverse-proxy',
+  // Compute
+  'server',
+  'service-discovery',
+  'autoscaler',
+  // Data
+  'sql-database',
+  'nosql-database',
+  'read-replica',
+  'redis',
+  // Async
+  'event-bus',
+  'dead-letter-queue',
+  // Observability
+  'metrics',
+  'distributed-tracing',
+  'alerting',
+  // Security & Identity
+  'auth-service',
+  'identity-provider',
+  'authorization-policy',
+  'secrets-manager',
+  // Integrations
+  'external-service',
+  'webhook-endpoint',
+  // Others: Networking
+  'vpc',
+  'region',
+  'availability-zone',
+  // Others: Kubernetes
+  'k8s-pod',
+  'k8s-deployment',
+  'k8s-service',
+  'k8s-ingress',
+  'container-registry',
+  // Others: Data & Recovery
+  'database-shard',
+  'backup-recovery',
+  'data-warehouse',
+  // Others: Reliability
+  'circuit-breaker',
+  'retry-backoff',
+  // Others: Configuration
+  'config-store',
+  'feature-flag',
+  // Others: DevOps
+  'cicd-pipeline',
+  'build-runner',
+  'git',
+  'github',
+  'github-actions',
+  // AI/ML
+  'llm-model',
+  'vector-db',
+  'prompt-template',
+  'ai-agent',
+  'embedding',
+  'model-eval',
 ] as const;
 
 export type SystemNodeType = (typeof SYSTEM_NODE_TYPES)[number];
@@ -103,6 +163,7 @@ export const SHAPE_TYPES = [
   'callout',
   'divider',
   'star',
+  'user',
   'arrow',
   'line',
 ] as const;
@@ -124,13 +185,45 @@ export const STEP_IDS = [
 
 export type StepId = (typeof STEP_IDS)[number];
 
+export type DiagramType = 'architecture' | 'sequence' | 'er';
+
+export interface ERColumn {
+  id: string;
+  name: string;
+  type: string;
+  isPk?: boolean;
+  isFk?: boolean;
+  isUnique?: boolean;
+  isNullable?: boolean;
+}
+
 export interface PlacementItem {
-  kind: 'component' | 'group' | 'shape' | 'step' | 'connection' | 'junction';
+  kind:
+    | 'component'
+    | 'group'
+    | 'shape'
+    | 'step'
+    | 'connection'
+    | 'junction'
+    | 'sequence-participant'
+    | 'sequence-fragment'
+    | 'er-table';
   type?: SystemNodeType | string;
   shapeType?: ShapeType;
   stepId?: StepId;
   edgeType?: SystemEdgeType;
   label?: string;
+  participantType?: 'actor' | 'service' | 'database';
+  fragmentType?: 'alt' | 'loop' | 'opt' | 'par';
+  tableType?: 'table' | 'view' | 'enum';
+  columns?: ERColumn[];
+  color?: string;
+  messageType?: 'sync' | 'async' | 'return';
+  relationshipType?: 'one-to-one' | 'one-to-many' | 'many-to-many';
+  sourceCardinality?: string;
+  targetCardinality?: string;
+  strokeStyle?: 'solid' | 'dashed' | 'dotted';
+  arrowEnd?: boolean;
 }
 
 // Node data
@@ -172,6 +265,12 @@ export const SystemNodeDataSchema = z.object({
   arrowStart: z.boolean().optional(),
   arrowEnd: z.boolean().optional(),
   routeType: z.enum(['smoothstep', 'bezier', 'straight']).optional(),
+  columns: z.array(z.any()).optional(),
+  participantType: z.enum(['actor', 'service', 'database']).or(z.string()).optional(),
+  lifelineLength: z.number().optional(),
+  fragmentType: z.enum(['alt', 'loop', 'opt', 'par']).or(z.string()).optional(),
+  fragmentCondition: z.string().optional(),
+  tableType: z.enum(['table', 'view', 'enum']).or(z.string()).optional(),
 });
 
 export type SystemNodeData = z.infer<typeof SystemNodeDataSchema>;
@@ -190,6 +289,14 @@ export const SystemEdgeDataSchema = z.object({
   arrowStart: z.boolean().optional(),
   arrowEnd: z.boolean().optional(),
   routeType: z.enum(['smoothstep', 'bezier', 'straight']).optional(),
+  isShapeConnection: z.boolean().optional(),
+  messageType: z.enum(['sync', 'async', 'return']).optional(),
+  sourceCardinality: z.string().optional(),
+  targetCardinality: z.string().optional(),
+  relationshipType: z.enum(['one-to-one', 'one-to-many', 'many-to-many']).or(z.string()).optional(),
+  arrowhead: z.enum(['filled', 'open', 'none']).or(z.string()).optional(),
+  textSize: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export type SystemEdgeData = z.infer<typeof SystemEdgeDataSchema>;
