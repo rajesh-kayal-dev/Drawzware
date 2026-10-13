@@ -58,6 +58,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   getNodesByCategory,
+  CATEGORY_ICONS,
   type NodeCategory,
   type NodeTypeConfig,
 } from '@/components/nodes/node-registry';
@@ -1039,6 +1040,7 @@ function LibraryPanel({
 
       {filteredComponents.map(({ category, types }) => {
         const open = searching || expandedCategory === category;
+        const CategoryIcon = CATEGORY_ICONS[category];
         return (
           <Fragment key={category}>
             <section
@@ -1052,9 +1054,13 @@ function LibraryPanel({
                 type="button"
                 onClick={() => onToggleCategory(category)}
                 aria-expanded={open}
-                className="focus-ring flex h-7 w-full items-center gap-1 rounded-[7px] px-2 text-left text-[11.5px] font-medium text-text-muted transition-colors duration-[120ms] hover:text-text cursor-pointer"
+                className={cn(
+                  'focus-ring flex h-7 w-full items-center gap-1.5 rounded-[7px] px-2 text-left text-[11.5px] transition-colors duration-[120ms] hover:text-text cursor-pointer',
+                  open ? 'font-semibold text-text' : 'font-medium text-text-muted'
+                )}
               >
-                {category}
+                {CategoryIcon && <CategoryIcon className="size-3.5 text-accent shrink-0" />}
+                <span>{category}</span>
                 <ChevronDown
                   className={cn('ml-auto size-3.5 transition-transform duration-[120ms]', !open && '-rotate-90')}
                 />
