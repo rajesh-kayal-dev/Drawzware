@@ -1,5 +1,5 @@
 // Drawzware Service Worker
-const CACHE_NAME = 'drawzware-pwa-v1';
+const CACHE_NAME = 'drawzware-pwa-v2';
 
 const PRECACHE_ASSETS = [
   '/',
