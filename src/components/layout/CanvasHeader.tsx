@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   ArrowLeft,
   ChevronRight,
@@ -34,6 +33,7 @@ import { encodeCanvasToUrl } from '@/lib/share';
 import { downloadFile } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import { useIsNarrow } from '@/hooks/useMediaQuery';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { Button } from '@/components/ui/button';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import {
@@ -82,7 +82,14 @@ function ProjectName({ projectId, name }: { projectId: string; name: string }) {
     cancelled.current = true;
     setEditing(false);
     const next = draft.trim();
-    if (next && next !== name) renameProject(projectId, next);
+    if (next && next !== name) {
+      renameProject(projectId, next);
+      if (typeof document !== 'undefined') {
+        document.title = next;
+      }
+    } else if (typeof document !== 'undefined') {
+      document.title = name;
+    }
   };
 
   if (editing) {
@@ -91,7 +98,13 @@ function ProjectName({ projectId, name }: { projectId: string; name: string }) {
         autoFocus
         value={draft}
         aria-label="Project name"
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          const val = e.target.value.trim();
+          if (typeof document !== 'undefined') {
+            document.title = val || 'Untitled Design';
+          }
+        }}
         onFocus={(e) => e.currentTarget.select()}
         onBlur={commit}
         onKeyDown={(e) => {
@@ -103,6 +116,9 @@ function ProjectName({ projectId, name }: { projectId: string; name: string }) {
             e.stopPropagation();
             cancelled.current = true;
             setEditing(false);
+            if (typeof document !== 'undefined') {
+              document.title = name;
+            }
           }
         }}
         style={{ width: `${Math.max(draft.length, 6) + 2}ch` }}
@@ -124,6 +140,7 @@ function ProjectName({ projectId, name }: { projectId: string; name: string }) {
 }
 
 export function CanvasHeader({ projectId, projectName }: { projectId: string; projectName?: string }) {
+  useDocumentTitle(projectName ? projectName : undefined);
   const narrow = useIsNarrow();
   const { theme, toggleTheme } = useTheme();
   const status = useDisplayedSaveStatus();
@@ -202,14 +219,6 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
           </Link>
         </Button>
       </SimpleTooltip>
-
-      <Link
-        href="/"
-        className="focus-ring flex items-center justify-center size-7 rounded-[7px] bg-[#12281c] border border-[#1d6f42]/40 shadow-2xs overflow-hidden shrink-0 hover:border-[#1d6f42] transition-colors"
-        title="Drawzware Dashboard"
-      >
-        <Image src="/drawzware-emblem.png" alt="Drawzware" width={20} height={20} className="size-4.5 object-contain" />
-      </Link>
 
       <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5">
         {!narrow && (

@@ -34,6 +34,7 @@ import { CanvasHeader } from '@/components/layout/CanvasHeader';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIsNarrow } from '@/hooks/useMediaQuery';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { createSystemNode } from '@/lib/node-factory';
 import { getMinimapColor } from '@/lib/minimap';
 import { computeIssues, ValidationWarningsContext } from '@/lib/validation';
@@ -147,6 +148,8 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const loadProjects = useProjectStore((s) => s.loadProjects);
   const loaded = useProjectStore((s) => s.loaded);
   const currentProject = projects.find((p) => p.id === projectId);
+
+  useDocumentTitle(currentProject ? (currentProject.name || 'Untitled Design') : undefined);
 
   useEffect(() => {
     if (!loaded) loadProjects();

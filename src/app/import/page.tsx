@@ -11,11 +11,13 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { toast } from '@/stores/useToastStore';
 import { applyMigratedPreferences, decodeMigrationHash, type MigrationPayload } from '@/lib/migration';
 import { plural } from '@/lib/utils';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 type State = { kind: 'loading' } | { kind: 'invalid' } | { kind: 'ready'; payload: MigrationPayload };
 
 /** Landing for projects moved from another address: /import#<compressed payload>. */
 export default function ImportPage() {
+  useDocumentTitle('Import');
   const router = useRouter();
   const projects = useProjectStore((s) => s.projects);
   const loaded = useProjectStore((s) => s.loaded);
