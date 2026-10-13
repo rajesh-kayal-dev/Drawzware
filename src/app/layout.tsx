@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -19,6 +19,13 @@ const description =
   "Free, open-source tool for designing system architectures visually. " +
   "Drag-and-drop services, databases, queues, caches, and more. " +
   "9 templates, dark mode, export to PNG/SVG/Mermaid. No sign-up, runs 100% in the browser.";
+
+export const viewport: Viewport = {
+  themeColor: "#7c3aed",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export const metadata: Metadata = {
   title: {
@@ -65,6 +72,23 @@ export const metadata: Metadata = {
     images: [`${siteUrl}/screenshots/canvas-light.png`],
   },
   metadataBase: new URL(siteUrl),
+  manifest: "/manifest.json",
+  applicationName: "System Design Canvas",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "System Design Canvas",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   robots: {
     index: true,
     follow: true,

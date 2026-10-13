@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Boxes, Container, FileJson, Github, Moon, Settings2, Sun, Upload } from 'lucide-react';
+import { Boxes, Container, Download, FileJson, Github, Moon, Settings2, Sun, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import { useTheme } from '@/hooks/useTheme';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -24,6 +25,7 @@ interface HeaderProps {
 /** Sticky 56px app header for the dashboard and settings. The canvas has its own header. */
 export function Header({ onImportJson, onImportDockerCompose, containerClassName }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
+  const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
   const showImport = !!(onImportJson || onImportDockerCompose);
 
   return (
@@ -63,6 +65,20 @@ export function Header({ onImportJson, onImportDockerCompose, containerClassName
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
+
+          {isInstallable && !isInstalled && (
+            <SimpleTooltip label="Install App">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="size-8 text-accent hover:text-accent hover:bg-accent/15 rounded-lg transition-transform hover:scale-105"
+                onClick={promptInstall}
+                aria-label="Install App"
+              >
+                <Download className="size-4" />
+              </Button>
+            </SimpleTooltip>
           )}
 
           <SimpleTooltip label="Settings">
