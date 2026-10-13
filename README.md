@@ -1,175 +1,271 @@
 <div align="center">
 
-# System Design Canvas
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/drawzware-logo-white.png">
+  <img src="docs/screenshots/drawzware-logo.png" alt="Drawzware Logo" width="320">
+</picture>
 
-**Think through your system architecture before you build it.**
 
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org)
-[![React Flow](https://img.shields.io/badge/React_Flow-12-ff0072)](https://reactflow.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)](https://typescriptlang.org)
+### Modern System Design & Architecture Diagramming
 
-[**Live Demo**]()
+**Think through, design, and present your distributed systems and architectures before you build them.**
 
-A free, open-source visual tool for sketching system architectures.
-Drop components, wire them together, see your design take shape — all in the browser.
+[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?logo=next.js)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev)
+[![React Flow](https://img.shields.io/badge/React_Flow-v12-ff0072)](https://reactflow.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript)](https://typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss)](https://tailwindcss.com)
+[![PWA Ready](https://img.shields.io/badge/PWA-Installable-1d6f42?logo=pwa)](https://web.dev/progressive-web-apps/)
 
-No sign-up. No servers. No data leaving your machine.
-
-![System Design Canvas — Architecture diagram with drag-and-drop components](public/screenshots/canvas-light.png)
-
-</div>
+[**Features**](#features) • [**Screenshots**](#screenshots) • [**Quick Start**](#quick-start) • [**Templates**](#templates) • [**Tech Stack**](#tech-stack) • [**Contributing**](CONTRIBUTING.md)
 
 ---
 
-## Why?
+![Drawzware Architecture Canvas](docs/screenshots/canvas-dark.png)
 
-Most system design happens on whiteboards that get erased, or in docs that nobody reads. System Design Canvas sits in between — a focused tool where you think visually about services, databases, queues, and how they connect, without the overhead of a full diagramming suite.
+</div>
 
-It's **opinionated by design**. Instead of a blank canvas with infinite shapes, you get the building blocks that actually matter: component types and connection types that map directly to real infrastructure patterns.
+## Overview
+
+**Drawzware** is an open-source, client-first visual studio engineered for software architects, systems engineers, and engineering teams. It bridges the gap between rough whiteboard drawings and formal, slow-to-write documentation.
+
+Instead of generic drawing tools with thousands of unrelated clipart shapes, Drawzware provides an opinionated, purpose-built library of system design components, cloud infrastructure primitives (AWS, GCP, Azure), sequence flows, and entity-relationship models that map directly to real-world distributed architectures.
+
+- **Zero Sign-Up Required**: Open the app and begin designing immediately.
+- **100% Client-Side Privacy**: All diagram files and configuration stay on your machine in `localStorage`. No data leaves your browser.
+- **Progressive Web App (PWA)**: Installable as a standalone desktop or mobile application with offline support.
+- **Multi-Diagram Support**: Seamlessly switch between System Architecture, Sequence Diagrams, and ER Models within a unified workspace.
+
+---
 
 ## Features
 
-**Design**
-- **9 templates** — Microservices, Monolith, Event-Driven, Client-Server, Serverless, Data Pipeline, Real-time Analytics, Serverless Fullstack, Kubernetes Platform
-- **19 component types** — Services, Databases, Caches, Queues, Load Balancers, CDNs, API Gateways, Serverless Functions, and more — plus groups and sticky notes
-- **9 connection types** — REST, gRPC, GraphQL, WebSocket, Pub/Sub, MQTT, SSE, TCP, DB Query
-- **Component library** — Searchable, collapsible panel; drag onto the canvas or click to add
-- **Node & connection editors** — Name, type, tech stack with suggestions, description, latency / format / throughput, reverse direction
-- **Multi-select actions** — Group, align, duplicate, delete; right-click menus for everything
-- **Design checks** — Flags disconnected components, likely bottlenecks and missing tech stacks as you work
-- **Auto-layout** — One-click arrangement with dagre
+### 1. Dedicated Diagram Modes & Component Library
 
-**Share & present**
-- **⌘K command menu** — Add components, run actions, jump to nodes or projects
-- **Presentation mode** — Walks the diagram one component at a time, dims everything else and shows a story card per node
-- **Export** — PNG (1×–3×, transparent background), SVG, JSON and Mermaid, with preview and copy to clipboard
-- **Share links** — The whole design is compressed into the URL; recipients preview it and save their own copy
-- **Import** — Project JSON (drag a file onto the dashboard) or a `docker-compose.yml`
+- **System Architecture**:
+  - 19+ core infrastructure primitives (Services, Databases, Caches, API Gateways, Load Balancers, Queues, CDNs, Edge Workers, Event Buses, and more).
+  - Built-in **Cloud Providers** catalog with searchable AWS, GCP, and Azure services.
+  - 9 structured connection protocols: `REST`, `gRPC`, `GraphQL`, `WebSocket`, `Pub/Sub`, `MQTT`, `SSE`, `TCP`, and `DB Query`.
+- **Sequence Diagrams**:
+  - Actors, Lifelines, Synchronous & Asynchronous Messages, Self Calls, and Return Messages.
+- **Entity-Relationship (ER) Diagrams**:
+  - Entities with configurable field types, Primary Keys (`PK`), Foreign Keys (`FK`), and relational cardinality markers.
+- **Shapes & Annotations**:
+  - Flexible layout containers, generic geometric shapes, text annotations, sticky notes, and grouping frames.
+- **System Design Steps**:
+  - Guided step cards following industry-standard system design interview frameworks (Functional Requirements, Non-Functional Requirements, High-Level Architecture, Deep Dives, and Scaling / Bottleneck Mitigations).
 
-**App**
-- **Studio design system** — Warm neutral OKLCH tokens, light / dark / system theme
-- **Settings** — Theme, snap to grid, minimap, design checks, animated edges, export / import / clear all data
-- **Keyboard shortcuts** — Press `?` to see them all
-- **Responsive** — Library becomes a bottom sheet and editors become drawers on narrow screens
-- **100% client-side** — localStorage persistence, static export, deploys to any static host
+### 2. Canvas & Editing Capabilities
+
+- **Fluid Infinite Canvas**: Smooth pan, pinch-to-zoom, mini-map preview, dot-grid snapping, and multi-selection box powered by React Flow v12.
+- **Auto-Layout**: One-click hierarchical arrangement powered by Dagre graph layout algorithms.
+- **Node & Connection Inspector**: Customize component name, description, tech stack tags, port numbers, throughput estimates, and connection latency.
+- **Live Design Checks**: Real-time linting flagging disconnected components, missing technologies, single points of failure (SPOF), and likely bottlenecks.
+- **Undo / Redo & Clipboard**: Full history stack, native copy/paste, multi-node duplication, and bulk operations.
+
+### 3. Presentation & Collaboration
+
+- **Presentation Mode**: Walks through your architecture step-by-step, highlighting individual services and displaying contextual story cards for stakeholders.
+- **Shareable URLs**: The complete diagram state is compressed using LZ-string into the URL fragment. Recipients can open, preview, and save their own copy without a central database.
+- **Multi-Format Export**: Export crisp diagrams to PNG (1×, 2×, 3× scale with transparent background support), SVG vector graphics, Mermaid format, and JSON schema.
+- **Import Support**: Drag-and-drop native project `.json` files or import existing `docker-compose.yml` configurations directly into visual service nodes.
+
+### 4. Application & System Settings
+
+- **Dark & Light Mode**: Curated OKLCH color palettes tailored for developer ergonomics and presentations.
+- **Command Menu (`⌘K` / `Ctrl+K`)**: Rapid navigation, component insertion, and command execution from anywhere in the app.
+- **Customizable Preferences**: Toggle snap-to-grid, minimap visibility, animated connection lines, design check warnings, and manage local storage backups.
+
+---
 
 ## Screenshots
 
-<details>
-<summary>Dashboard — project list & templates</summary>
+### Projects Dashboard
+Manage your architectures, search projects, or pick from pre-configured production templates.
 
-| Light | Dark |
-|-------|------|
-| ![Dashboard light mode](public/screenshots/dashboard-light.png) | ![Dashboard dark mode](public/screenshots/dashboard-dark.png) |
+| Light Mode | Dark Mode |
+|---|---|
+| ![Dashboard Light](docs/screenshots/dashboard-light.png) | ![Dashboard Dark](docs/screenshots/dashboard-dark.png) |
 
-</details>
+---
 
-<details>
-<summary>Canvas — drag-and-drop architecture editor</summary>
+### System Architecture Canvas
+Drag and drop infrastructure components, cloud services, and custom protocols.
 
-| Light | Dark |
-|-------|------|
-| ![Canvas light mode](public/screenshots/canvas-light.png) | ![Canvas dark mode — Kubernetes Platform template](public/screenshots/canvas-dark.png) |
+| Light Mode | Dark Mode |
+|---|---|
+| ![Canvas Light](docs/screenshots/canvas-light.png) | ![Canvas Dark](docs/screenshots/canvas-dark.png) |
 
-</details>
+---
 
-<details>
-<summary>Presentation mode</summary>
+### Sequence Diagrams & Entity-Relationship (ER) Diagrams
+Specialized editors for communication lifecycles and database entity modeling.
 
-![Presentation mode — one component at a time with a story card](public/screenshots/presentation-light.png)
+| Sequence Diagram | ER Diagram |
+|---|---|
+| ![Sequence Diagram](docs/screenshots/sequence-diagram.png) | ![ER Diagram](docs/screenshots/er-diagram.png) |
 
-</details>
+---
+
+### Presentation Mode
+Step-by-step guided architectural walkthroughs with focused storytelling cards.
+
+| Light Mode | Dark Mode |
+|---|---|
+| ![Presentation Light](docs/screenshots/presentation-light.png) | ![Presentation Dark](docs/screenshots/presentation-dark.png) |
+
+---
 
 ## Quick Start
 
+### Prerequisites
+- [Node.js](https://nodejs.org/) (version 18 or higher recommended)
+- `npm`, `pnpm`, or `yarn`
+
+### Installation
+
 ```bash
-git clone https://github.com/rajesh-kayal-dev/System-design-canvas.git
-cd system-design-canvas
+# Clone the repository
+git clone https://github.com/rajesh-kayal-dev/Drawzware.git
+
+# Navigate to the project directory
+cd Drawzware
+
+# Install dependencies
 npm install
+
+# Start the development server with Turbopack
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and create your first project.
+Open [http://localhost:3000](http://localhost:3000) in your browser to start designing.
+
+---
+
+## Available Scripts
+
+| Script | Command | Description |
+|---|---|---|
+| `dev` | `npm run dev` | Runs the Next.js development server with Turbopack |
+| `build` | `npm run build` | Compiles an optimized static production export into `./out` |
+| `start` | `npm run start` | Runs the production server |
+| `lint` | `npm run lint` | Runs ESLint across the codebase |
+| `deploy:cloudflare` | `npm run deploy:cloudflare` | Builds the static export and deploys to Cloudflare Workers via Wrangler |
+
+---
+
+## Project Structure
+
+```text
+Drawzware/
+├── docs/
+│   └── screenshots/              # Application screenshots and branding assets
+├── public/
+│   ├── icons/                    # PWA icons (192x192, 512x512)
+│   ├── manifest.json             # Web App Manifest for PWA installation
+│   ├── sw.js                     # Offline caching service worker
+│   └── offline.html              # Fallback offline page
+├── src/
+│   ├── app/                      # Next.js App Router pages
+│   │   ├── canvas/               # Architecture canvas routes
+│   │   ├── import/               # Project import route
+│   │   ├── settings/             # Modernized settings page
+│   │   ├── layout.tsx            # Root layout & PWA registration
+│   │   └── page.tsx              # Projects dashboard
+│   ├── components/
+│   │   ├── canvas/               # Node palette, toolbars, minimap, canvas controls
+│   │   ├── edges/                # Custom React Flow edges (animated, protocols)
+│   │   ├── layout/               # Header, navbar, theme toggles
+│   │   ├── nodes/                # System, cloud, shape, sequence, and ER nodes
+│   │   ├── presentation/         # Presentation mode viewer & cards
+│   │   ├── project/              # Project list, cards, import dialogs
+│   │   └── ui/                   # Reusable UI primitives (dialogs, dropdowns, tooltips)
+│   ├── hooks/                    # Custom React hooks (shortcuts, theme, PWA, title)
+│   ├── lib/                      # Cloud registries, shape definitions, templates, export
+│   ├── stores/                   # Zustand stores (canvas state, project state)
+│   └── types/                    # TypeScript interfaces and domain models
+└── package.json
+```
+
+---
+
+## Architecture Templates
+
+Drawzware ships with 9 pre-built reference architectures ready for immediate customization:
+
+| Template | Architecture Pattern & Flow |
+|---|---|
+| **Microservices** | Client → Load Balancer → API Gateway → Distributed Services → Databases + Message Queue |
+| **Monolith** | Client → CDN / LB → Monolithic Application Server → Primary DB + Redis Cache |
+| **Event-Driven** | Event Producers → Event Bus / Broker → Consumer Workers → Datastores |
+| **Client-Server** | Mobile / Web Client → CDN → Backend API Service → Relational Database + Cache |
+| **Serverless** | Single Page App → API Gateway → Serverless Functions → NoSQL DB + Blob Storage |
+| **Data Pipeline** | Ingestion Sources → Kafka Broker → Stream Processors → Data Warehouse / Lakehouse |
+| **Real-time Analytics** | Ingest API → Message Queue → Stream Analytics Engine → Search Index + Realtime UI |
+| **Serverless Fullstack** | Global CDN Edge → API Gateway → Serverless Compute → Serverless Database + SQS Queue |
+| **Kubernetes Platform** | Ingress Controller → K8s Cluster Services → StatefulSets + Prometheus Observability |
+
+---
 
 ## Keyboard Shortcuts
 
-| Action | Keys |
-|--------|------|
-| Command menu | `⌘` `K` |
-| Keyboard shortcuts | `?` |
-| Toggle library | `/` |
-| Fit view | `F` |
-| Present | `P` |
-| Duplicate | `⌘` `D` |
-| Delete | `⌫` |
-| Reverse connection | `⇧` `R` |
-| Undo / Redo | `⌘` `Z` / `⇧` `⌘` `Z` |
-| Copy / Paste | `⌘` `C` / `⌘` `V` |
-| Select all | `⌘` `A` |
-| Close panel | `Esc` |
+| Action | Windows / Linux | macOS |
+|---|---|---|
+| **Command Palette** | `Ctrl + K` | `⌘ + K` |
+| **Keyboard Shortcuts Help** | `?` | `?` |
+| **Toggle Component Library** | `/` | `/` |
+| **Fit View to Canvas** | `F` | `F` |
+| **Presentation Mode** | `P` | `P` |
+| **Duplicate Selection** | `Ctrl + D` | `⌘ + D` |
+| **Delete Selection** | `Delete` / `Backspace` | `⌫` |
+| **Reverse Edge Connection** | `Shift + R` | `⇧ + R` |
+| **Undo / Redo** | `Ctrl + Z` / `Ctrl + Shift + Z` | `⌘ + Z` / `⇧ + ⌘ + Z` |
+| **Copy / Paste** | `Ctrl + C` / `Ctrl + V` | `⌘ + C` / `⌘ + V` |
+| **Select All Elements** | `Ctrl + A` | `⌘ + A` |
+| **Close Open Panel / Modal** | `Esc` | `Esc` |
 
-On Windows and Linux use `Ctrl` instead of `⌘`.
-
-## Templates
-
-| Template | Architecture |
-|----------|-------------|
-| Microservices | Client → LB → API Gateway → Services → DBs + Queue |
-| Monolith | Client → LB → Monolith → DB + Cache |
-| Event-Driven | Producers → Event Bus → Consumers → DBs |
-| Client-Server | Client → CDN → API Server → DB + Cache |
-| Serverless | Client → API Gateway → Lambda → DynamoDB + S3 |
-| Data Pipeline | Sources → Kafka → Stream Processors → Warehouse |
-| Real-time Analytics | LB → Ingest API → Kafka → Processing + Search |
-| Serverless Fullstack | CDN → API Gateway → Lambda → DynamoDB + SQS |
-| Kubernetes | Ingress → K8s Cluster → Services + Monitoring |
+---
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16 (App Router, Turbopack, static export) + React 19 |
-| Language | TypeScript |
-| Canvas | React Flow v12 |
-| State | Zustand |
-| Styling | Tailwind CSS v4 + shadcn/ui (Radix), OKLCH design tokens |
-| Fonts & icons | Geist, Geist Mono, lucide-react |
-| Layout | dagre |
-| Export | html-to-image |
-| Sharing | lz-string |
-| Import | js-yaml (docker-compose) |
-| Validation | Zod |
-| Hosting | Vercel, Cloudflare Workers (static assets) |
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Framework** | [Next.js 16 (App Router)](https://nextjs.org/) + [React 19](https://react.dev/) | React server/client framework with static exports |
+| **Language** | [TypeScript 5](https://www.typescriptlang.org/) | Full-codebase end-to-end type safety |
+| **Canvas Engine** | [@xyflow/react (React Flow v12)](https://reactflow.dev/) | High-performance visual node graph engine |
+| **State Management** | [Zustand v5](https://zustand-demo.pmnd.rs/) | Fast, un-opinionated reactive canvas store |
+| **Styling & Design** | [Tailwind CSS v4](https://tailwindcss.com/) + OKLCH Tokens | Low-latency utility CSS with accessible color scales |
+| **UI Components** | [shadcn/ui](https://ui.shadcn.com/) + [Radix UI](https://www.radix-ui.com/) | Accessible, unstyled dialogs, menus, and sheets |
+| **Icons & Typography** | [Lucide React](https://lucide.dev/) + Geist Font | Clean, consistent icons and developer typography |
+| **Graph Layout** | [@dagrejs/dagre](https://github.com/dagrejs/dagre) | Directed graph automated layout positioning |
+| **Export Engines** | [html-to-image](https://github.com/bubkoo/html-to-image) | High-DPI PNG and SVG canvas rendering |
+| **Compression** | [lz-string](https://github.com/pieroxy/lz-string) | URL-safe payload compression for link sharing |
+| **Schema Validation** | [Zod](https://zod.dev/) | Runtime data validation and project integrity |
+| **PWA & Offline** | Web Manifest + Service Worker | Offline runtime and standalone desktop/mobile installation |
 
-## Development
-
-```bash
-npm run dev                 # Dev server with Turbopack
-npm run build               # Static export to ./out
-npm run lint                # ESLint
-npm run deploy:cloudflare   # Build and deploy ./out to Cloudflare Workers
-```
+---
 
 ## Deployment
 
-The app is fully client-side and builds to static files (`output: "export"` → `./out`), so any static host works.
+Because Drawzware is 100% client-side, it compiles to static assets (`output: "export"` in Next.js) and can be hosted on any static hosting platform.
 
-| Host | How | Config |
-|------|-----|--------|
-| Vercel | Git integration — `main` deploys to production, PRs get previews | `vercel.json` (redirects old `/canvas/:id` links) |
-| Cloudflare Workers | `npm run deploy:cloudflare` (requires `wrangler login`) | `wrangler.jsonc` (static assets, 404 page) |
+- **Vercel**: Deploy directly by connecting your repository. Production and preview deployments work out of the box (`vercel.json` included).
+- **Cloudflare Workers / Pages**: Run `npm run deploy:cloudflare` to build and deploy static assets directly with Wrangler (`wrangler.jsonc` included).
+- **GitHub Pages / Netlify / AWS S3**: Deploy the generated `./out` directory to any static file server.
 
-### Moving users to a new address
+---
 
-Projects are stored in `localStorage`, which belongs to a single origin — a new domain starts empty. To move users gradually, set on the **old** deployment:
+## Community & Contributing
 
-```bash
-NEXT_PUBLIC_MIGRATE_TO=https://your-new-domain.example
-```
+We welcome community contributions, suggestions, and feedback! Please review our community guidelines:
 
-The dashboard then shows a banner. *Move my projects* carries projects and settings to `<new domain>/import` inside the URL hash (never sent to a server), where they are previewed and merged. Unset the variable to turn the banner off; nothing is deleted either way.
+- [**Contributing Guide**](CONTRIBUTING.md) — How to set up your environment, follow coding conventions, and submit pull requests.
+- [**Code of Conduct**](CODE_OF_CONDUCT.md) — Standards and expectations for an inclusive and respectful community.
+- [**Security Policy**](SECURITY.md) — How to responsibly and privately disclose security vulnerabilities.
+
+---
 
 ## License
 
-[MIT](LICENSE)
+Distributed under the **MIT License**. See [LICENSE](LICENSE) for more information.

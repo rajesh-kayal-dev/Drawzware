@@ -58,6 +58,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   getNodesByCategory,
+  CATEGORY_ICONS,
   type NodeCategory,
   type NodeTypeConfig,
 } from '@/components/nodes/node-registry';
@@ -848,13 +849,13 @@ function LibraryPanel({
     const q = query.trim().toLowerCase();
     const filteredCloud = q
       ? CLOUD_SERVICES.filter(
-          (s) =>
-            s.name.toLowerCase().includes(q) ||
-            s.provider.toLowerCase().includes(q) ||
-            s.category.toLowerCase().includes(q) ||
-            s.description.toLowerCase().includes(q) ||
-            s.defaultTechStack.some((t) => t.toLowerCase().includes(q))
-        )
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.provider.toLowerCase().includes(q) ||
+          s.category.toLowerCase().includes(q) ||
+          s.description.toLowerCase().includes(q) ||
+          s.defaultTechStack.some((t) => t.toLowerCase().includes(q))
+      )
       : CLOUD_SERVICES;
 
     if (q && filteredCloud.length === 0 && filteredComponents.length === 0) {
@@ -987,7 +988,7 @@ function LibraryPanel({
                                         className={cn(
                                           'focus-ring group relative flex flex-col items-center justify-center gap-0.5 rounded-[8px] border border-line/60 bg-card/80 p-1.5 py-1.5 text-center transition-all duration-[120ms] select-none hover:border-line-hover hover:bg-surface-2 cursor-grab active:cursor-grabbing min-h-[58px]',
                                           isPlaced &&
-                                            'border-accent bg-accent/10 shadow-xs ring-1 ring-accent/30'
+                                          'border-accent bg-accent/10 shadow-xs ring-1 ring-accent/30'
                                         )}
                                       >
                                         <div
@@ -1039,6 +1040,7 @@ function LibraryPanel({
 
       {filteredComponents.map(({ category, types }) => {
         const open = searching || expandedCategory === category;
+        const CategoryIcon = CATEGORY_ICONS[category];
         return (
           <Fragment key={category}>
             <section
@@ -1052,9 +1054,13 @@ function LibraryPanel({
                 type="button"
                 onClick={() => onToggleCategory(category)}
                 aria-expanded={open}
-                className="focus-ring flex h-7 w-full items-center gap-1 rounded-[7px] px-2 text-left text-[11.5px] font-medium text-text-muted transition-colors duration-[120ms] hover:text-text cursor-pointer"
+                className={cn(
+                  'focus-ring flex h-7 w-full items-center gap-1.5 rounded-[7px] px-2 text-left text-[11.5px] transition-colors duration-[120ms] hover:text-text cursor-pointer',
+                  open ? 'font-semibold text-text' : 'font-medium text-text-muted'
+                )}
               >
-                {category}
+                {CategoryIcon && <CategoryIcon className="size-3.5 text-accent shrink-0" />}
+                <span>{category}</span>
                 <ChevronDown
                   className={cn('ml-auto size-3.5 transition-transform duration-[120ms]', !open && '-rotate-90')}
                 />
@@ -1069,11 +1075,11 @@ function LibraryPanel({
                         const q = query.trim().toLowerCase();
                         const subUtilities = isUtilities
                           ? OTHERS_UTILITIES.filter(
-                              (u) =>
-                                !q ||
-                                u.label.toLowerCase().includes(q) ||
-                                u.description.toLowerCase().includes(q)
-                            )
+                            (u) =>
+                              !q ||
+                              u.label.toLowerCase().includes(q) ||
+                              u.description.toLowerCase().includes(q)
+                          )
                           : [];
 
                         if (!isUtilities && subTypes.length === 0) return null;
@@ -1256,10 +1262,15 @@ function LibraryPanel({
       {/* Header matching reference image: Title on left with icon, collapse button on right */}
       <div className="flex items-center justify-between pt-2.5 pr-2.5 pb-2 pl-3.5 border-b border-line/60 h-[42px] shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          {activeTab === 'diagrams' || activeTab === 'components' ? (
+          {activeTab === 'diagrams' ? (
             <>
               <Network className="size-4 text-accent shrink-0" />
               <h2 className="text-[13.5px] font-semibold text-text tracking-tight truncate">Diagrams</h2>
+            </>
+          ) : activeTab === 'components' ? (
+            <>
+              <LayoutGrid className="size-4 text-accent shrink-0" />
+              <h2 className="text-[13.5px] font-semibold text-text tracking-tight truncate">Components</h2>
             </>
           ) : activeTab === 'shapes' ? (
             <>
@@ -1280,8 +1291,8 @@ function LibraryPanel({
         </SimpleTooltip>
       </div>
 
-      {/* Three Selectors at top: Architecture, Sequence, ER Diagram (All 3 visible at all times) */}
-      {(activeTab === 'diagrams' || activeTab === 'components') && (
+      {/* Three Selectors at top: Architecture, Sequence, ER Diagram (ONLY in Diagrams tab) */}
+      {activeTab === 'diagrams' && (
         <div className="px-2.5 pt-2.5 pb-1 shrink-0">
           <div className="grid grid-cols-3 gap-1.5 p-1 rounded-[10px] bg-line/25 border border-line/50">
             {/* 1. Architecture */}
@@ -1351,8 +1362,15 @@ function LibraryPanel({
 
       {/* Content Area - switches content of this same panel */}
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-3">
-        {/* ── TAB 0 & 1: DIAGRAMS & COMPONENTS (MATCHING REFERENCE IMAGE) ──────────── */}
-        {(activeTab === 'diagrams' || activeTab === 'components') && (
+        {/* ── TAB 1: COMPONENTS (ONLY SYSTEM DESIGN COMPONENTS) ──────────── */}
+        {activeTab === 'components' && (
+          <div className="pt-1">
+            {renderArchitectureComponents()}
+          </div>
+        )}
+
+        {/* ── TAB 0: DIAGRAMS (DIAGRAM MODES) ──────────── */}
+        {activeTab === 'diagrams' && (
           <div className="pt-1">
             {diagramType === 'architecture' && renderArchitectureComponents()}
             {diagramType === 'sequence' && (
