@@ -1,5 +1,5 @@
-// System Design Canvas Service Worker
-const CACHE_NAME = 'sdc-pwa-v1';
+// Drawzware Service Worker
+const CACHE_NAME = 'drawzware-pwa-v1';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -7,6 +7,10 @@ const PRECACHE_ASSETS = [
   '/settings',
   '/offline.html',
   '/manifest.json',
+  '/drawzware-logo.png',
+  '/drawzware-logo-white.png',
+  '/drawzware-icon.png',
+  '/drawzware-emblem.png',
   '/icons/icon.svg',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',

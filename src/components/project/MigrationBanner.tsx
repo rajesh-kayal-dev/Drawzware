@@ -57,7 +57,7 @@ export function MigrationBanner() {
     if (url.length > MAX_MIGRATION_URL_LENGTH) {
       // Too big for a link: hand over a backup file instead.
       const blob = new Blob([JSON.stringify({ version: 1, projects }, null, 2)], { type: 'application/json' });
-      downloadFile('system-design-canvas-projects.json', blob);
+      downloadFile('drawzware-projects.json', blob);
       setState('moved');
       toast({
         message: `Saved a backup — import it on ${host}`,
@@ -83,7 +83,7 @@ export function MigrationBanner() {
         {state === 'offer' ? (
           <>
             <div className="text-[13.5px] font-semibold text-ink">
-              System Design Canvas is moving to <span className="font-mono text-[12.5px]">{host}</span>
+              Drawzware is moving to <span className="font-mono text-[12.5px]">{host}</span>
             </div>
             <div className="text-[12.5px] text-pretty text-ink-2">
               {projects.length > 0

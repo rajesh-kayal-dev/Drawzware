@@ -1,6 +1,6 @@
 {
-  "name": "System Design Canvas",
-  "short_name": "DesignCanvas",
+  "name": "Drawzware",
+  "short_name": "Drawzware",
   "description": "Visual system architecture and diagram design tool. Drag-and-drop cloud components, sequence diagrams, ER diagrams, and steps. 100% in-browser.",
   "start_url": "/",
   "scope": "/",
@@ -8,7 +8,7 @@
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0a0c10",
-  "theme_color": "#7c3aed",
+  "theme_color": "#1d6f42",
   "categories": [
     "productivity",
     "developer tools",

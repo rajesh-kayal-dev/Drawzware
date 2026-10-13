@@ -1,8 +1,8 @@
-# System Design Canvas — Project Analysis Notes
+# Drawzware — Project Analysis Notes
 
 ## 1. Executive summary
 
-**System Design Canvas is a browser-based visual editor for planning software system architecture.** It lets a user put infrastructure blocks on a canvas, connect them with named protocols, add implementation details, inspect simple design warnings, arrange the diagram automatically, and export or share the result.
+**Drawzware is a browser-based visual editor for planning software system architecture.** It lets a user put infrastructure blocks on a canvas, connect them with named protocols, add implementation details, inspect simple design warnings, arrange the diagram automatically, and export or share the result.
 
 The application is intended for system-design practice, architecture discussions, technical planning, and documentation. It is a visual modelling tool, not a service that deploys infrastructure or runs the architecture being drawn.
 
@@ -568,7 +568,7 @@ Read the project in this order to understand the main data path without getting 
 
 ## 16. How to explain the project in an interview
 
-> System Design Canvas is a client-side architecture diagramming tool built with Next.js, React, and TypeScript. It uses React Flow for the canvas and Zustand to manage the active graph, project list, settings, and notifications. Users can build architecture diagrams from predefined infrastructure components, connect them with protocol-aware edges, add metadata, and use features like templates, auto-layout, heuristic validation, undo/redo, and presentation mode. Projects are stored in localStorage, and the app can import Docker Compose or endpoint JSON and export PNG, SVG, JSON, or Mermaid. Because it uses Next.js static export, it can be deployed to a static host without a backend. Sharing and migration are handled through compressed URL payloads rather than server-side project storage.
+> Drawzware is a client-side architecture diagramming tool built with Next.js, React, and TypeScript. It uses React Flow for the canvas and Zustand to manage the active graph, project list, settings, and notifications. Users can build architecture diagrams from predefined infrastructure components, connect them with protocol-aware edges, add metadata, and use features like templates, auto-layout, heuristic validation, undo/redo, and presentation mode. Projects are stored in localStorage, and the app can import Docker Compose or endpoint JSON and export PNG, SVG, JSON, or Mermaid. Because it uses Next.js static export, it can be deployed to a static host without a backend. Sharing and migration are handled through compressed URL payloads rather than server-side project storage.
 
 ### The key engineering points to discuss
 

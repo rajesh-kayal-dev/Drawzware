@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useSyncExternalStore } from 'react';
-import { Download, X, Boxes } from 'lucide-react';
+import Image from 'next/image';
+import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 
@@ -58,14 +59,14 @@ export function InstallPromptBanner() {
       aria-label="Install App Banner"
       className="fixed bottom-5 right-5 z-50 flex max-w-sm items-center gap-3.5 rounded-2xl border border-line bg-paper/95 p-3.5 shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
     >
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-md">
-        <Boxes className="size-5" />
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#12281c] border border-[#1d6f42]/40 shadow-md overflow-hidden">
+        <Image src="/drawzware-emblem.png" alt="Drawzware" width={28} height={28} className="size-6 object-contain" />
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h4 className="text-xs font-semibold text-ink tracking-tight">Install Web App</h4>
-          <span className="rounded-full bg-accent/15 px-1.5 py-0.2 text-[10px] font-medium text-accent">PWA</span>
+          <h4 className="text-xs font-semibold text-ink tracking-tight">Install Drawzware</h4>
+          <span className="rounded-full bg-[#1d6f42]/20 px-1.5 py-0.2 text-[10px] font-medium text-[#22c55e]">PWA</span>
         </div>
         <p className="mt-0.5 text-[11px] leading-snug text-ink-2">
           Fast offline launch & native desktop/mobile window experience.
