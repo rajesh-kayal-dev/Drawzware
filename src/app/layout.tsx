@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -14,16 +14,23 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl = "https://system-design-canvas-one.vercel.app";
-const title = "System Design Canvas — Visual System Architecture Tool";
+const title = "Drawzware — Visual System Architecture & Diagramming Tool";
 const description =
-  "Free, open-source tool for designing system architectures visually. " +
-  "Drag-and-drop services, databases, queues, caches, and more. " +
-  "9 templates, dark mode, export to PNG/SVG/Mermaid. No sign-up, runs 100% in the browser.";
+  "Free, open-source tool for designing system architectures, sequence diagrams, and ER models visually. " +
+  "Drag-and-drop cloud components, services, databases, and more. " +
+  "Templates, dark mode, export to PNG/SVG/Mermaid. No sign-up, runs 100% in the browser.";
+
+export const viewport: Viewport = {
+  themeColor: "#1d6f42",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export const metadata: Metadata = {
   title: {
     default: title,
-    template: "%s | System Design Canvas",
+    template: "%s | Drawzware",
   },
   description,
   keywords: [
@@ -47,13 +54,13 @@ export const metadata: Metadata = {
     title,
     description,
     url: siteUrl,
-    siteName: "System Design Canvas",
+    siteName: "Drawzware",
     images: [
       {
         url: `${siteUrl}/screenshots/canvas-light.png`,
         width: 2880,
         height: 1800,
-        alt: "System Design Canvas — Serverless Fullstack architecture diagram",
+        alt: "Drawzware — Architecture and diagramming canvas",
       },
     ],
     locale: "en_US",
@@ -65,6 +72,23 @@ export const metadata: Metadata = {
     images: [`${siteUrl}/screenshots/canvas-light.png`],
   },
   metadataBase: new URL(siteUrl),
+  manifest: "/manifest.json",
+  applicationName: "Drawzware",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Drawzware",
+  },
+  icons: {
+    icon: [
+      { url: "/drawzware-icon.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   robots: {
     index: true,
     follow: true,

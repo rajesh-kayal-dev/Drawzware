@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Boxes, Container, FileJson, Github, Moon, Settings2, Sun, Upload } from 'lucide-react';
+import Image from 'next/image';
+import { Container, Download, FileJson, Github, Moon, Settings2, Sun, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import { useTheme } from '@/hooks/useTheme';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -24,6 +26,7 @@ interface HeaderProps {
 /** Sticky 56px app header for the dashboard and settings. The canvas has its own header. */
 export function Header({ onImportJson, onImportDockerCompose, containerClassName }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
+  const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
   const showImport = !!(onImportJson || onImportDockerCompose);
 
   return (
@@ -31,12 +34,27 @@ export function Header({ onImportJson, onImportDockerCompose, containerClassName
       <div className={cn('mx-auto flex h-14 w-full max-w-[1400px] items-center gap-3 px-6 sm:px-8', containerClassName)}>
         <Link
           href="/"
-          className="focus-ring -ml-1 flex items-center gap-2.5 rounded-full py-1 pr-2 pl-1 text-sm font-semibold whitespace-nowrap text-ink"
+          className="focus-ring -ml-1 flex items-center gap-2 rounded-lg py-1 pr-2 pl-1 transition-opacity hover:opacity-90"
+          aria-label="Drawzware Home"
         >
-          <span className="inline-flex size-7 items-center justify-center rounded-[8px] bg-accent text-accent-ink shadow-xs">
-            <Boxes className="size-4" />
-          </span>
-          <span className="hidden sm:inline tracking-tight">System Design Canvas</span>
+          {/* Dark theme logo */}
+          <Image
+            src="/drawzware-logo-white.png"
+            alt="Drawzware"
+            width={160}
+            height={38}
+            priority
+            className="h-8 w-auto object-contain dark:block hidden"
+          />
+          {/* Light theme logo */}
+          <Image
+            src="/drawzware-logo.png"
+            alt="Drawzware"
+            width={160}
+            height={38}
+            priority
+            className="h-8 w-auto object-contain dark:hidden block"
+          />
         </Link>
 
         <div className="-mr-1.5 ml-auto flex items-center gap-1.5">
@@ -65,6 +83,20 @@ export function Header({ onImportJson, onImportDockerCompose, containerClassName
             </DropdownMenu>
           )}
 
+          {isInstallable && !isInstalled && (
+            <SimpleTooltip label="Install App">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="size-8 text-accent hover:text-accent hover:bg-accent/15 rounded-lg transition-transform hover:scale-105"
+                onClick={promptInstall}
+                aria-label="Install App"
+              >
+                <Download className="size-4" />
+              </Button>
+            </SimpleTooltip>
+          )}
+
           <SimpleTooltip label="Settings">
             <Button variant="ghost" size="icon-sm" className="size-8 text-ink-3 hover:text-ink hover:bg-line-2 rounded-lg" asChild>
               <Link href="/settings" aria-label="Settings">
@@ -82,7 +114,7 @@ export function Header({ onImportJson, onImportDockerCompose, containerClassName
           <SimpleTooltip label="GitHub">
             <Button variant="ghost" size="icon-sm" className="size-8 text-ink-3 hover:text-ink hover:bg-line-2 rounded-lg" asChild>
               <a
-                href="https://github.com/rajesh-kayal-dev/System-design-canvas"
+                href="https://github.com/rajesh-kayal-dev/Drawzware"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="GitHub"

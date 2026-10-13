@@ -101,7 +101,7 @@ export function exportProjectFile(project: Project): string {
 
 /** Download every project as `{ version: 1, projects }`. Returns the file name. */
 export function exportAllProjectsFile(projects: Project[]): string {
-  const filename = `system-design-canvas-${new Date().toISOString().slice(0, 10)}.json`;
+  const filename = `drawzware-${new Date().toISOString().slice(0, 10)}.json`;
   const json = JSON.stringify({ version: 1, projects }, null, 2);
   downloadFile(filename, new Blob([json], { type: 'application/json' }));
   return filename;

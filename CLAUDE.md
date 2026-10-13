@@ -1,8 +1,8 @@
-# CLAUDE.md — System Design Canvas
+# CLAUDE.md — Drawzware
 
-## What is System Design Canvas
+## What is Drawzware
 
-System Design Canvas is an opinionated canvas tool for software engineers to think about, plan, and visualize system architectures. No auth, no backend — runs entirely on localStorage.
+Drawzware is an opinionated canvas tool for software engineers to think about, plan, and visualize system architectures. No auth, no backend — runs entirely on localStorage.
 
 ## Commands
 

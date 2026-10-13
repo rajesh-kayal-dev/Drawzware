@@ -67,7 +67,7 @@ export function ImportDropZone({ onFiles }: { onFiles: (files: File[]) => void }
       <div className="grid gap-1">
         <div className="text-[15px] font-semibold">Drop to import</div>
         <div className="text-[13px] text-pretty text-ink-2">
-          Accepts <span className="font-mono text-[12px]">.json</span> exported from System Design Canvas.
+          Accepts <span className="font-mono text-[12px]">.json</span> exported from Drawzware.
         </div>
       </div>
     </div>

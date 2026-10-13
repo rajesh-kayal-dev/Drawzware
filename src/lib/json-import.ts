@@ -293,5 +293,5 @@ export function parseJsonImport(text: string): JsonImportItem[] {
     return list.map(projectItem);
   }
   if (isProjectLike(data)) return [projectItem(data)];
-  throw new Error('Not a System Design Canvas project or an endpoint list.');
+  throw new Error('Not a Drawzware project or an endpoint list.');
 }

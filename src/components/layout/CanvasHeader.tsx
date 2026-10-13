@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowLeft,
   ChevronRight,
@@ -201,6 +202,14 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
           </Link>
         </Button>
       </SimpleTooltip>
+
+      <Link
+        href="/"
+        className="focus-ring flex items-center justify-center size-7 rounded-[7px] bg-[#12281c] border border-[#1d6f42]/40 shadow-2xs overflow-hidden shrink-0 hover:border-[#1d6f42] transition-colors"
+        title="Drawzware Dashboard"
+      >
+        <Image src="/drawzware-emblem.png" alt="Drawzware" width={20} height={20} className="size-4.5 object-contain" />
+      </Link>
 
       <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5">
         {!narrow && (

@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowLeft,
-  Boxes,
   ChevronRight,
   Database,
   Download,
@@ -174,7 +174,7 @@ export default function SettingsPage() {
                 <span>Projects</span>
               </Link>
               <h1 className="text-3xl font-bold tracking-tight text-ink">Settings</h1>
-              <p className="mt-1 text-sm text-ink-2">Customize your System Design Canvas experience.</p>
+              <p className="mt-1 text-sm text-ink-2">Customize your Drawzware experience.</p>
             </div>
 
             {/* 1. Appearance Section */}
@@ -268,20 +268,20 @@ export default function SettingsPage() {
             <Section id="about" title="About" icon={Info}>
               <div className="flex flex-wrap items-center justify-between gap-4 p-4">
                 <div className="flex items-center gap-3.5">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-xs">
-                    <Boxes className="size-5" />
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-[#12281c] border border-[#1d6f42]/40 shadow-xs overflow-hidden">
+                    <Image src="/drawzware-emblem.png" alt="Drawzware" width={26} height={26} className="size-5.5 object-contain" />
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-ink flex items-center gap-1.5">
-                      <span>System Design Canvas</span>
+                      <span>Drawzware</span>
                       <span className="font-mono text-xs font-normal text-ink-3">v{packageJson.version}</span>
                     </div>
-                    <div className="text-xs text-ink-2 mt-0.5">Open source · MIT</div>
+                    <div className="text-xs text-ink-2 mt-0.5">Visual Architecture & Diagramming Tool · MIT</div>
                   </div>
                 </div>
 
                 <Button variant="secondary" size="sm" asChild className="rounded-lg text-xs gap-1.5">
-                  <a href="https://github.com/rajesh-kayal-dev/System-design-canvas.git" target="_blank" rel="noreferrer">
+                  <a href="https://github.com/rajesh-kayal-dev/Drawzware.git" target="_blank" rel="noreferrer">
                     <Github className="size-3.5" />
                     GitHub
                   </a>
