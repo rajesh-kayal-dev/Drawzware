@@ -6,13 +6,9 @@
   "scope": "/",
   "id": "/",
   "display": "standalone",
-  "display_override": [
-    "window-controls-overlay",
-    "standalone"
-  ],
   "orientation": "any",
   "background_color": "#0a0c10",
-  "theme_color": "#0a0c10",
+  "theme_color": "#1d6f42",
   "categories": [
     "productivity",
     "developer tools",

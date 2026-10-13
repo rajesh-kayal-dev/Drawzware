@@ -21,10 +21,7 @@ const description =
   "Templates, dark mode, export to PNG/SVG/Mermaid. No sign-up, runs 100% in the browser.";
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0c10" },
-  ],
+  themeColor: "#1d6f42",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
