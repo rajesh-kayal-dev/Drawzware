@@ -314,7 +314,7 @@ function DrawingToolbar() {
     <div
       role="toolbar"
       aria-label="Drawing toolbar"
-      className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-xl border border-white/10 bg-[#18181b]/95 p-1.5 text-white shadow-[0_8px_30px_rgb(0,0,0,0.5)] backdrop-blur-md whitespace-nowrap"
+      className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-xl border border-line bg-paper/95 p-1.5 text-text shadow-[var(--shadow-xl)] backdrop-blur-md whitespace-nowrap cursor-default"
     >
       {/* 1. Pencil button */}
       <SimpleTooltip label="Draw Tab" keys={['Tab']} side="top">
@@ -325,8 +325,8 @@ function DrawingToolbar() {
           className={cn(
             'flex size-8 items-center justify-center rounded-lg transition-colors cursor-pointer',
             isPencil
-              ? 'bg-[#2a2a2a] text-white shadow-sm ring-1 ring-white/10'
-              : 'text-neutral-400 hover:bg-white/10 hover:text-white'
+              ? 'bg-surface-2 text-text font-semibold shadow-2xs ring-1 ring-line-hover'
+              : 'text-text-muted hover:bg-surface-2 hover:text-text'
           )}
         >
           <Pencil className="size-[15px]" />
@@ -342,8 +342,8 @@ function DrawingToolbar() {
           className={cn(
             'flex size-8 items-center justify-center rounded-lg transition-colors cursor-pointer',
             activeTool === 'eraser'
-              ? 'bg-[#2a2a2a] text-white shadow-sm ring-1 ring-white/10'
-              : 'text-neutral-400 hover:bg-white/10 hover:text-white'
+              ? 'bg-surface-2 text-text font-semibold shadow-2xs ring-1 ring-line-hover'
+              : 'text-text-muted hover:bg-surface-2 hover:text-text'
           )}
         >
           <Eraser className="size-[15px]" />
@@ -358,15 +358,15 @@ function DrawingToolbar() {
               <button
                 type="button"
                 aria-label="Color"
-                className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-neutral-300 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"
               >
                 <span
-                  className="size-3.5 rounded-full border border-white/30 shadow-sm"
+                  className="size-3.5 rounded-full border border-line-hover shadow-xs"
                   style={{
-                    backgroundColor: brushColor === 'var(--ink)' ? '#ffffff' : brushColor,
+                    backgroundColor: brushColor === 'var(--ink)' ? 'var(--ink)' : brushColor,
                   }}
                 />
-                <ChevronDown className="size-3 text-neutral-400" />
+                <ChevronDown className="size-3 text-text-muted" />
               </button>
             </PopoverTrigger>
           </SimpleTooltip>
@@ -374,7 +374,7 @@ function DrawingToolbar() {
             side="top"
             align="center"
             sideOffset={12}
-            className="w-auto border-white/15 bg-[#18181b]/95 p-3 text-white shadow-2xl backdrop-blur-md rounded-xl"
+            className="w-auto border border-line bg-paper p-3 text-text shadow-[var(--shadow-xl)] backdrop-blur-md rounded-xl"
           >
             <div className="grid grid-cols-5 gap-2">
               {BRUSH_COLORS.map((c) => {
@@ -390,10 +390,8 @@ function DrawingToolbar() {
                     aria-label={c.name}
                     onClick={() => setBrushColor(c.value)}
                     className={cn(
-                      'relative flex size-6 items-center justify-center rounded-md transition-transform hover:scale-110 cursor-pointer',
-                      c.name === 'White' && 'border border-neutral-600',
-                      c.name === 'Black' && 'border border-neutral-700',
-                      isSelected && 'ring-2 ring-blue-500 ring-offset-2 ring-offset-[#18181b]'
+                      'relative flex size-6 items-center justify-center rounded-md transition-transform hover:scale-110 cursor-pointer border border-line/60',
+                      isSelected && 'ring-2 ring-accent ring-offset-2 ring-offset-paper'
                     )}
                     style={{ backgroundColor: c.value }}
                   />
@@ -401,7 +399,7 @@ function DrawingToolbar() {
               })}
               {/* Rainbow / Custom color picker swatch */}
               <label
-                className="relative flex size-6 cursor-pointer items-center justify-center rounded-md bg-[conic-gradient(at_center,_red,_orange,_yellow,_green,_blue,_purple,_red)] shadow-sm transition-transform hover:scale-110"
+                className="relative flex size-6 cursor-pointer items-center justify-center rounded-md bg-[conic-gradient(at_center,_red,_orange,_yellow,_green,_blue,_purple,_red)] shadow-xs transition-transform hover:scale-110 border border-line/60"
                 title="Custom Color"
               >
                 <input
@@ -432,14 +430,14 @@ function DrawingToolbar() {
                 className={cn(
                   'flex size-8 items-center justify-center rounded-lg transition-colors cursor-pointer',
                   isActive
-                    ? 'bg-[#2a2a2a] text-white shadow-sm ring-1 ring-white/10'
-                    : 'text-neutral-400 hover:bg-white/10 hover:text-white'
+                    ? 'bg-surface-2 text-text font-semibold shadow-2xs ring-1 ring-line-hover'
+                    : 'text-text-muted hover:bg-surface-2 hover:text-text'
                 )}
               >
                 <span
                   className={cn(
                     'rounded-full transition-colors',
-                    isActive ? 'bg-white' : 'bg-[#71717a]'
+                    isActive ? 'bg-text' : 'bg-text-muted/60'
                   )}
                   style={{
                     width: preset.dotSize,
@@ -453,7 +451,7 @@ function DrawingToolbar() {
       </div>
 
       {/* Vertical divider */}
-      <div aria-hidden className="mx-1 h-4 w-px bg-white/15" />
+      <div aria-hidden className="mx-1 h-4 w-px bg-line" />
 
       {/* 5. Three-dot More menu */}
       <DropdownMenu>
@@ -462,7 +460,7 @@ function DrawingToolbar() {
             <button
               type="button"
               aria-label="Drawing options"
-              className="flex size-8 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+              className="flex size-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"
             >
               <MoreHorizontal className="size-4" />
             </button>
@@ -472,13 +470,13 @@ function DrawingToolbar() {
           side="top"
           align="end"
           sideOffset={12}
-          className="w-56 border-white/15 bg-[#18181b]/95 p-2 text-white shadow-2xl backdrop-blur-md rounded-xl"
+          className="w-56 border border-line bg-paper p-2 text-text shadow-[var(--shadow-xl)] backdrop-blur-md rounded-xl"
         >
           {isPencil ? (
             <div className="px-2 py-1.5">
-              <div className="flex items-center justify-between pb-1 text-[11px] font-medium text-neutral-400">
+              <div className="flex items-center justify-between pb-1 text-[11px] font-medium text-text-muted">
                 <span>Stroke Width</span>
-                <span className="font-mono text-white">{strokeWidth}px</span>
+                <span className="font-mono text-text">{strokeWidth}px</span>
               </div>
               <input
                 type="range"
@@ -487,14 +485,14 @@ function DrawingToolbar() {
                 step="0.5"
                 value={strokeWidth}
                 onChange={(e) => setStrokeWidth(Number(e.target.value))}
-                className="my-1.5 h-1.5 w-full cursor-pointer accent-white"
+                className="my-1.5 h-1.5 w-full cursor-pointer accent-accent"
               />
             </div>
           ) : (
             <div className="px-2 py-1.5">
-              <div className="flex items-center justify-between pb-1 text-[11px] font-medium text-neutral-400">
+              <div className="flex items-center justify-between pb-1 text-[11px] font-medium text-text-muted">
                 <span>Eraser Size</span>
-                <span className="font-mono text-white">{eraserRadius * 2}px</span>
+                <span className="font-mono text-text">{eraserRadius * 2}px</span>
               </div>
               <input
                 type="range"
@@ -503,53 +501,53 @@ function DrawingToolbar() {
                 step="2"
                 value={eraserRadius}
                 onChange={(e) => setEraserRadius(Number(e.target.value))}
-                className="my-1.5 h-1.5 w-full cursor-pointer accent-white"
+                className="my-1.5 h-1.5 w-full cursor-pointer accent-accent"
               />
             </div>
           )}
 
-          <DropdownMenuSeparator className="my-1.5 bg-white/15" />
+          <DropdownMenuSeparator className="my-1.5 bg-line" />
 
           <DropdownMenuItem
             onClick={() => setActiveTool('select')}
-            className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-white/10 hover:text-white"
+            className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-text hover:bg-surface-2 hover:text-text"
           >
             <span>Exit drawing mode</span>
-            <DropdownMenuShortcut className="text-neutral-500">Esc</DropdownMenuShortcut>
+            <DropdownMenuShortcut className="text-text-muted">Esc</DropdownMenuShortcut>
           </DropdownMenuItem>
 
           <DropdownMenuItem
             onClick={() => setActiveTool('hand')}
-            className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-white/10 hover:text-white"
+            className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-text hover:bg-surface-2 hover:text-text"
           >
             <span>Hand (Pan) mode</span>
-            <DropdownMenuShortcut className="text-neutral-500">H</DropdownMenuShortcut>
+            <DropdownMenuShortcut className="text-text-muted">H</DropdownMenuShortcut>
           </DropdownMenuItem>
 
-          <DropdownMenuSeparator className="my-1.5 bg-white/15" />
+          <DropdownMenuSeparator className="my-1.5 bg-line" />
 
           <DropdownMenuItem
             onClick={undo}
             disabled={!canUndo}
             className={cn(
-              'flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-white/10 hover:text-white',
-              !canUndo && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-neutral-300'
+              'flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-text hover:bg-surface-2 hover:text-text',
+              !canUndo && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-text'
             )}
           >
             <span>Undo</span>
-            <DropdownMenuShortcut className="text-neutral-500">Ctrl+Z</DropdownMenuShortcut>
+            <DropdownMenuShortcut className="text-text-muted">Ctrl+Z</DropdownMenuShortcut>
           </DropdownMenuItem>
 
           <DropdownMenuItem
             onClick={redo}
             disabled={!canRedo}
             className={cn(
-              'flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-white/10 hover:text-white',
-              !canRedo && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-neutral-300'
+              'flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-text hover:bg-surface-2 hover:text-text',
+              !canRedo && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-text'
             )}
           >
             <span>Redo</span>
-            <DropdownMenuShortcut className="text-neutral-500">Ctrl+Y</DropdownMenuShortcut>
+            <DropdownMenuShortcut className="text-text-muted">Ctrl+Y</DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -587,19 +585,21 @@ export function CanvasToolbar() {
     activeTool === 'arrow' ||
     activeTool === 'line';
 
-  // Contextual toolbar for shapes, lines, arrows, drawings, and edges
-  if (
-    isShapeDrawingTool ||
-    selectedNode?.type === 'shape' ||
-    selectedNode?.type === 'drawing' ||
-    (selectedEdgeId && activeTool === 'select')
-  ) {
-    return <ContextualDrawingToolbar />;
-  }
-
   // When Pencil or Eraser mode is active, show the compact drawing toolbar
   if (activeTool === 'pencil' || activeTool === 'eraser') {
     return <DrawingToolbar />;
+  }
+
+  // Contextual toolbar for shapes, lines, arrows, drawings, and edges
+  if (
+    activeTool !== 'hand' && (
+      isShapeDrawingTool ||
+      selectedNode?.type === 'shape' ||
+      selectedNode?.type === 'drawing' ||
+      (selectedEdgeId && activeTool === 'select')
+    )
+  ) {
+    return <ContextualDrawingToolbar />;
   }
 
   const moreProps = {
@@ -655,7 +655,7 @@ export function CanvasToolbar() {
       <div
         role="toolbar"
         aria-label="Canvas toolbar"
-        className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-line bg-paper p-[5px] whitespace-nowrap shadow-[var(--shadow-lg)]"
+        className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-line bg-paper p-[5px] whitespace-nowrap shadow-[var(--shadow-lg)] cursor-default"
       >
         <DropdownMenu>
           <SimpleTooltip label="Add component" side="top">
@@ -675,12 +675,17 @@ export function CanvasToolbar() {
             <AddComponentSubmenus onAdd={addAtCenter} />
           </DropdownMenuContent>
         </DropdownMenu>
+
+
         <SimpleTooltip label="Text" keys={['T']} side="top">
           <Button
             variant="ghost"
             size="toolbar"
             onClick={() => setActiveTool(activeTool === 'text' ? 'select' : 'text')}
-            className={cn(activeTool === 'text' && 'bg-ink text-paper hover:bg-ink hover:text-paper')}
+            className={cn(
+              activeTool === 'text' &&
+                'bg-accent/15 text-accent ring-1 ring-accent/30 font-semibold hover:bg-accent/20 hover:text-accent'
+            )}
           >
             <Type />
             Text

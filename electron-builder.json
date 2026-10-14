@@ -1,0 +1,106 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "dev.drawzware.app",
+  "productName": "Drawzware",
+  "executableName": "drawzware",
+  "copyright": "Copyright © 2026 Rajesh Kayal",
+  "directories": {
+    "output": "dist",
+    "buildResources": "build"
+  },
+  "files": [
+    "dist-electron/**/*",
+    "out/**/*",
+    "package.json",
+    "!node_modules/next/**/*",
+    "!node_modules/@next/**/*",
+    "!node_modules/react/**/*",
+    "!node_modules/react-dom/**/*",
+    "!node_modules/@xyflow/**/*",
+    "!node_modules/@dagrejs/**/*",
+    "!node_modules/tailwind*/**/*",
+    "!node_modules/@tailwind*/**/*"
+  ],
+  "extraMetadata": {
+    "main": "dist-electron/main.js"
+  },
+  "asar": true,
+  "fileAssociations": [
+    {
+      "ext": "drawz",
+      "name": "Drawzware Diagram",
+      "description": "Drawzware Architecture Diagram Document",
+      "role": "Editor",
+      "icon": "build/icon.png"
+    },
+    {
+      "ext": "drawzbackup",
+      "name": "Drawzware Project Backup",
+      "description": "Drawzware Multi-Project Backup Archive",
+      "role": "Editor",
+      "icon": "build/icon.png"
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      },
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "build/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Drawzware",
+    "installerIcon": "build/icon.ico",
+    "uninstallerIcon": "build/icon.ico",
+    "installerHeaderIcon": "build/icon.ico"
+  },
+  "mac": {
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["x64", "arm64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64", "arm64"]
+      }
+    ],
+    "icon": "build/icon.png",
+    "category": "public.app-category.developer-tools",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false
+  },
+  "dmg": {
+    "title": "Drawzware ${version}"
+  },
+  "linux": {
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": ["x64"]
+      },
+      {
+        "target": "deb",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "build/icon.png",
+    "category": "Development",
+    "desktop": {
+      "StartupWMClass": "drawzware"
+    },
+    "synopsis": "Local-first visual architecture & system diagramming studio",
+    "description": "Drawzware is a client-first, zero-backend visual system architecture diagramming studio."
+  }
+}

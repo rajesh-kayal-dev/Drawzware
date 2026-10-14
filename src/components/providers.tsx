@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/toast';
 import { PwaRegister } from '@/components/pwa/PwaRegister';
 import { InstallPromptBanner } from '@/components/pwa/InstallPromptBanner';
+import { DashboardIntroProvider } from '@/components/transition/DashboardIntroProvider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -16,10 +17,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider>
-      <PwaRegister />
-      {children}
-      <InstallPromptBanner />
-      <Toaster />
+      <DashboardIntroProvider>
+        <PwaRegister />
+        {children}
+        <InstallPromptBanner />
+        <Toaster />
+      </DashboardIntroProvider>
     </TooltipProvider>
   );
 }

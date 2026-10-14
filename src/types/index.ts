@@ -13,6 +13,8 @@ export type CanvasTool =
   | 'text'
   | 'junction';
 
+export type LibraryTab = 'all' | 'diagrams' | 'components' | 'shapes' | 'steps';
+
 export interface DrawingFormatting {
   strokeColor: string;
   strokeWidth: number;
@@ -207,7 +209,9 @@ export interface PlacementItem {
     | 'junction'
     | 'sequence-participant'
     | 'sequence-fragment'
-    | 'er-table';
+    | 'er-table'
+    | 'preset';
+  presetId?: string;
   type?: SystemNodeType | string;
   shapeType?: ShapeType;
   stepId?: StepId;
@@ -224,6 +228,9 @@ export interface PlacementItem {
   targetCardinality?: string;
   strokeStyle?: 'solid' | 'dashed' | 'dotted';
   arrowEnd?: boolean;
+  customIcon?: string;
+  defaultTechStack?: string[];
+  description?: string;
 }
 
 // Node data
@@ -231,6 +238,8 @@ export const SystemNodeDataSchema = z.object({
   label: z.string(),
   nodeType: z.enum(SYSTEM_NODE_TYPES),
   description: z.string().optional(),
+  customIcon: z.string().optional(),
+  icon: z.string().optional(),
   /** Narration shown on the story card in presentation mode. */
   story: z.string().optional(),
   techStack: z.array(z.string()).default([]),

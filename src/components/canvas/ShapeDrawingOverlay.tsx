@@ -9,10 +9,12 @@ import {
   getBestHandles,
   simplifyPoints,
   snapOrthogonalPoints,
+  cleanWaypoints,
   pointsToSvgPath,
   type Point,
 } from '@/lib/line-routing';
 import type { ShapeType, SystemEdge, SystemNode } from '@/types';
+import { cn } from '@/lib/utils';
 
 const DRAWING_TOOLS = new Set(['rectangle', 'circle', 'arrow', 'line']);
 
@@ -209,22 +211,44 @@ export function ShapeDrawingOverlay() {
       if (isLineOrArrow) {
         let waypoints: Point[];
 
-        if (isShift || trail.length <= 2) {
-          // Single straight segment
+        if (activeTool === 'line') {
+          // STRAIGHT LINE: Always strictly 2 points (never bend or introduce waypoints)
           const dx = currentFlow.x - startFlow.x;
           const dy = currentFlow.y - startFlow.y;
           if (Math.hypot(dx, dy) < 8) {
-            // Default 140px horizontal line on single click
             waypoints = [startFlow, { x: startFlow.x + 140, y: startFlow.y }];
+          } else if (isShift) {
+            const angle = Math.atan2(dy, dx);
+            const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+            const dist = Math.hypot(dx, dy);
+            waypoints = [
+              startFlow,
+              {
+                x: Math.round(startFlow.x + Math.cos(snapAngle) * dist),
+                y: Math.round(startFlow.y + Math.sin(snapAngle) * dist),
+              },
+            ];
           } else {
             waypoints = [startFlow, currentFlow];
           }
         } else {
-          // Simplify mouse trail to extract corners and bends
-          const simplified = simplifyPoints(trail, 14);
-          waypoints = snapOrthogonalPoints(simplified);
-          if (waypoints.length < 2) {
-            waypoints = [startFlow, currentFlow];
+          // ARROW / CONNECTOR:
+          if (isShift || trail.length <= 2) {
+            const dx = currentFlow.x - startFlow.x;
+            const dy = currentFlow.y - startFlow.y;
+            if (Math.hypot(dx, dy) < 8) {
+              waypoints = [startFlow, { x: startFlow.x + 140, y: startFlow.y }];
+            } else {
+              waypoints = [startFlow, currentFlow];
+            }
+          } else {
+            // Simplify mouse trail to extract corners and bends without excessive points
+            const simplified = simplifyPoints(trail, 22);
+            const snapped = snapOrthogonalPoints(simplified);
+            waypoints = cleanWaypoints(snapped);
+            if (waypoints.length < 2) {
+              waypoints = [startFlow, currentFlow];
+            }
           }
         }
 
@@ -389,11 +413,11 @@ export function ShapeDrawingOverlay() {
         // Orthogonal connecting line
         const midX = (sPos.x + tPos.x) / 2;
         livePoints = [sPos, { x: midX, y: sPos.y }, { x: midX, y: tPos.y }, tPos];
-      } else if (dragState.isShift || dragState.trail.length <= 2) {
+      } else if (activeTool === 'line' || dragState.isShift || dragState.trail.length <= 2) {
         livePoints = [dragState.startFlow, dragState.currentFlow];
       } else {
-        const simplified = simplifyPoints(dragState.trail, 14);
-        livePoints = snapOrthogonalPoints(simplified);
+        const simplified = simplifyPoints(dragState.trail, 22);
+        livePoints = cleanWaypoints(snapOrthogonalPoints(simplified));
       }
     }
   }
@@ -424,8 +448,11 @@ export function ShapeDrawingOverlay() {
         isDrawingRef.current = false;
         setDragState(null);
       }}
-      className="absolute inset-0 z-30 cursor-crosshair select-none touch-none"
-      style={{ pointerEvents: 'all' }}
+      className={cn(
+        'absolute inset-0 z-30 cursor-crosshair select-none touch-none',
+        isSpacePanning && 'pointer-events-none'
+      )}
+      style={{ pointerEvents: isSpacePanning ? 'none' : 'all' }}
     >
       <ViewportPortal>
         {dragState && (activeTool === 'line' || activeTool === 'arrow') && livePoints.length >= 2 && (
@@ -461,7 +488,7 @@ export function ShapeDrawingOverlay() {
             )}
 
             <path
-              d={pointsToSvgPath(livePoints, 8)}
+              d={pointsToSvgPath(livePoints, activeTool === 'line' ? 0 : 8)}
               fill="none"
               stroke={stroke}
               strokeWidth={strokeWidth}

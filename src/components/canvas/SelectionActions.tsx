@@ -44,7 +44,7 @@ export function SelectionActions() {
       role="toolbar"
       aria-label="Selection actions"
       className={cn(
-        'animate-fade-in absolute z-[11] flex items-center gap-0.5 rounded-full border border-line bg-paper py-1 pr-1 pl-3 text-[12.5px] whitespace-nowrap shadow-[var(--shadow-lg)]',
+        'animate-fade-in absolute z-[11] flex items-center gap-0.5 rounded-full border border-line bg-paper py-1 pr-1 pl-3 text-[12.5px] whitespace-nowrap shadow-[var(--shadow-lg)] cursor-default',
         below ? '-translate-x-1/2' : '-translate-x-1/2 -translate-y-full'
       )}
       style={{ left, top: below ? maxY * zoom + ty + 10 : top }}

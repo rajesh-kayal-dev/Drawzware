@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   ChevronRight,
@@ -9,6 +10,8 @@ import {
   Download,
   FileCode,
   FileJson,
+  FileText,
+  FolderOpen,
   Home,
   ImageIcon,
   Link as LinkIcon,
@@ -32,9 +35,12 @@ import {
 import { exportToMermaid } from '@/lib/mermaid';
 import { encodeCanvasToUrl } from '@/lib/share';
 import { downloadFile } from '@/lib/utils';
+import { openDrawzProject, saveAsDrawzProject } from '@/lib/file-operations';
+import type { Project } from '@/types';
 import { useTheme } from '@/hooks/useTheme';
 import { useIsNarrow, useMediaQuery } from '@/hooks/useMediaQuery';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useIsDesktop } from '@/hooks/useIsDesktop';
 import { Button } from '@/components/ui/button';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import {
@@ -152,8 +158,9 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
   const ThemeIcon = theme === 'dark' ? Sun : Moon;
   const themeLabel = theme === 'dark' ? 'Light theme' : 'Dark theme';
 
-  // Detect PWA standalone mode — hide the Home button when running as installed PWA
+  // Detect PWA standalone mode and Electron Desktop environment
   const isPwa = useMediaQuery('(display-mode: standalone)');
+  const isDesktop = useIsDesktop();
 
   const handleExportPng = async () => {
     try {
@@ -214,10 +221,53 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
     }
   };
 
+  const [isExportingDrawz, setIsExportingDrawz] = useState(false);
+  const [isOpeningDrawz, setIsOpeningDrawz] = useState(false);
+  const router = useRouter();
+
+  const handleSaveAsDrawz = async () => {
+    if (isExportingDrawz) return;
+    const currentProject = useProjectStore.getState().projects.find((p) => p.id === projectId);
+    const { nodes, edges, viewport, diagramType, diagramData } = useCanvasStore.getState();
+    const projectToSave: Project = currentProject
+      ? { ...currentProject, nodes, edges, viewport, diagramType, diagramData }
+      : {
+          id: projectId,
+          name: projectName || 'Untitled Design',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          nodes,
+          edges,
+          viewport,
+          diagramType,
+          diagramData,
+        };
+
+    setIsExportingDrawz(true);
+    try {
+      await saveAsDrawzProject(projectToSave);
+    } finally {
+      setIsExportingDrawz(false);
+    }
+  };
+
+  const handleOpenDrawz = async () => {
+    if (isOpeningDrawz) return;
+    setIsOpeningDrawz(true);
+    try {
+      const opened = await openDrawzProject();
+      if (opened) {
+        router.push(`/canvas?id=${encodeURIComponent(opened.id)}`);
+      }
+    } finally {
+      setIsOpeningDrawz(false);
+    }
+  };
+
   return (
     <header className="flex h-[52px] shrink-0 items-center gap-2 bg-bg px-4">
-      {/* Home button — links back to the landing page; hidden in PWA standalone mode */}
-      {!isPwa && (
+      {/* Home button — Only shown in standard browser; hidden in Electron desktop and PWA */}
+      {!isDesktop && !isPwa && (
         <SimpleTooltip label="Home">
           <Button variant="icon" asChild>
             <Link href="/" aria-label="Go to homepage">
@@ -232,6 +282,17 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
           <Link href="/app" aria-label="Back to projects">
             <ArrowLeft className="size-4" />
           </Link>
+        </Button>
+      </SimpleTooltip>
+
+      <SimpleTooltip label="Open .drawz file">
+        <Button
+          variant="icon"
+          onClick={handleOpenDrawz}
+          disabled={isOpeningDrawz}
+          aria-label="Open .drawz project"
+        >
+          <FolderOpen className="size-4" />
         </Button>
       </SimpleTooltip>
 
@@ -296,8 +357,13 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
               </button>
             </DropdownMenuTrigger>
           </SimpleTooltip>
-          <DropdownMenuContent align="end" className="w-[190px]">
+          <DropdownMenuContent align="end" className="w-[195px]">
             <DropdownMenuLabel>Export Formats</DropdownMenuLabel>
+            <DropdownMenuItem onSelect={handleSaveAsDrawz} disabled={isExportingDrawz} className="cursor-pointer font-medium text-accent">
+              <FileText className="size-3.5 mr-2" />
+              Save As .drawz…
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={handleExportPng} className="cursor-pointer">
               <ImageIcon className="size-3.5 mr-2 text-ink-2" />
               PNG image

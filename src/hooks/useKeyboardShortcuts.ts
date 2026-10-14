@@ -23,7 +23,7 @@ function isOverlayOpen() {
  * Presentation arrows live in PresentationOverlay.
  */
 export function useKeyboardShortcuts() {
-  const { fitView } = useReactFlow();
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -112,6 +112,20 @@ export function useKeyboardShortcuts() {
             e.preventDefault();
             s.redo();
             return;
+          case '=':
+          case '+':
+            e.preventDefault();
+            zoomIn({ duration: 150 });
+            return;
+          case '-':
+          case '_':
+            e.preventDefault();
+            zoomOut({ duration: 150 });
+            return;
+          case '0':
+            e.preventDefault();
+            fitView(getFitViewOptions(200));
+            return;
         }
         return;
       }
@@ -125,7 +139,7 @@ export function useKeyboardShortcuts() {
       }
       if (e.key === '/') {
         e.preventDefault();
-        s.toggleLibrary();
+        s.openInsertItem();
         return;
       }
       if (e.shiftKey && key === 'r') {
@@ -161,6 +175,7 @@ export function useKeyboardShortcuts() {
       if (key === 'v') {
         e.preventDefault();
         s.setActiveTool('select');
+        if (!s.libraryCollapsed) s.setLibraryCollapsed(true);
         return;
       }
 
@@ -172,26 +187,31 @@ export function useKeyboardShortcuts() {
       if (key === 'h') {
         e.preventDefault();
         s.setActiveTool(s.activeTool === 'hand' ? 'select' : 'hand');
+        if (!s.libraryCollapsed) s.setLibraryCollapsed(true);
         return;
       }
       if (key === 'r') {
         e.preventDefault();
         s.setActiveTool(s.activeTool === 'rectangle' ? 'select' : 'rectangle');
+        if (!s.libraryCollapsed) s.setLibraryCollapsed(true);
         return;
       }
       if (key === 'o') {
         e.preventDefault();
         s.setActiveTool(s.activeTool === 'circle' ? 'select' : 'circle');
+        if (!s.libraryCollapsed) s.setLibraryCollapsed(true);
         return;
       }
       if (key === 'a') {
         e.preventDefault();
         s.setActiveTool(s.activeTool === 'arrow' ? 'select' : 'arrow');
+        if (!s.libraryCollapsed) s.setLibraryCollapsed(true);
         return;
       }
       if (key === 'l') {
         e.preventDefault();
         s.setActiveTool(s.activeTool === 'line' ? 'select' : 'line');
+        if (!s.libraryCollapsed) s.setLibraryCollapsed(true);
         return;
       }
       if (key === 'j') {
@@ -204,16 +224,19 @@ export function useKeyboardShortcuts() {
       if (key === 't') {
         e.preventDefault();
         s.setActiveTool(s.activeTool === 'text' ? 'select' : 'text');
+        if (!s.libraryCollapsed) s.setLibraryCollapsed(true);
         return;
       }
       if (key === 'd') {
         e.preventDefault();
         s.setActiveTool(s.activeTool === 'pencil' ? 'select' : 'pencil');
+        if (!s.libraryCollapsed) s.setLibraryCollapsed(true);
         return;
       }
       if (key === 'e') {
         e.preventDefault();
         s.setActiveTool(s.activeTool === 'eraser' ? 'select' : 'eraser');
+        if (!s.libraryCollapsed) s.setLibraryCollapsed(true);
         return;
       }
       if (key === 'p') {
@@ -242,5 +265,5 @@ export function useKeyboardShortcuts() {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [fitView]);
+  }, [fitView, zoomIn, zoomOut]);
 }

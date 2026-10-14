@@ -47,7 +47,7 @@ export default function ImportPage() {
 
   const handleImport = async () => {
     if (state.kind !== 'ready') return;
-    const { added } = mergeProjects(state.payload.projects);
+    const { added } = await mergeProjects(state.payload.projects);
     if (applyMigratedPreferences(state.payload)) {
       await useSettingsStore.persist.rehydrate();
     }

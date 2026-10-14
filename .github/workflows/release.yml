@@ -1,0 +1,140 @@
+name: Release Drawzware Desktop
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-test:
+    name: Build & Test (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            build-cmd: npm run dist:win
+          - os: macos-latest
+            platform: mac
+            build-cmd: npm run dist:mac
+          - os: ubuntu-latest
+            platform: linux
+            build-cmd: npm run dist:linux
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libarchive-tools
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Code Quality & Lint
+        run: npm run lint
+
+      - name: TypeScript Type Verification
+        run: npx tsc --noEmit
+
+      - name: Automated Unit & Integration Tests
+        run: npm test
+
+      - name: Build Next.js Production Static Export
+        run: npm run build
+
+      - name: Build Electron Main & Preload
+        run: npm run build:electron
+
+      - name: Smoke Test (Linux with Xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npm run test:smoke
+
+      - name: Smoke Test (Windows / macOS)
+        if: runner.os != 'Linux'
+        run: npm run test:smoke
+
+      - name: Build Desktop Distributables
+        env:
+          # Optional code signing secrets (falls back gracefully to unsigned builds if omitted)
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: ${{ matrix.build-cmd }}
+
+      - name: Upload Distributable Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: drawzware-${{ matrix.platform }}
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/*.dmg
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.deb
+            dist/latest*.yml
+          if-no-files-found: error
+          retention-days: 5
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-and-test]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: List Artifacts to Publish
+        run: |
+          echo "=== Release Artifacts ==="
+          ls -la release-artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/*.exe
+            release-artifacts/*.blockmap
+            release-artifacts/*.dmg
+            release-artifacts/*.zip
+            release-artifacts/*.AppImage
+            release-artifacts/*.deb
+            release-artifacts/latest*.yml
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') || contains(github.ref, '-rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

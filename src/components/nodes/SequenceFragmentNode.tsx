@@ -10,6 +10,7 @@ function SequenceFragmentComponent({ id, data, selected }: NodeProps<SystemNode>
   const [isEditing, setIsEditing] = useState(false);
   const [draftCondition, setDraftCondition] = useState(data.fragmentCondition || data.label || 'alt [Condition]');
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
+  const pushHistory = useCanvasStore((s) => s.pushHistory);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [prevCondition, setPrevCondition] = useState(data.fragmentCondition || data.label);
@@ -50,7 +51,7 @@ function SequenceFragmentComponent({ id, data, selected }: NodeProps<SystemNode>
   return (
     <div
       className={cn(
-        'group relative size-full min-h-[120px] min-w-[200px] rounded-[10px] border-2 border-dashed backdrop-blur-2xs transition-colors',
+        'group relative size-full rounded-[10px] border-2 border-dashed backdrop-blur-2xs transition-colors box-border overflow-hidden',
         selected ? 'ring-2 ring-accent ring-offset-1 ring-offset-bg shadow-md' : 'hover:border-line-hover'
       )}
       style={{
@@ -60,10 +61,11 @@ function SequenceFragmentComponent({ id, data, selected }: NodeProps<SystemNode>
     >
       <NodeResizer
         isVisible={!!selected}
-        minWidth={180}
-        minHeight={100}
+        minWidth={80}
+        minHeight={40}
         lineClassName="!border-accent"
         handleClassName="!size-2 !bg-accent !border-2 !border-paper"
+        onResizeEnd={() => pushHistory()}
       />
 
       {/* ── Top-Left Operator Pill ── */}

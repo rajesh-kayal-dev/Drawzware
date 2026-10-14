@@ -1,0 +1,67 @@
+/* ================================================================
+   Drawzware Scanner, Aura & Dual-Spinner Transition Styles
+   Milestone 3A.2 Branded Dashboard Intro Transition
+   ================================================================ */
+
+/* Local CSS Aura Background Fallback & Ambient Animation */
+.aura-fallback-mesh {
+  background:
+    radial-gradient(circle at 45% 35%, rgba(16, 185, 129, 0.24) 0%, transparent 55%),
+    radial-gradient(circle at 75% 25%, rgba(20, 184, 166, 0.20) 0%, transparent 50%),
+    radial-gradient(circle at 25% 65%, rgba(6, 182, 212, 0.18) 0%, transparent 55%),
+    radial-gradient(circle at 60% 75%, rgba(16, 185, 129, 0.15) 0%, transparent 60%);
+  background-size: 140% 140%;
+  animation: auraFloat 7s ease-in-out infinite alternate;
+}
+
+@keyframes auraFloat {
+  0% {
+    transform: scale(1) translate(0%, 0%);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.08) translate(-2%, 2%);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1.04) translate(2%, -2%);
+    opacity: 0.85;
+  }
+}
+
+/* Dual Concentric Spinner Animations */
+@keyframes spinClockwise {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinAntiClockwise {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.spinner-clockwise {
+  animation: spinClockwise 1.6s cubic-bezier(0.4, 0.1, 0.2, 1) infinite;
+}
+
+.spinner-anticlockwise {
+  animation: spinAntiClockwise 1.2s cubic-bezier(0.4, 0.1, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aura-fallback-mesh {
+    animation: none;
+  }
+  .spinner-clockwise,
+  .spinner-anticlockwise {
+    animation: none;
+  }
+}

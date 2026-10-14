@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Import",
-  robots: { index: false, follow: false },
+  description: "Import architecture designs and system diagrams into Drawzware.",
+  robots: { index: false, follow: true },
+  alternates: null,
 };
 
 export default function ImportLayout({

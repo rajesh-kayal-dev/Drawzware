@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -36,6 +38,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIsNarrow } from '@/hooks/useMediaQuery';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { createSystemNode } from '@/lib/node-factory';
+import { TECHNOLOGY_STACK_PRESETS, instantiateStackPreset } from '@/lib/technology-stacks';
 import { getMinimapColor } from '@/lib/minimap';
 import { computeIssues, ValidationWarningsContext } from '@/lib/validation';
 import { cn } from '@/lib/utils';
@@ -60,6 +63,7 @@ import { JunctionNode } from '@/components/nodes/JunctionNode';
 import { PencilOverlay } from './PencilOverlay';
 import { ShapeDrawingOverlay } from './ShapeDrawingOverlay';
 import { TextFormattingToolbar } from './TextFormattingToolbar';
+import { getCanvasCursorClass } from './canvas-helpers';
 import {
   createCanvasTextNode,
   createShapeNode,
@@ -108,8 +112,8 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const setSelectedEdgeId = useCanvasStore((s) => s.setSelectedEdgeId);
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
   const selectedEdgeId = useCanvasStore((s) => s.selectedEdgeId);
-  const initCanvas = useCanvasStore((s) => s.initCanvas);
   const addNode = useCanvasStore((s) => s.addNode);
+  const addElements = useCanvasStore((s) => s.addElements);
   const deleteEdge = useCanvasStore((s) => s.deleteEdge);
   const deleteElements = useCanvasStore((s) => s.deleteElements);
   const clearSelection = useCanvasStore((s) => s.clearSelection);
@@ -138,7 +142,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const connectEndPos = useRef<{ x: number; y: number } | null>(null);
   const edgeReconnectSuccessful = useRef(true);
 
-  const { screenToFlowPosition, fitView, getViewport, setViewport: setFlowViewport } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
   useAutoSave();
   useKeyboardShortcuts();
 
@@ -152,30 +156,19 @@ function CanvasInner({ projectId }: { projectId: string }) {
   useDocumentTitle(currentProject ? (currentProject.name || 'Untitled Design') : undefined);
 
   useEffect(() => {
-    if (!loaded) loadProjects();
-  }, [loaded, loadProjects]);
-
-  useEffect(() => {
-    if (!loaded) return;
-    const project = useProjectStore.getState().projects.find((p) => p.id === projectId);
-    if (!project) return;
-    initCanvas(
-      projectId,
-      project.nodes as SystemNode[],
-      project.edges as SystemEdgeModel[],
-      project.viewport,
-      project.diagramType || 'architecture',
-      project.diagramData as Record<DiagramType, { nodes: SystemNode[]; edges: SystemEdgeModel[] }> | undefined
-    );
     requestAnimationFrame(() => {
       fitView(getFitViewOptions(200));
     });
-  }, [projectId, loaded, initCanvas, fitView]);
+  }, [fitView]);
 
-  // Library starts collapsed (i.e. the bottom sheet closed) on narrow screens.
   useEffect(() => {
-    if (narrow) setLibraryCollapsed(true);
-  }, [narrow, setLibraryCollapsed]);
+    if (!loaded) loadProjects();
+  }, [loaded, loadProjects]);
+
+  // Library starts closed by default when opening any canvas/project.
+  useEffect(() => {
+    setLibraryCollapsed(true);
+  }, [setLibraryCollapsed]);
 
   // ── Derived chrome state ───────────────────────────────
   const selectedCount = useMemo(() => nodes.reduce((n, node) => n + (node.selected ? 1 : 0), 0), [nodes]);
@@ -242,7 +235,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
         return;
       }
       if (e.ctrlKey || e.metaKey) return;
-      if (useCanvasStore.getState().activeTool !== 'select') {
+      if (useCanvasStore.getState().activeTool !== 'select' && useCanvasStore.getState().activeTool !== 'hand') {
         setActiveTool('select');
       }
       // Single-click selects/drags the component on canvas without opening the right bar
@@ -280,8 +273,21 @@ function CanvasInner({ projectId }: { projectId: string }) {
         } else if (placementItem.kind === 'step' && placementItem.stepId) {
           newNode = createStepNode(placementItem.stepId, flowPos);
         } else if (placementItem.kind === 'component' && placementItem.type) {
-          newNode = createSystemNode(placementItem.type as SystemNodeType, flowPos);
-          if (placementItem.label) newNode.data.label = placementItem.label;
+          newNode = createSystemNode(placementItem.type as SystemNodeType, flowPos, {
+            ...(placementItem.label ? { label: placementItem.label } : {}),
+            ...(placementItem.customIcon ? { customIcon: placementItem.customIcon } : {}),
+            ...(placementItem.color ? { color: placementItem.color } : {}),
+            ...(placementItem.defaultTechStack ? { techStack: [...placementItem.defaultTechStack] } : {}),
+            ...(placementItem.description ? { description: placementItem.description } : {}),
+          });
+        } else if (placementItem.kind === 'preset' && placementItem.presetId) {
+          const preset = TECHNOLOGY_STACK_PRESETS.find((pr) => pr.id === placementItem.presetId);
+          if (preset) {
+            const { nodes: newNodes, edges: newEdges } = instantiateStackPreset(preset, flowPos);
+            addElements(newNodes, newEdges);
+            setPlacementItem(null);
+            return;
+          }
         } else if (placementItem.kind === 'group') {
           newNode = createSystemNode('group', flowPos);
           if (placementItem.label) newNode.data.label = placementItem.label;
@@ -448,9 +454,6 @@ function CanvasInner({ projectId }: { projectId: string }) {
       }
       clearSelection();
       setContextMenu(null);
-      if (useCanvasStore.getState().activeTool !== 'select') {
-        setActiveTool('select');
-      }
     },
     [
       placementItem,
@@ -460,6 +463,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
       screenToFlowPosition,
       pushHistory,
       addNode,
+      addElements,
       setNodes,
       setEdges,
       setSelectedNodeId,
@@ -514,8 +518,16 @@ function CanvasInner({ projectId }: { projectId: string }) {
     [deleteElements]
   );
 
+  const [isPanning, setIsPanning] = useState(false);
+  const onMoveStart = useCallback(() => {
+    setIsPanning(true);
+  }, []);
+
   const onMoveEnd = useCallback(
-    (_: unknown, vp: { x: number; y: number; zoom: number }) => setViewport(vp),
+    (_: unknown, vp: { x: number; y: number; zoom: number }) => {
+      setIsPanning(false);
+      setViewport(vp);
+    },
     [setViewport]
   );
 
@@ -578,8 +590,20 @@ function CanvasInner({ projectId }: { projectId: string }) {
           } else if (item.kind === 'step' && item.stepId) {
             newNode = createStepNode(item.stepId, { x: p.x - 170, y: p.y - 100 });
           } else if (item.kind === 'component' && item.type) {
-            newNode = createSystemNode(item.type as SystemNodeType, { x: p.x - 100, y: p.y - 36 });
-            if (item.label) newNode.data.label = item.label;
+            newNode = createSystemNode(item.type as SystemNodeType, { x: p.x - 100, y: p.y - 36 }, {
+              ...(item.label ? { label: item.label } : {}),
+              ...(item.customIcon ? { customIcon: item.customIcon } : {}),
+              ...(item.color ? { color: item.color } : {}),
+              ...(item.defaultTechStack ? { techStack: [...item.defaultTechStack] } : {}),
+              ...(item.description ? { description: item.description } : {}),
+            });
+          } else if (item.kind === 'preset' && item.presetId) {
+            const preset = TECHNOLOGY_STACK_PRESETS.find((pr) => pr.id === item.presetId);
+            if (preset) {
+              const { nodes: newNodes, edges: newEdges } = instantiateStackPreset(preset, { x: p.x - 200, y: p.y - 80 });
+              addElements(newNodes, newEdges);
+              return;
+            }
           } else if (item.kind === 'group') {
             newNode = createSystemNode('group', { x: p.x - 160, y: p.y - 100 });
             if (item.label) newNode.data.label = item.label;
@@ -731,7 +755,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
       pushHistory();
       addNode(node);
     },
-    [screenToFlowPosition, addNode, pushHistory, nodes, edges, setNodes, setEdges]
+    [screenToFlowPosition, addNode, addElements, pushHistory, nodes, edges, setNodes, setEdges]
   );
 
   const onPaneContextMenu = useCallback(
@@ -739,14 +763,11 @@ function CanvasInner({ projectId }: { projectId: string }) {
       event.preventDefault();
       if (useCanvasStore.getState().presentation.active) return;
       setContextMenu(null);
-      if (useCanvasStore.getState().activeTool !== 'select') {
-        setActiveTool('select');
-      }
       if (useCanvasStore.getState().placementItem) {
         setPlacementItem(null);
       }
     },
-    [setActiveTool, setPlacementItem]
+    [setPlacementItem]
   );
 
   const onNodeContextMenu = useCallback(
@@ -754,9 +775,6 @@ function CanvasInner({ projectId }: { projectId: string }) {
       event.preventDefault();
       if (useCanvasStore.getState().presentation.active) return;
       setContextMenu(null);
-      if (useCanvasStore.getState().activeTool !== 'select') {
-        setActiveTool('select');
-      }
       if (useCanvasStore.getState().placementItem) {
         setPlacementItem(null);
       }
@@ -770,7 +788,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
         );
       }
     },
-    [setActiveTool, setPlacementItem, setNodes]
+    [setPlacementItem, setNodes]
   );
 
   const onEdgeContextMenu = useCallback(
@@ -778,82 +796,21 @@ function CanvasInner({ projectId }: { projectId: string }) {
       event.preventDefault();
       if (useCanvasStore.getState().presentation.active) return;
       setContextMenu(null);
-      if (useCanvasStore.getState().activeTool !== 'select') {
-        setActiveTool('select');
-      }
       if (useCanvasStore.getState().placementItem) {
         setPlacementItem(null);
       }
       setSelectedEdgeId(edge.id);
     },
-    [setActiveTool, setPlacementItem, setSelectedEdgeId]
+    [setPlacementItem, setSelectedEdgeId]
   );
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
-  const panStartRef = useRef<{ x: number; y: number; vpX: number; vpY: number; zoom: number } | null>(null);
-
-  const onPointerDownCapture = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.button === 2) {
-        const currentTool = useCanvasStore.getState().activeTool;
-        if (currentTool !== 'select' && currentTool !== 'eraser') {
-          setActiveTool('select');
-        }
-        if (useCanvasStore.getState().placementItem) {
-          setPlacementItem(null);
-        }
-      }
-
-      const isMiddle = e.button === 1;
-      const isSpaceDrag = e.button === 0 && isSpacePanning;
-      const isHandDrag = e.button === 0 && activeTool === 'hand';
-
-      if (isMiddle || isSpaceDrag || isHandDrag) {
-        e.preventDefault();
-        e.stopPropagation();
-        const currentVp = getViewport();
-        panStartRef.current = {
-          x: e.clientX,
-          y: e.clientY,
-          vpX: currentVp.x,
-          vpY: currentVp.y,
-          zoom: currentVp.zoom,
-        };
-
-        const prevCursor = document.body.style.cursor;
-        document.body.style.cursor = 'grabbing';
-
-        const onPointerMove = (ev: PointerEvent) => {
-          if (!panStartRef.current) return;
-          const dx = ev.clientX - panStartRef.current.x;
-          const dy = ev.clientY - panStartRef.current.y;
-          setFlowViewport({
-            x: panStartRef.current.vpX + dx,
-            y: panStartRef.current.vpY + dy,
-            zoom: panStartRef.current.zoom,
-          });
-        };
-
-        const onPointerUp = () => {
-          panStartRef.current = null;
-          document.body.style.cursor = prevCursor;
-          window.removeEventListener('pointermove', onPointerMove);
-          window.removeEventListener('pointerup', onPointerUp);
-          window.removeEventListener('pointercancel', onPointerUp);
-        };
-
-        window.addEventListener('pointermove', onPointerMove);
-        window.addEventListener('pointerup', onPointerUp);
-        window.addEventListener('pointercancel', onPointerUp);
-      }
-    },
-    [isSpacePanning, activeTool, getViewport, setFlowViewport, setActiveTool, setPlacementItem]
-  );
-
   const showMinimap = showMinimapSetting && !narrow && !presenting && !editorOpen;
   const showValidation = validationActive && !(narrow && editorOpen);
   const libraryOffset = !narrow && !libraryCollapsed ? LIBRARY_WIDTH : 0;
+
+  const toolCursorClass = getCanvasCursorClass(activeTool, isSpacePanning, Boolean(placementItem), isPanning);
 
   return (
     <div className="flex h-dvh w-screen flex-col bg-bg">
@@ -862,17 +819,10 @@ function CanvasInner({ projectId }: { projectId: string }) {
         className={cn(
           'relative flex-1 overflow-hidden',
           !animatedEdges && 'edges-static',
-          activeTool === 'text' && 'cursor-text',
-          placementItem && 'cursor-crosshair',
-          (activeTool === 'hand' || isSpacePanning) &&
-          'cursor-grab active:cursor-grabbing [&_.react-flow__node]:pointer-events-none [&_.react-flow__edge]:pointer-events-none'
+          toolCursorClass
         )}
-        onPointerDownCapture={onPointerDownCapture}
         onContextMenu={(e) => {
           e.preventDefault();
-          if (useCanvasStore.getState().activeTool !== 'select' && useCanvasStore.getState().activeTool !== 'eraser') {
-            setActiveTool('select');
-          }
           if (useCanvasStore.getState().placementItem) {
             setPlacementItem(null);
           }
@@ -896,6 +846,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
             onDoubleClick={onPaneDoubleClick}
             onNodesDelete={onNodesDelete}
             onEdgesDelete={onEdgesDelete}
+            onMoveStart={onMoveStart}
             onMoveEnd={onMoveEnd}
             onNodeDragStop={onNodeDragStop}
             onSelectionDragStop={onNodeDragStop}
@@ -912,6 +863,11 @@ function CanvasInner({ projectId }: { projectId: string }) {
             fitViewOptions={getFitViewOptions()}
             connectionMode={ConnectionMode.Loose}
             selectionMode={SelectionMode.Partial}
+            minZoom={0.1}
+            maxZoom={4}
+            zoomOnScroll={true}
+            zoomOnPinch={true}
+            panOnScroll={false}
             zoomOnDoubleClick={false}
             selectionKeyCode={null}
             selectionOnDrag={!presenting && activeTool === 'select' && !isSpacePanning}
@@ -922,7 +878,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
             nodesConnectable={!presenting && activeTool === 'select' && !isSpacePanning}
             elementsSelectable={!presenting && activeTool === 'select' && !isSpacePanning}
             edgesReconnectable={!presenting && activeTool === 'select' && !isSpacePanning}
-            panOnDrag={activeTool === 'hand' || isSpacePanning ? [0] : false}
+            panOnDrag={activeTool === 'hand' || isSpacePanning ? [0, 1] : [1]}
             deleteKeyCode={null}
             className="bg-bg"
           >
@@ -987,6 +943,101 @@ function CanvasInner({ projectId }: { projectId: string }) {
 }
 
 export function Canvas({ projectId }: { projectId: string }) {
+  const [hydrationStatus, setHydrationStatus] = useState<'loading' | 'ready' | 'not-found' | 'error'>('loading');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState<number>(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset hydration status when projectId changes
+    setHydrationStatus('loading');
+    setLoadError(null);
+
+    const hydrate = async () => {
+      try {
+        const store = useProjectStore.getState();
+        let project = store.projects.find((p) => p.id === projectId);
+        if (!project) {
+          project = (await store.getOrLoadProject(projectId)) ?? undefined;
+        }
+
+        if (cancelled) return;
+
+        if (!project) {
+          setHydrationStatus('not-found');
+          return;
+        }
+
+        // Initialize canvas store state with the loaded project document BEFORE mounting ReactFlow
+        useCanvasStore.getState().initCanvas(
+          projectId,
+          project.nodes as SystemNode[],
+          project.edges as SystemEdgeModel[],
+          project.viewport,
+          project.diagramType || 'architecture',
+          project.diagramData as Record<DiagramType, { nodes: SystemNode[]; edges: SystemEdgeModel[] }> | undefined
+        );
+
+        setHydrationStatus('ready');
+      } catch (err) {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : 'Failed to load project from storage.';
+        setLoadError(msg);
+        setHydrationStatus('error');
+      }
+    };
+
+    hydrate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, retryKey]);
+
+  if (hydrationStatus === 'loading') {
+    return (
+      <div className="dot-grid flex h-screen w-screen items-center justify-center bg-bg">
+        <div className="flex flex-col items-center gap-3">
+          <div className="size-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <span className="text-[13px] text-ink-3">Loading design…</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (hydrationStatus === 'not-found') {
+    return (
+      <div className="dot-grid flex min-h-screen items-center justify-center p-6 bg-bg">
+        <div className="grid max-w-[340px] justify-items-center gap-2 text-center">
+          <div className="text-[15px] font-semibold text-ink">Project not found</div>
+          <p className="text-[12.5px] text-ink-2">The requested project could not be found in storage.</p>
+          <Button variant="secondary" asChild className="mt-2">
+            <Link href="/app">Go to dashboard</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (hydrationStatus === 'error') {
+    return (
+      <div className="dot-grid flex min-h-screen items-center justify-center p-6 bg-bg">
+        <div className="grid max-w-[340px] justify-items-center gap-3 text-center">
+          <div className="text-[15px] font-semibold text-danger">Failed to load project</div>
+          <p className="text-[12.5px] text-ink-2">{loadError}</p>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setRetryKey((k) => k + 1)}>
+              Retry
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link href="/app">Go to dashboard</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ReactFlowProvider>
       <CanvasInner projectId={projectId} />

@@ -20,6 +20,7 @@
   --edge-mix: 55%;
   --shadow: 0 1px 2px rgb(30 20 10 / 0.04), 0 8px 24px -12px rgb(30 20 10 / 0.14);
   --shadow-lg: 0 2px 4px rgb(30 20 10 / 0.04), 0 16px 40px -16px rgb(30 20 10 / 0.2);
+  --shadow-xl: 0 4px 6px -1px rgb(30 20 10 / 0.05), 0 20px 48px -12px rgb(30 20 10 / 0.16);
 }
 
 [data-theme="dark"] {
@@ -42,4 +43,5 @@
   --edge-mix: 72%;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
   --shadow-lg: 0 2px 4px rgb(0 0 0 / 0.3), 0 16px 40px -16px rgb(0 0 0 / 0.6);
+  --shadow-xl: 0 4px 6px -1px rgb(0 0 0 / 0.35), 0 20px 48px -12px rgb(0 0 0 / 0.65);
 }

@@ -38,6 +38,54 @@ import { BRUSH_COLORS } from '@/types';
 
 const PILL_CLEARANCE = 56;
 
+let globalSavedRange: Range | null = null;
+let globalSavedNodeId: string | null = null;
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('selectionchange', () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const anchor = sel.anchorNode;
+      const editor =
+        anchor instanceof Element
+          ? anchor.closest('[data-text-editor]')
+          : anchor?.parentElement?.closest('[data-text-editor]');
+      if (editor) {
+        globalSavedRange = sel.getRangeAt(0).cloneRange();
+        globalSavedNodeId = editor.getAttribute('data-node-id');
+      }
+    }
+  });
+}
+
+function syncActiveEditor(nodeId: string) {
+  if (typeof document === 'undefined') return;
+  const el = document.querySelector(`[data-text-editor][data-node-id="${nodeId}"]`) as HTMLElement | null;
+  if (el) {
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}
+
+function getTargetSelection(targetNodeId: string): { sel: Selection | null; hasSelection: boolean } {
+  if (typeof window === 'undefined') return { sel: null, hasSelection: false };
+  const sel = window.getSelection();
+  const editor = document.querySelector(`[data-text-editor][data-node-id="${targetNodeId}"]`);
+
+  if (sel && sel.rangeCount > 0 && !sel.isCollapsed && editor && editor.contains(sel.anchorNode)) {
+    return { sel, hasSelection: true };
+  }
+
+  if (globalSavedRange && !globalSavedRange.collapsed && globalSavedNodeId === targetNodeId && editor) {
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(globalSavedRange);
+      return { sel, hasSelection: true };
+    }
+  }
+
+  return { sel, hasSelection: false };
+}
+
 const FONT_FAMILIES = [
   { id: 'sans', label: 'Sans (Inter)', class: 'font-sans' },
   { id: 'serif', label: 'Serif', class: 'font-serif' },
@@ -99,6 +147,46 @@ export function TextFormattingToolbar() {
   const widthMode = data?.widthMode ?? 'auto';
   const isLocked = targetNode.draggable === false;
 
+  const handleBold = () => {
+    const { hasSelection } = getTargetSelection(targetNode.id);
+    if (hasSelection) {
+      document.execCommand('bold', false);
+      syncActiveEditor(targetNode.id);
+    } else {
+      updateNodeData(targetNode.id, { bold: !isBold });
+    }
+  };
+
+  const handleItalic = () => {
+    const { hasSelection } = getTargetSelection(targetNode.id);
+    if (hasSelection) {
+      document.execCommand('italic', false);
+      syncActiveEditor(targetNode.id);
+    } else {
+      updateNodeData(targetNode.id, { italic: !isItalic });
+    }
+  };
+
+  const handleUnderline = () => {
+    const { hasSelection } = getTargetSelection(targetNode.id);
+    if (hasSelection) {
+      document.execCommand('underline', false);
+      syncActiveEditor(targetNode.id);
+    } else {
+      updateNodeData(targetNode.id, { underline: !isUnderline });
+    }
+  };
+
+  const handleColor = (color: string) => {
+    const { hasSelection } = getTargetSelection(targetNode.id);
+    if (hasSelection) {
+      document.execCommand('foreColor', false, color);
+      syncActiveEditor(targetNode.id);
+    } else {
+      updateNodeData(targetNode.id, { color });
+    }
+  };
+
   const iconBtn = 'size-7 [&_svg:not([class*=size-])]:size-3.5';
 
   return (
@@ -107,7 +195,7 @@ export function TextFormattingToolbar() {
       data-text-toolbar="true"
       aria-label="Text formatting"
       className={cn(
-        'animate-fade-in absolute z-[11] flex items-center gap-0.5 rounded-full border border-line bg-paper px-1.5 py-1 text-[12.5px] whitespace-nowrap shadow-[var(--shadow-lg)]',
+        'animate-fade-in absolute z-[11] flex items-center gap-0.5 rounded-full border border-line bg-paper px-1.5 py-1 text-[12.5px] whitespace-nowrap shadow-[var(--shadow-lg)] cursor-default',
         below ? '-translate-x-1/2' : '-translate-x-1/2 -translate-y-full'
       )}
       style={{ left, top: below ? (r.y + r.height) * zoom + ty + 12 : top }}
@@ -127,7 +215,13 @@ export function TextFormattingToolbar() {
             </Button>
           </DropdownMenuTrigger>
         </SimpleTooltip>
-        <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[140px] p-1">
+        <DropdownMenuContent
+          side="top"
+          align="start"
+          sideOffset={8}
+          onCloseAutoFocus={(e: Event) => e.preventDefault()}
+          className="w-[140px] p-1"
+        >
           {FONT_FAMILIES.map((f) => (
             <DropdownMenuItem
               key={f.id}
@@ -168,7 +262,13 @@ export function TextFormattingToolbar() {
             </Button>
           </DropdownMenuTrigger>
         </SimpleTooltip>
-        <DropdownMenuContent side="top" align="center" sideOffset={8} className="w-[84px] p-1">
+        <DropdownMenuContent
+          side="top"
+          align="center"
+          sideOffset={8}
+          onCloseAutoFocus={(e: Event) => e.preventDefault()}
+          className="w-[84px] p-1"
+        >
           {FONT_SIZES.map((size) => (
             <DropdownMenuItem
               key={size}
@@ -211,16 +311,22 @@ export function TextFormattingToolbar() {
             </Button>
           </DropdownMenuTrigger>
         </SimpleTooltip>
-        <DropdownMenuContent side="top" align="center" sideOffset={8} className="w-[180px] p-2">
+        <DropdownMenuContent
+          side="top"
+          align="center"
+          sideOffset={8}
+          onCloseAutoFocus={(e: Event) => e.preventDefault()}
+          className="w-[180px] p-2"
+        >
           <div className="grid grid-cols-5 gap-1.5">
             {BRUSH_COLORS.map((c) => (
               <button
                 key={c.value}
                 type="button"
                 aria-label={c.name}
-                onClick={() => updateNodeData(targetNode.id, { color: c.value })}
+                onClick={() => handleColor(c.value)}
                 className={cn(
-                  'flex size-7 items-center justify-center rounded-full border border-black/10 transition-transform hover:scale-110',
+                  'flex size-7 items-center justify-center rounded-full border border-black/10 transition-transform hover:scale-110 cursor-pointer',
                   currentColor === c.value && 'ring-2 ring-accent ring-offset-1'
                 )}
                 style={{ backgroundColor: c.value }}
@@ -248,7 +354,7 @@ export function TextFormattingToolbar() {
           size="icon-sm"
           className={cn(iconBtn, isBold && 'bg-line-2 text-ink')}
           aria-label="Bold"
-          onClick={() => updateNodeData(targetNode.id, { bold: !isBold })}
+          onClick={handleBold}
         >
           <Bold />
         </Button>
@@ -261,7 +367,7 @@ export function TextFormattingToolbar() {
           size="icon-sm"
           className={cn(iconBtn, isItalic && 'bg-line-2 text-ink')}
           aria-label="Italic"
-          onClick={() => updateNodeData(targetNode.id, { italic: !isItalic })}
+          onClick={handleItalic}
         >
           <Italic />
         </Button>
@@ -274,7 +380,7 @@ export function TextFormattingToolbar() {
           size="icon-sm"
           className={cn(iconBtn, isUnderline && 'bg-line-2 text-ink')}
           aria-label="Underline"
-          onClick={() => updateNodeData(targetNode.id, { underline: !isUnderline })}
+          onClick={handleUnderline}
         >
           <Underline />
         </Button>
@@ -328,7 +434,13 @@ export function TextFormattingToolbar() {
             </Button>
           </DropdownMenuTrigger>
         </SimpleTooltip>
-        <DropdownMenuContent side="top" align="end" sideOffset={8} className="w-[170px] p-1">
+        <DropdownMenuContent
+          side="top"
+          align="end"
+          sideOffset={8}
+          onCloseAutoFocus={(e: Event) => e.preventDefault()}
+          className="w-[170px] p-1"
+        >
           {targetNode.type === 'text' && (
             <>
               <DropdownMenuItem

@@ -10,14 +10,19 @@ function nextId(prefix: string) {
 }
 
 /** New component node (or group) of the given type at a flow position. */
-export function createSystemNode(nodeType: SystemNodeType, position: { x: number; y: number }): SystemNode {
-  const config = NODE_REGISTRY[nodeType];
+export function createSystemNode(
+  nodeType: SystemNodeType,
+  position: { x: number; y: number },
+  overrideData?: Partial<SystemNodeData>
+): SystemNode {
+  const config = NODE_REGISTRY[nodeType] ?? NODE_REGISTRY.service;
   const isGroup = nodeType === 'group';
   const data: SystemNodeData = {
     label: isGroup ? 'Group' : config.label,
     nodeType,
     description: '',
     techStack: [...config.defaultTechStack],
+    ...overrideData,
   };
   return {
     id: nextId(isGroup ? 'group' : 'node'),

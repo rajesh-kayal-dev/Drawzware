@@ -8,6 +8,7 @@ import type { SystemNode } from '@/types';
 
 function GroupNodeComponent({ id, data, selected }: NodeProps<SystemNode>) {
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
+  const pushHistory = useCanvasStore((s) => s.pushHistory);
   const presenting = useCanvasStore((s) => s.presentation.active);
   const label = data.label ?? '';
 
@@ -19,7 +20,25 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<SystemNode>) {
       )}
       style={{ background: 'color-mix(in oklch, var(--paper) 35%, transparent)' }}
     >
-      <NodeResizer isVisible={!!selected && !presenting} minWidth={200} minHeight={120} />
+      <NodeResizer
+        isVisible={!!selected && !presenting}
+        minWidth={80}
+        minHeight={50}
+        lineStyle={{
+          borderColor: '#0ea5e9',
+          borderWidth: 1.5,
+          borderStyle: 'solid',
+        }}
+        handleStyle={{
+          width: 8,
+          height: 8,
+          backgroundColor: '#ffffff',
+          borderColor: '#0ea5e9',
+          borderWidth: 1.5,
+          borderRadius: 2,
+        }}
+        onResizeEnd={() => pushHistory()}
+      />
 
       {/* Auto-width label pill: an invisible copy of the text sizes the grid cell. */}
       <span className="absolute -top-[11px] left-3 inline-grid max-w-[calc(100%-24px)] rounded-full border border-line bg-paper px-[9px] py-0.5 text-[11.5px] leading-4 font-medium text-ink-2 transition-[border-color,box-shadow] duration-[120ms] focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-soft)]">

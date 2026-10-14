@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { ViewportPortal, useReactFlow, useStore } from '@xyflow/react';
-import { Eraser } from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { createDrawingNode } from '@/lib/node-factory';
 import { pointsToSvgPath } from '@/components/nodes/FreehandDrawingNode';
@@ -332,7 +331,6 @@ export function PencilOverlay() {
   const [isErasingActive, setIsErasingActive] = useState(false);
   const [lastEraseFlowPos, setLastEraseFlowPos] = useState<Point | null>(null);
 
-  const cursorRef = useRef<HTMLDivElement>(null);
   const isDrawingRef = useRef(false);
   const pointsRef = useRef<Point[]>([]);
 
@@ -473,10 +471,8 @@ export function PencilOverlay() {
       isDrawingRef.current = false;
       isErasingRef.current = false;
       pointsRef.current = [];
-      if (cursorRef.current) cursorRef.current.style.display = 'none';
     } else if (activeTool === 'pencil') {
       isErasingRef.current = false;
-      if (cursorRef.current) cursorRef.current.style.display = 'none';
     } else if (activeTool === 'eraser') {
       isDrawingRef.current = false;
       pointsRef.current = [];
@@ -490,7 +486,6 @@ export function PencilOverlay() {
         isErasingRef.current = false;
         setCurrentStroke([]);
         pointsRef.current = [];
-        if (cursorRef.current) cursorRef.current.style.display = 'none';
         setIsErasingActive(false);
         setLastEraseFlowPos(null);
         useCanvasStore.getState().setActiveTool('select');
@@ -504,6 +499,7 @@ export function PencilOverlay() {
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (activeTool !== 'pencil' && activeTool !== 'eraser') return;
       if (isSpacePanning || e.button === 1) return;
+
       if (activeTool === 'pencil') {
         if (e.button === 2) {
           e.preventDefault();
@@ -518,11 +514,6 @@ export function PencilOverlay() {
       } else if (activeTool === 'eraser') {
         // Support both left click (0) and right click (2) for erasing with blue effect
         if (e.button !== 0 && e.button !== 2 && e.pointerType === 'mouse') return;
-      }
-
-      if (activeTool === 'eraser' && cursorRef.current) {
-        cursorRef.current.style.display = 'flex';
-        cursorRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-30%, -70%)`;
       }
 
       const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
@@ -548,7 +539,6 @@ export function PencilOverlay() {
         isDrawingRef.current = false;
         isErasingRef.current = false;
         setIsErasingActive(false);
-        if (cursorRef.current) cursorRef.current.style.display = 'none';
         setLastEraseFlowPos(null);
         setCurrentStroke([]);
         pointsRef.current = [];
@@ -584,12 +574,6 @@ export function PencilOverlay() {
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      // Ultra-fast 0ms cursor following via direct DOM transform without triggering React re-renders
-      if (activeTool === 'eraser' && cursorRef.current) {
-        cursorRef.current.style.display = 'flex';
-        cursorRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-30%, -70%)`;
-      }
-
       if (activeTool === 'pencil' && isDrawingRef.current) {
         e.preventDefault();
         e.stopPropagation();
@@ -696,7 +680,6 @@ export function PencilOverlay() {
 
   const onPointerLeave = useCallback(() => {
     if (activeTool === 'eraser' && !isErasingRef.current) {
-      if (cursorRef.current) cursorRef.current.style.display = 'none';
       setLastEraseFlowPos(null);
     }
   }, [activeTool]);
@@ -708,8 +691,8 @@ export function PencilOverlay() {
       <div
         className={cn(
           activeTool === 'eraser'
-            ? 'absolute inset-0 z-20 cursor-none touch-none select-none'
-            : 'absolute inset-0 z-20 cursor-crosshair touch-none select-none',
+            ? 'absolute inset-0 z-20 cursor-tool-eraser touch-none select-none'
+            : 'absolute inset-0 z-20 cursor-tool-pencil touch-none select-none',
           isSpacePanning && 'pointer-events-none'
         )}
         onPointerDown={onPointerDown}
@@ -719,43 +702,6 @@ export function PencilOverlay() {
         onPointerLeave={onPointerLeave}
         onContextMenu={onContextMenu}
       />
-
-      {/* Eraser Icon Cursor: Clean white eraser, with subtle highlight effect when mouse button is pressed / right-clicked */}
-      {activeTool === 'eraser' && !isSpacePanning && (
-        <div
-          ref={cursorRef}
-          className="pointer-events-none fixed z-50 flex items-center justify-center select-none"
-          style={{
-            display: 'none',
-            left: 0,
-            top: 0,
-            transform: 'translate(-30%, -70%)',
-            willChange: 'transform',
-          }}
-        >
-          {/* Small, muted vertical highlight indicator on cursor when pressed */}
-          {isErasingActive && (
-            <div className="absolute -left-1 top-2.5 h-3.5 w-1 rounded-full bg-blue-500/40 blur-[0.5px] pointer-events-none" />
-          )}
-
-          {/* Normal white eraser icon */}
-          <div
-            className={cn(
-              'relative flex items-center justify-center transition-transform duration-75',
-              isErasingActive ? 'scale-110 -rotate-12' : 'scale-100 rotate-0'
-            )}
-          >
-            <Eraser
-              className={cn(
-                'size-6 stroke-[2.2] pointer-events-none select-none transition-colors duration-75',
-                isErasingActive
-                  ? 'text-blue-100 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]'
-                  : 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] drop-shadow-[0_0_1.5px_rgba(0,0,0,0.95)]'
-              )}
-            />
-          </div>
-        </div>
-      )}
 
       <ViewportPortal>
         {activeTool === 'pencil' && currentStroke.length > 0 && (

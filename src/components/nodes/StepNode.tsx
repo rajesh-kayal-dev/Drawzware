@@ -12,6 +12,7 @@ import {
   Minus,
   Palette,
   Plus,
+  Underline,
 } from 'lucide-react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { cn } from '@/lib/utils';
@@ -160,6 +161,16 @@ function domToMarkdown(node: Node): string {
     case 'em':
     case 'i':
       return inner.trim() ? `*${inner.trim()}*` : '';
+    case 'u':
+      return inner.trim() ? `<u>${inner.trim()}</u>` : '';
+    case 'span':
+    case 'font': {
+      const styleColor = el.style?.color || (el as HTMLFontElement).color;
+      if (styleColor) {
+        return `<span style="color: ${styleColor}">${inner}</span>`;
+      }
+      return inner;
+    }
     case 'code':
       return inner.trim() ? `\`${inner.trim()}\`` : '';
     case 'li':
@@ -188,11 +199,11 @@ function htmlToMarkdown(html: string): string {
     .trim();
 }
 
-/** Parse and render inline Markdown tokens: bold, italic, code */
+/** Parse and render inline Markdown tokens: span color, u, bold, italic, code */
 function renderInlineMarkdown(rawText: string): React.ReactNode {
   const text = cleanRawMarkdownSymbols(rawText);
   const parts: React.ReactNode[] = [];
-  const regex = /(\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|\*[^*]+\*|_[^_]+_)/g;
+  const regex = /(<span\s+style="color:\s*([^"]+)">([\s\S]*?)<\/span>|<u>([\s\S]*?)<\/u>|\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|\*[^*]+\*|_[^_]+_)/gi;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -201,10 +212,25 @@ function renderInlineMarkdown(rawText: string): React.ReactNode {
       parts.push(text.slice(lastIndex, match.index));
     }
     const token = match[0];
-    if (token.startsWith('**') || token.startsWith('__')) {
+    if (token.toLowerCase().startsWith('<span')) {
+      const color = match[2];
+      const inner = match[3];
+      parts.push(
+        <span key={match.index} style={{ color }}>
+          {renderInlineMarkdown(inner)}
+        </span>
+      );
+    } else if (token.toLowerCase().startsWith('<u>')) {
+      const inner = match[4];
+      parts.push(
+        <u key={match.index} className="underline">
+          {renderInlineMarkdown(inner)}
+        </u>
+      );
+    } else if (token.startsWith('**') || token.startsWith('__')) {
       const inner = token.slice(2, -2).trim();
       parts.push(
-        <strong key={match.index} className="font-semibold text-ink">
+        <strong key={match.index} className="font-semibold">
           {inner}
         </strong>
       );
@@ -221,7 +247,7 @@ function renderInlineMarkdown(rawText: string): React.ReactNode {
     } else if (token.startsWith('*') || token.startsWith('_')) {
       const inner = token.slice(1, -1).trim();
       parts.push(
-        <em key={match.index} className="italic text-ink/90">
+        <em key={match.index} className="italic">
           {inner}
         </em>
       );
@@ -282,7 +308,7 @@ function renderMarkdown(
               <span className="shrink-0 font-mono text-[0.88em] font-semibold text-accent mt-0.5 select-none">
                 {item.num ?? `${idx + 1}.`}
               </span>
-              <span className="flex-1 min-w-0 text-ink/90">{renderInlineMarkdown(item.text)}</span>
+              <span className="flex-1 min-w-0">{renderInlineMarkdown(item.text)}</span>
             </li>
           ))}
         </ol>
@@ -301,7 +327,7 @@ function renderMarkdown(
                   height: `${Math.max(4.5, 5.5 * scale)}px`,
                 }}
               />
-              <span className="flex-1 min-w-0 text-ink/90">{renderInlineMarkdown(item.text)}</span>
+              <span className="flex-1 min-w-0">{renderInlineMarkdown(item.text)}</span>
             </li>
           ))}
         </ul>
@@ -348,7 +374,7 @@ function renderMarkdown(
         elements.push(
           <h1
             key={`h1-${i}`}
-            className="font-extrabold tracking-tight text-ink mt-4 mb-2 first:mt-0"
+            className="font-extrabold tracking-tight mt-4 mb-2 first:mt-0"
             style={{
               fontSize: `${Math.round(fontSize * 1.45)}px`,
               color: color || undefined,
@@ -362,7 +388,7 @@ function renderMarkdown(
         elements.push(
           <h2
             key={`h2-${i}`}
-            className="font-bold tracking-tight text-ink mt-3.5 mb-1.5 first:mt-0"
+            className="font-bold tracking-tight mt-3.5 mb-1.5 first:mt-0"
             style={{
               fontSize: `${Math.round(fontSize * 1.25)}px`,
               color: color || undefined,
@@ -377,7 +403,7 @@ function renderMarkdown(
         elements.push(
           <h3
             key={`h3-${i}`}
-            className="font-bold tracking-tight text-ink mt-3.5 mb-1.5 first:mt-0"
+            className="font-bold tracking-tight mt-3.5 mb-1.5 first:mt-0"
             style={{
               fontSize: `${Math.round(fontSize * 1.15)}px`,
               color: color || undefined,
@@ -417,7 +443,7 @@ function renderMarkdown(
       elements.push(
         <h3
           key={`bold-h-${i}`}
-          className="font-bold tracking-tight text-ink mt-3.5 mb-1.5 first:mt-0"
+          className="font-bold tracking-tight mt-3.5 mb-1.5 first:mt-0"
           style={{
             fontSize: `${Math.round(fontSize * 1.15)}px`,
             color: color || undefined,
@@ -434,7 +460,7 @@ function renderMarkdown(
     elements.push(
       <p
         key={`p-${i}`}
-        className="my-1 leading-relaxed text-ink/90"
+        className="my-1 leading-relaxed"
         style={{
           fontSize: `${fontSize}px`,
           color: color || undefined,
@@ -465,6 +491,8 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
   const [content, setContent] = useState(initialContent);
   const initialContentRef = useRef(initialContent);
   const editorRef = useRef<HTMLDivElement>(null);
+  const savedSelectionRef = useRef<Range | null>(null);
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Proportional Scaling Logic based on card dimensions
   const baseWidth = 340;
@@ -491,6 +519,25 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
   const currentAlign = data?.align ?? 'left';
   const isBold = Boolean(data?.bold);
   const isItalic = Boolean(data?.italic);
+  const isUnderline = Boolean(data?.underline);
+
+  // Save text selection whenever user selects text inside editor
+  useEffect(() => {
+    if (!isEditing) return;
+    const onSelectionChange = () => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && editorRef.current) {
+        const anchor = sel.anchorNode;
+        if (anchor && editorRef.current.contains(anchor)) {
+          savedSelectionRef.current = sel.getRangeAt(0).cloneRange();
+        }
+      }
+    };
+    document.addEventListener('selectionchange', onSelectionChange);
+    return () => {
+      document.removeEventListener('selectionchange', onSelectionChange);
+    };
+  }, [isEditing]);
 
   useEffect(() => {
     if (isEditing && editorRef.current) {
@@ -525,6 +572,7 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
   }, [data?.stepContent]);
 
   const finishEditing = useCallback(() => {
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
     if (editorRef.current) {
       const updatedMd = htmlToMarkdown(editorRef.current.innerHTML);
       if (updatedMd !== initialContentRef.current) {
@@ -536,6 +584,36 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
     }
     setIsEditing(false);
   }, [id, pushHistory, updateNodeData]);
+
+  const handleEditorBlur = useCallback(
+    (e: React.FocusEvent) => {
+      const related = e.relatedTarget as HTMLElement | null;
+      if (
+        related &&
+        (related.closest('[data-step-toolbar]') ||
+          related.closest('[data-radix-popper-content-wrapper]') ||
+          related.closest('[role="dialog"]') ||
+          related.closest('[role="menu"]'))
+      ) {
+        return;
+      }
+      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = setTimeout(() => {
+        const activeEl = document.activeElement;
+        if (
+          activeEl &&
+          (activeEl.closest('[data-step-toolbar]') ||
+            activeEl.closest('[data-radix-popper-content-wrapper]') ||
+            activeEl.closest('[role="dialog"]') ||
+            activeEl.closest('[role="menu"]'))
+        ) {
+          return;
+        }
+        finishEditing();
+      }, 180);
+    },
+    [finishEditing]
+  );
 
   const onDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -570,21 +648,94 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
     [data, id, updateNodeData]
   );
 
-  // Direct WYSIWYG rich-text commands (no raw markdown symbols shown)
-  const toggleBold = useCallback(() => {
-    if (typeof document !== 'undefined') {
-      document.execCommand('bold', false);
+  const restoreSelection = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const sel = window.getSelection();
+    if (sel && savedSelectionRef.current && editorRef.current) {
+      try {
+        sel.removeAllRanges();
+        sel.addRange(savedSelectionRef.current);
+      } catch {}
     }
   }, []);
+
+  const triggerContentSave = useCallback(() => {
+    if (editorRef.current) {
+      const updatedMd = htmlToMarkdown(editorRef.current.innerHTML);
+      initialContentRef.current = updatedMd;
+      setContent(updatedMd);
+      updateNodeData(id, { stepContent: updatedMd });
+      pushHistory();
+    }
+  }, [id, pushHistory, updateNodeData]);
+
+  // Direct WYSIWYG rich-text commands
+  const toggleBold = useCallback(() => {
+    if (typeof document !== 'undefined') {
+      restoreSelection();
+      document.execCommand('bold', false);
+      triggerContentSave();
+    }
+  }, [restoreSelection, triggerContentSave]);
 
   const toggleItalic = useCallback(() => {
     if (typeof document !== 'undefined') {
+      restoreSelection();
       document.execCommand('italic', false);
+      triggerContentSave();
     }
-  }, []);
+  }, [restoreSelection, triggerContentSave]);
+
+  const toggleUnderline = useCallback(() => {
+    if (typeof document !== 'undefined') {
+      restoreSelection();
+      document.execCommand('underline', false);
+      triggerContentSave();
+    }
+  }, [restoreSelection, triggerContentSave]);
+
+  const onSelectColor = useCallback(
+    (color: string) => {
+      const sel = typeof window !== 'undefined' ? window.getSelection() : null;
+      let range = savedSelectionRef.current;
+      if (
+        sel &&
+        sel.rangeCount > 0 &&
+        !sel.isCollapsed &&
+        editorRef.current?.contains(sel.anchorNode)
+      ) {
+        range = sel.getRangeAt(0);
+      }
+
+      if (
+        range &&
+        !range.collapsed &&
+        editorRef.current?.contains(range.commonAncestorContainer)
+      ) {
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+        if (color) {
+          document.execCommand('foreColor', false, color);
+        } else {
+          document.execCommand('removeFormat', false);
+        }
+        if (sel && sel.rangeCount > 0) {
+          savedSelectionRef.current = sel.getRangeAt(0).cloneRange();
+        }
+        triggerContentSave();
+      } else {
+        applyFormatting({ color });
+        pushHistory();
+      }
+    },
+    [applyFormatting, pushHistory, triggerContentSave]
+  );
 
   const toggleHeading = useCallback(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    restoreSelection();
     const sel = window.getSelection();
     let isH3 = false;
     if (sel && sel.anchorNode) {
@@ -602,19 +753,139 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
     } else {
       document.execCommand('formatBlock', false, '<h3>');
     }
-  }, []);
+    triggerContentSave();
+  }, [restoreSelection, triggerContentSave]);
 
   const toggleBulletList = useCallback(() => {
     if (typeof document !== 'undefined') {
+      restoreSelection();
       document.execCommand('insertUnorderedList', false);
+      triggerContentSave();
     }
-  }, []);
+  }, [restoreSelection, triggerContentSave]);
 
   const toggleOrderedList = useCallback(() => {
     if (typeof document !== 'undefined') {
+      restoreSelection();
       document.execCommand('insertOrderedList', false);
+      triggerContentSave();
     }
-  }, []);
+  }, [restoreSelection, triggerContentSave]);
+
+  // Professional document editor keyboard handling for Enter, Tab, and Backspace
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        finishEditing();
+        return;
+      }
+
+      // Stop propagation so typing does not trigger canvas keyboard shortcuts
+      e.stopPropagation();
+
+      // Tab key: indent list item or insert spaces
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          document.execCommand('outdent', false);
+        } else {
+          const sel = window.getSelection();
+          let inList = false;
+          if (sel && sel.anchorNode) {
+            let curr: Node | null = sel.anchorNode;
+            while (curr && curr !== editorRef.current) {
+              if (curr.nodeName === 'LI' || curr.nodeName === 'UL' || curr.nodeName === 'OL') {
+                inList = true;
+                break;
+              }
+              curr = curr.parentNode;
+            }
+          }
+          if (inList) {
+            document.execCommand('indent', false);
+          } else {
+            document.execCommand('insertText', false, '  ');
+          }
+        }
+        return;
+      }
+
+      // Backspace on empty list item: outdents to exit list
+      if (e.key === 'Backspace' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const sel = window.getSelection();
+        if (sel && sel.isCollapsed && sel.anchorNode) {
+          let curr: Node | null = sel.anchorNode;
+          let li: HTMLElement | null = null;
+          while (curr && curr !== editorRef.current) {
+            if (curr.nodeName === 'LI') {
+              li = curr as HTMLElement;
+              break;
+            }
+            curr = curr.parentNode;
+          }
+          if (li && (!li.textContent || li.textContent.trim() === '')) {
+            e.preventDefault();
+            document.execCommand('outdent', false);
+            return;
+          }
+        }
+      }
+
+      // Enter key: natural list item continuation or exiting empty list / heading
+      if (e.key === 'Enter') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          document.execCommand('insertLineBreak', false);
+          return;
+        }
+
+        const sel = window.getSelection();
+        if (sel && sel.isCollapsed && sel.anchorNode) {
+          // If in an empty list item, Enter outdents / exits the list
+          let curr: Node | null = sel.anchorNode;
+          let li: HTMLElement | null = null;
+          let heading: HTMLElement | null = null;
+          while (curr && curr !== editorRef.current) {
+            if (curr.nodeName === 'LI') li = curr as HTMLElement;
+            if (/^H[1-6]$/.test(curr.nodeName)) heading = curr as HTMLElement;
+            curr = curr.parentNode;
+          }
+
+          if (li && (!li.textContent || li.textContent.trim() === '')) {
+            e.preventDefault();
+            document.execCommand('outdent', false);
+            return;
+          }
+
+          // If at the end of a heading, Enter creates a normal paragraph below it
+          if (heading && !li) {
+            const range = sel.getRangeAt(0);
+            const headingRange = document.createRange();
+            headingRange.selectNodeContents(heading);
+            headingRange.setStart(range.endContainer, range.endOffset);
+            if (headingRange.toString().length === 0) {
+              e.preventDefault();
+              const p = document.createElement('p');
+              p.innerHTML = '<br>';
+              if (heading.nextSibling) {
+                heading.parentNode?.insertBefore(p, heading.nextSibling);
+              } else {
+                heading.parentNode?.appendChild(p);
+              }
+              const newRange = document.createRange();
+              newRange.setStart(p, 0);
+              newRange.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(newRange);
+              return;
+            }
+          }
+        }
+      }
+    },
+    [finishEditing]
+  );
 
   return (
     <div
@@ -707,6 +978,7 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
       {/* Compact Text Toolbar (Active during editing, scaled proportionally) */}
       {isEditing && (
         <div
+          data-step-toolbar="true"
           className="nodrag nopan nowheel flex items-center border-b border-line/80 bg-paper/95 text-ink shrink-0 shadow-2xs backdrop-blur-xs select-none overflow-x-auto [scrollbar-width:none]"
           style={{
             padding: `${Math.max(4, Math.round(5 * scale))}px ${Math.max(8, Math.round(14 * scale))}px`,
@@ -765,12 +1037,18 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
                 </button>
               </PopoverTrigger>
             </SimpleTooltip>
-            <PopoverContent side="top" align="center" className="w-[150px] p-1.5 grid grid-cols-5 gap-1">
+            <PopoverContent
+              side="top"
+              align="center"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+              className="w-[150px] p-1.5 grid grid-cols-5 gap-1 z-50 bg-paper border border-line shadow-lg"
+            >
               <button
                 type="button"
                 title="Default"
-                onClick={() => applyFormatting({ color: '' })}
-                className="size-5 rounded border border-line bg-paper text-ink flex items-center justify-center text-[9px] font-bold"
+                onClick={() => onSelectColor('')}
+                className="size-5 rounded border border-line bg-paper text-ink flex items-center justify-center text-[9px] font-bold cursor-pointer"
               >
                 Def
               </button>
@@ -779,8 +1057,8 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
                   key={c.name}
                   type="button"
                   title={c.name}
-                  onClick={() => applyFormatting({ color: c.value })}
-                  className="size-5 rounded border border-line/40 transition-transform hover:scale-110"
+                  onClick={() => onSelectColor(c.value)}
+                  className="size-5 rounded border border-line/40 transition-transform hover:scale-110 cursor-pointer"
                   style={{ backgroundColor: c.value }}
                 />
               ))}
@@ -789,7 +1067,7 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
 
           <div className="w-px bg-line/60 shrink-0" style={{ height: `${toolDividerHeight}px` }} />
 
-          {/* Formatting: Bold, Italic */}
+          {/* Formatting: Bold, Italic, Underline */}
           <div className="flex items-center" style={{ gap: `${Math.max(2, Math.round(3 * scale))}px` }}>
             <SimpleTooltip label="Bold" side="top">
               <button
@@ -825,6 +1103,19 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
                 >
                   I
                 </span>
+              </button>
+            </SimpleTooltip>
+            <SimpleTooltip label="Underline" side="top">
+              <button
+                type="button"
+                onClick={toggleUnderline}
+                className={cn(
+                  'flex items-center justify-center rounded hover:bg-line text-ink-2 hover:text-ink cursor-pointer',
+                  isUnderline && 'bg-accent/15 text-accent'
+                )}
+                style={{ width: `${toolBtnSize}px`, height: `${toolBtnSize}px` }}
+              >
+                <Underline style={{ width: `${toolIconSize}px`, height: `${toolIconSize}px` }} />
               </button>
             </SimpleTooltip>
           </div>
@@ -929,27 +1220,21 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
             ref={editorRef}
             contentEditable
             suppressContentEditableWarning
+            data-text-editor="true"
+            data-node-id={id}
             aria-label="Step notes and documentation"
-            onBlur={finishEditing}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                e.preventDefault();
-                finishEditing();
-                return;
-              }
-              // Stop propagation so typing doesn't trigger canvas shortcuts
-              e.stopPropagation();
-            }}
+            onBlur={handleEditorBlur}
+            onKeyDown={handleKeyDown}
             className={cn(
-              'nodrag nowheel nopan size-full outline-none select-text overflow-y-auto leading-relaxed text-ink',
-              '[&_h1]:text-[1.35em] [&_h1]:font-extrabold [&_h1]:text-ink [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h1:first-child]:mt-0',
-              '[&_h2]:text-[1.2em] [&_h2]:font-bold [&_h2]:text-ink [&_h2]:mt-2.5 [&_h2]:mb-1 [&_h2:first-child]:mt-0',
-              '[&_h3]:text-[1.12em] [&_h3]:font-bold [&_h3]:text-ink [&_h3]:mt-2.5 [&_h3]:mb-1 [&_h3:first-child]:mt-0',
+              'nodrag nowheel nopan size-full outline-none select-text overflow-y-auto leading-relaxed',
+              '[&_h1]:text-[1.35em] [&_h1]:font-extrabold [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h1:first-child]:mt-0',
+              '[&_h2]:text-[1.2em] [&_h2]:font-bold [&_h2]:mt-2.5 [&_h2]:mb-1 [&_h2:first-child]:mt-0',
+              '[&_h3]:text-[1.12em] [&_h3]:font-bold [&_h3]:mt-2.5 [&_h3]:mb-1 [&_h3:first-child]:mt-0',
               '[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1.5 [&_ul]:space-y-1',
               '[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-1.5 [&_ol]:space-y-1',
               '[&_li::marker]:text-accent',
-              '[&_strong]:font-semibold [&_strong]:text-ink',
-              '[&_b]:font-semibold [&_b]:text-ink',
+              '[&_strong]:font-semibold',
+              '[&_b]:font-semibold',
               '[&_p]:my-1 [&_p]:leading-relaxed'
             )}
             style={{

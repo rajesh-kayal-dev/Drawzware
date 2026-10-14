@@ -19,6 +19,10 @@
 
 # production
 /build
+!/build/icon.png
+!/build/icon.ico
+/dist/
+/dist-electron/
 
 # misc
 .DS_Store

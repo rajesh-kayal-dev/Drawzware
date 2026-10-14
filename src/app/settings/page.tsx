@@ -18,7 +18,7 @@ import {
 import packageJson from '../../../package.json';
 import { Header } from '@/components/layout/Header';
 import { ConfirmDialog } from '@/components/project/ConfirmDialog';
-import { exportAllProjectsFile, importFile, pickFile } from '@/components/project/project-io';
+import { exportAllProjectsBackup, importProjectBackup } from '@/lib/file-operations';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useTheme } from '@/hooks/useTheme';
@@ -98,17 +98,11 @@ export default function SettingsPage() {
   const storageBytes = loaded ? getStorageSize() : 0;
 
   const handleExportAll = () => {
-    const filename = exportAllProjectsFile(useProjectStore.getState().projects);
-    toast({ message: `Exported ${filename}`, tone: 'ok' });
+    exportAllProjectsBackup(useProjectStore.getState().projects);
   };
 
   const handleImport = async () => {
-    const file = await pickFile('.json,application/json');
-    if (!file) return;
-    const imported = await importFile(file);
-    if (imported.length > 0) {
-      toast({ message: `Imported ${plural(imported.length, 'project')}`, tone: 'ok' });
-    }
+    await importProjectBackup();
   };
 
   const handleClear = () => {
@@ -234,7 +228,7 @@ export default function SettingsPage() {
                   Local
                 </span>
               </Row>
-              <Row title="Export all projects" description="A single JSON file you can re-import.">
+              <Row title="Export all projects" description="A versioned Drawzware backup file (.drawzbackup) you can import into desktop or browser.">
                 <Button
                   variant="secondary"
                   size="sm"
@@ -246,7 +240,7 @@ export default function SettingsPage() {
                   Export
                 </Button>
               </Row>
-              <Row title="Import" description="Restore an export, or turn an endpoint list into a diagram.">
+              <Row title="Import" description="Restore a project backup (.drawzbackup, .json) or diagram file.">
                 <Button variant="secondary" size="sm" onClick={handleImport} className="rounded-lg text-xs gap-1.5">
                   <Upload className="size-3.5" />
                   Import

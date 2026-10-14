@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -17,22 +17,38 @@ declare global {
   }
 }
 
+function getIsStandalone() {
+  if (typeof window === 'undefined') return false;
+  if (window.desktopApi?.isDesktop) return true;
+  return Boolean(
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    window.matchMedia?.('(display-mode: window-controls-overlay)').matches ||
+    (navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
+function subscribeDisplayMode(callback: () => void) {
+  if (typeof window === 'undefined') return () => {};
+  const mql1 = window.matchMedia?.('(display-mode: standalone)');
+  const mql2 = window.matchMedia?.('(display-mode: window-controls-overlay)');
+  mql1?.addEventListener?.('change', callback);
+  mql2?.addEventListener?.('change', callback);
+  window.addEventListener('appinstalled', callback);
+  return () => {
+    mql1?.removeEventListener?.('change', callback);
+    mql2?.removeEventListener?.('change', callback);
+    window.removeEventListener('appinstalled', callback);
+  };
+}
+
 export function usePwaInstall() {
+  const isStandalone = useSyncExternalStore(subscribeDisplayMode, getIsStandalone, () => false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [justInstalled, setJustInstalled] = useState(false);
 
   useEffect(() => {
-    // Check if already running in standalone mode (desktop or mobile PWA)
-    const checkStandalone = () => {
-      const isStandaloneMode =
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.matchMedia('(display-mode: window-controls-overlay)').matches ||
-        (navigator as unknown as { standalone?: boolean }).standalone === true;
-      setIsInstalled(Boolean(isStandaloneMode));
-    };
-
-    checkStandalone();
+    if (isStandalone) return;
 
     const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
       e.preventDefault();
@@ -43,7 +59,7 @@ export function usePwaInstall() {
     const handleAppInstalled = () => {
       setDeferredPrompt(null);
       setIsInstallable(false);
-      setIsInstalled(true);
+      setJustInstalled(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -53,7 +69,7 @@ export function usePwaInstall() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isStandalone]);
 
   const promptInstall = useCallback(async (): Promise<boolean> => {
     if (!deferredPrompt) return false;
@@ -62,7 +78,7 @@ export function usePwaInstall() {
       await deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
       if (choice.outcome === 'accepted') {
-        setIsInstalled(true);
+        setJustInstalled(true);
         setIsInstallable(false);
         setDeferredPrompt(null);
         return true;
@@ -75,7 +91,7 @@ export function usePwaInstall() {
 
   return {
     isInstallable,
-    isInstalled,
+    isInstalled: isStandalone || justInstalled,
     promptInstall,
   };
 }
