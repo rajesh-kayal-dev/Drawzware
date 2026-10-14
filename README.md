@@ -10,6 +10,8 @@
 
 **Think through, design, and present your distributed systems and architectures before you build them.**
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-drawzware.vercel.app-10b981?style=for-the-badge&logo=vercel&logoColor=white)](https://drawzware.vercel.app/)
+
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?logo=next.js)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev)
@@ -18,7 +20,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss)](https://tailwindcss.com)
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable-1d6f42?logo=pwa)](https://web.dev/progressive-web-apps/)
 
-[**Features**](#features) • [**Screenshots**](#screenshots) • [**Quick Start**](#quick-start) • [**Templates**](#templates) • [**Tech Stack**](#tech-stack) • [**Contributing**](CONTRIBUTING.md)
+[**Live Demo**](https://drawzware.vercel.app/) • [**Features**](#features) • [**Screenshots**](#screenshots) • [**Quick Start**](#quick-start) • [**Templates**](#templates) • [**Tech Stack**](#tech-stack) • [**Contributing**](CONTRIBUTING.md)
 
 ---
 
@@ -27,6 +29,8 @@
 </div>
 
 ## Overview
+
+> 🚀 **Live Application**: Try Drawzware in production at [**drawzware.vercel.app**](https://drawzware.vercel.app/) — runs 100% in your browser with zero sign-up required.
 
 **Drawzware** is an open-source, client-first visual studio engineered for software architects, systems engineers, and engineering teams. It bridges the gap between rough whiteboard drawings and formal, slow-to-write documentation.
 
@@ -250,7 +254,7 @@ Drawzware ships with 9 pre-built reference architectures ready for immediate cus
 
 Because Drawzware is 100% client-side, it compiles to static assets (`output: "export"` in Next.js) and can be hosted on any static hosting platform.
 
-- **Vercel**: Deploy directly by connecting your repository. Production and preview deployments work out of the box (`vercel.json` included).
+- **Vercel**: The official live production application is deployed at [**drawzware.vercel.app**](https://drawzware.vercel.app/). You can also deploy your own fork directly by connecting your repository (`vercel.json` included).
 - **Cloudflare Workers / Pages**: Run `npm run deploy:cloudflare` to build and deploy static assets directly with Wrangler (`wrangler.jsonc` included).
 - **GitHub Pages / Netlify / AWS S3**: Deploy the generated `./out` directory to any static file server.
 
