@@ -269,3 +269,86 @@
   background: color-mix(in oklch, var(--paper) 85%, transparent);
   backdrop-filter: blur(6px);
 }
+
+/* ── Landing Page Scoped Styles ───────────────────────── */
+/* Override canvas theme tokens inside .lp-root so the landing page
+   always renders in its own light cream palette regardless of data-theme. */
+.lp-root {
+  /* Reset canvas dark-mode vars for landing page */
+  --bg: #faf8f5;
+  color-scheme: light;
+  color: #1a2e26;
+  background-color: #faf8f5;
+  font-family: var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* Prevent canvas h/w token leakage */
+  min-height: 100dvh;
+}
+
+/* Serif font class for landing page headings */
+.lp-font-serif {
+  font-family: var(--font-newsreader), 'Georgia', serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Dot grid for dark sections */
+.lp-bg-grid-dots-dark {
+  background-image: radial-gradient(rgba(52, 211, 153, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Navbar: ensure always uses landing page bg, not canvas bg */
+.lp-navbar {
+  background-color: rgba(250, 248, 245, 0.9);
+}
+
+/* Landing page animations */
+@keyframes lp-float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+@keyframes lp-float-reverse {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(8px) rotate(-1deg); }
+}
+
+@keyframes lp-pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.08); }
+}
+
+@keyframes lp-slide-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lp-float-slow {
+  animation: lp-float-slow 7s ease-in-out infinite;
+}
+
+.lp-float-reverse {
+  animation: lp-float-reverse 8s ease-in-out infinite;
+}
+
+.lp-pulse-glow {
+  animation: lp-pulse-glow 4s ease-in-out infinite;
+}
+
+.lp-slide-in {
+  animation: lp-slide-in 200ms ease-out;
+}
+
+/* Respect reduced motion for landing page animations */
+@media (prefers-reduced-motion: reduce) {
+  .lp-float-slow,
+  .lp-float-reverse,
+  .lp-pulse-glow {
+    animation: none;
+  }
+  .lp-slide-in {
+    animation-duration: 1ms;
+  }
+}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Container, Download, FileJson, Github, Moon, Settings2, Sun, Upload } from 'lucide-react';
+import { Container, Download, FileJson, Github, Home, Moon, Settings2, Sun, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -33,9 +33,9 @@ export function Header({ onImportJson, onImportDockerCompose, containerClassName
     <header className="sticky top-0 z-30 border-b border-line bg-[color-mix(in_oklch,var(--bg)_85%,transparent)] backdrop-blur-md">
       <div className={cn('mx-auto flex h-14 w-full max-w-[1400px] items-center gap-3 px-6 sm:px-8', containerClassName)}>
         <Link
-          href="/"
+          href="/app"
           className="focus-ring -ml-1 flex items-center gap-2 rounded-lg py-1 pr-2 pl-1 transition-opacity hover:opacity-90"
-          aria-label="Drawzware Home"
+          aria-label="Drawzware Dashboard"
         >
           {/* Dark theme logo */}
           <Image
@@ -93,6 +93,16 @@ export function Header({ onImportJson, onImportDockerCompose, containerClassName
                 aria-label="Install App"
               >
                 <Download className="size-4" />
+              </Button>
+            </SimpleTooltip>
+          )}
+
+          {!isInstalled && (
+            <SimpleTooltip label="Website">
+              <Button variant="ghost" size="icon-sm" className="size-8 text-ink-3 hover:text-ink hover:bg-line-2 rounded-lg" asChild>
+                <Link href="/" aria-label="Website">
+                  <Home className="size-4" />
+                </Link>
               </Button>
             </SimpleTooltip>
           )}

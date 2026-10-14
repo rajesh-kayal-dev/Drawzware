@@ -54,7 +54,7 @@ export default function ImportPage() {
     // Drop the payload from the address bar and history.
     window.history.replaceState(null, '', '/import');
     toast({ message: added > 0 ? `Imported ${plural(added, 'project')}` : 'Everything was already here', tone: 'ok' });
-    router.replace('/');
+    router.replace('/app');
   };
 
   return (
@@ -70,7 +70,7 @@ export default function ImportPage() {
             exported JSON from the dashboard.
           </p>
           <Button variant="secondary" asChild className="mt-1.5">
-            <Link href="/">Go to dashboard</Link>
+            <Link href="/app">Go to dashboard</Link>
           </Button>
         </div>
       ) : (
@@ -103,7 +103,7 @@ export default function ImportPage() {
                 </Button>
               ) : null}
               <Button variant="secondary" asChild>
-                <Link href="/">Dashboard</Link>
+                <Link href="/app">Dashboard</Link>
               </Button>
             </div>
           </div>

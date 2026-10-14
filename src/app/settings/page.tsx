@@ -169,7 +169,7 @@ export default function SettingsPage() {
             {/* Header info */}
             <div>
               <Link
-                href="/"
+                href="/app"
                 className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-2 hover:text-ink transition-colors mb-2.5"
               >
                 <ArrowLeft className="size-3.5" />

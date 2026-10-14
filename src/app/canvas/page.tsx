@@ -21,7 +21,7 @@ function CanvasRoute() {
           <div className="text-[15px] font-semibold">No project selected</div>
           <p className="text-[12.5px] text-ink-2">Open a project from the dashboard.</p>
           <Button variant="secondary" asChild className="mt-1.5">
-            <Link href="/">Go to dashboard</Link>
+            <Link href="/app">Go to dashboard</Link>
           </Button>
         </div>
       </div>

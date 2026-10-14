@@ -40,7 +40,7 @@ function SharedCanvasInner() {
           It may have been cut off when pasted — share links are long. Ask for it again or an exported JSON.
         </p>
         <Button variant="secondary" asChild className="mt-1.5">
-          <Link href="/">Go to dashboard</Link>
+          <Link href="/app">Go to dashboard</Link>
         </Button>
       </div>
     );
@@ -86,7 +86,7 @@ function SharedCanvasInner() {
             Open in my projects
           </Button>
           <Button variant="secondary" asChild>
-            <Link href="/">Dashboard</Link>
+            <Link href="/app">Dashboard</Link>
           </Button>
         </div>
       </div>
