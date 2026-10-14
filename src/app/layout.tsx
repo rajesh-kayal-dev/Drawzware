@@ -24,7 +24,7 @@ const newsreader = Newsreader({
   style: ["normal", "italic"],
 });
 
-const siteUrl = "https://system-design-canvas-one.vercel.app";
+const siteUrl = "https://drawzware.vercel.app";
 const title = "Drawzware";
 const description =
   "Free, open-source tool for designing system architectures, sequence diagrams, and ER models visually. " +

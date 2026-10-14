@@ -15,6 +15,7 @@ export function LandingFooter() {
   ];
 
   const resourceLinks = [
+    { label: 'Live Website', href: 'https://drawzware.vercel.app/', external: true },
     { label: 'GitHub', href: 'https://github.com/rajesh-kayal-dev/Drawzware', external: true },
     { label: 'Getting Started', href: '#how-it-works' },
     { label: 'Roadmap', href: '#workflow' },
@@ -43,7 +44,7 @@ export function LandingFooter() {
               Design better systems, together. A focused visual workspace for software architecture
               diagrams, sequence flows, and component models.
             </p>
-            <div className="pt-1">
+            <div className="pt-1 flex flex-wrap items-center gap-2">
               <a
                 href="https://github.com/rajesh-kayal-dev/Drawzware"
                 target="_blank"
@@ -54,6 +55,16 @@ export function LandingFooter() {
                 <Github className="w-4 h-4" />
                 <span>GitHub</span>
                 <ExternalLink className="w-3 h-3 text-neutral-400" />
+              </a>
+              <a
+                href="https://drawzware.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Live Demo"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-medium border border-emerald-500/30 transition-colors"
+              >
+                <span>Live Demo</span>
+                <ExternalLink className="w-3 h-3 text-emerald-300/80" />
               </a>
             </div>
           </div>
@@ -138,7 +149,16 @@ export function LandingFooter() {
 
         {/* Bottom Strip */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 gap-3 sm:gap-4 text-center sm:text-left">
-          <p>© 2026 Drawzware. All rights reserved.</p>
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1">
+            <p>© 2026 Drawzware. All rights reserved.</p>
+            <span className="text-neutral-600 hidden sm:inline" aria-hidden="true">·</span>
+            <a
+              href="https://drawzware.vercel.app/"
+              className="text-emerald-400/90 hover:text-emerald-300 underline underline-offset-2 transition-colors font-mono text-[11px]"
+            >
+              drawzware.vercel.app
+            </a>
+          </div>
           <div className="flex items-center gap-1.5 text-xs text-neutral-300 font-medium">
             <span>Built with care by</span>
             <span className="text-emerald-400 font-semibold">Rajesh Kayal</span>
@@ -176,9 +196,18 @@ export function LandingFooter() {
               enterprise bloat.
             </p>
             <div className="pt-3 border-t border-neutral-100 flex items-center justify-between">
-              <span className="text-xs text-neutral-500">
+              <div className="text-xs text-neutral-500">
                 Created by <strong className="text-neutral-800">Rajesh Kayal</strong>
-              </span>
+                <span className="mx-1.5 text-neutral-300">·</span>
+                <a
+                  href="https://drawzware.vercel.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-700 hover:text-emerald-800 underline font-medium"
+                >
+                  drawzware.vercel.app
+                </a>
+              </div>
               <button
                 onClick={() => setAboutModalOpen(false)}
                 className="px-4 py-2 text-xs font-semibold text-white bg-[#0b291d] hover:bg-[#071f16] rounded-lg transition-colors cursor-pointer"
