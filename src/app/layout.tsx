@@ -25,11 +25,9 @@ const newsreader = Newsreader({
 });
 
 const siteUrl = "https://drawzware.vercel.app";
-const title = "Drawzware";
+const siteTitle = "Drawzware | Free System Design & Architecture Diagram Tool";
 const description =
-  "Free, open-source tool for designing system architectures, sequence diagrams, and ER models visually. " +
-  "Drag-and-drop cloud components, services, databases, and more. " +
-  "Templates, dark mode, export to PNG/SVG/Mermaid. No sign-up, runs 100% in the browser.";
+  "Free, open-source tool for visually designing system architectures, microservices, sequence diagrams, and ER diagrams. Build, model, and export technical diagrams directly in your browser.";
 
 export const viewport: Viewport = {
   themeColor: "#1d6f42",
@@ -39,11 +37,15 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
-    default: title,
-    template: "%s",
+    default: siteTitle,
+    template: "%s | Drawzware",
   },
   description,
+  alternates: {
+    canonical: siteUrl,
+  },
   keywords: [
     "system design",
     "system architecture",
@@ -62,7 +64,7 @@ export const metadata: Metadata = {
   creator: "rajesh",
   openGraph: {
     type: "website",
-    title,
+    title: siteTitle,
     description,
     url: siteUrl,
     siteName: "Drawzware",
@@ -71,18 +73,20 @@ export const metadata: Metadata = {
         url: `${siteUrl}/screenshots/canvas-light.png`,
         width: 2880,
         height: 1800,
-        alt: "Drawzware — Architecture and diagramming canvas",
+        alt: "Drawzware — Free System Design & Architecture Diagram Tool",
       },
     ],
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title,
+    title: siteTitle,
     description,
     images: [`${siteUrl}/screenshots/canvas-light.png`],
   },
-  metadataBase: new URL(siteUrl),
+  verification: {
+    google: "JxtnesJy7pvdqRNF5hluaQ6M_rQ5xECLjBgzGwXBuTM",
+  },
   manifest: "/manifest.json",
   applicationName: "Drawzware",
   appleWebApp: {
@@ -93,7 +97,6 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon.png", type: "image/png" },
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],

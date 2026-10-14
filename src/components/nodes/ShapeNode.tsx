@@ -4,7 +4,7 @@ import { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Handle, NodeResizer, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { useCanvasStore } from '@/stores/useCanvasStore';
 import { cn } from '@/lib/utils';
-import { pointsToSvgPath, type Point } from '@/lib/line-routing';
+import { pointsToSvgPath, cleanWaypoints, perpendicularDistance, type Point } from '@/lib/line-routing';
 import type { ShapeType, SystemNode } from '@/types';
 
 const HIDDEN = '!opacity-0';
@@ -52,6 +52,9 @@ interface ShapeSvgProps {
   arrowStart?: boolean;
   arrowEnd?: boolean;
   points?: Point[];
+  onArrowBodyPointerDown?: (e: React.PointerEvent) => void;
+  onArrowBodyPointerMove?: (e: React.PointerEvent) => void;
+  onArrowBodyPointerUp?: (e: React.PointerEvent) => void;
 }
 
 function ShapeSvg({
@@ -65,6 +68,9 @@ function ShapeSvg({
   arrowStart,
   arrowEnd,
   points,
+  onArrowBodyPointerDown,
+  onArrowBodyPointerMove,
+  onArrowBodyPointerUp,
 }: ShapeSvgProps) {
   const commonProps = {
     fill: isTransparent ? 'none' : fill,
@@ -112,7 +118,7 @@ function ShapeSvg({
 
     case 'line': {
       const hasPoints = points && points.length >= 2;
-      const pathD = hasPoints ? pointsToSvgPath(points, 8) : 'M 3 50 L 97 50';
+      const pathD = hasPoints ? pointsToSvgPath(points, 0) : 'M 3 50 L 97 50';
 
       return (
         <>
@@ -176,16 +182,19 @@ function ShapeSvg({
               </marker>
             )}
           </defs>
-          {/* Fat transparent stroke for easy hover & selection */}
+          {/* Fat transparent stroke for easy hover, selection, and route reshaping */}
           <path
             d={pathD}
             fill="none"
             stroke="transparent"
-            strokeWidth={Math.max(strokeWidth + 14, 16)}
+            strokeWidth={Math.max(strokeWidth + 16, 20)}
             strokeLinecap="round"
             strokeLinejoin="round"
             pointerEvents="stroke"
-            className="cursor-pointer"
+            className={cn('cursor-pointer', onArrowBodyPointerDown && 'nodrag nopan')}
+            onPointerDown={onArrowBodyPointerDown}
+            onPointerMove={onArrowBodyPointerMove}
+            onPointerUp={onArrowBodyPointerUp}
           />
           <path
             d={pathD}
@@ -323,15 +332,27 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
   const nodeWidth = typeof width === 'number' ? width : 140;
   const nodeHeight = typeof height === 'number' ? height : 60;
 
-  // Waypoints for multi-segment line / arrow
+  // Waypoints for line / arrow
   const rawPoints = data?.points as Point[] | undefined;
   const basePoints = useMemo<Point[]>(() => {
-    if (rawPoints && rawPoints.length >= 2) return rawPoints;
+    if (shapeType === 'line') {
+      if (rawPoints && rawPoints.length >= 2) {
+        // A straight line is strictly 2 points: start and end
+        return [rawPoints[0], rawPoints[rawPoints.length - 1]];
+      }
+      return [
+        { x: 0, y: Math.round(nodeHeight / 2) },
+        { x: Math.round(nodeWidth), y: Math.round(nodeHeight / 2) },
+      ];
+    }
+    if (rawPoints && rawPoints.length >= 2) {
+      return cleanWaypoints(rawPoints);
+    }
     return [
       { x: 0, y: Math.round(nodeHeight / 2) },
       { x: Math.round(nodeWidth), y: Math.round(nodeHeight / 2) },
     ];
-  }, [rawPoints, nodeWidth, nodeHeight]);
+  }, [shapeType, rawPoints, nodeWidth, nodeHeight]);
 
   const [draggingWaypoint, setDraggingWaypoint] = useState<{
     index: number;
@@ -343,12 +364,47 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
     initialPoints: Point[];
   } | null>(null);
 
+  // Line midpoint translation (moves line preserving straightness and length)
+  const [draggingMidpoint, setDraggingMidpoint] = useState<{
+    delta: Point;
+  } | null>(null);
+
+  const activeMidpointRef = useRef<{
+    initialP0: Point;
+    initialP1: Point;
+    startFlowPos: Point;
+  } | null>(null);
+
+  // Arrow body segment dragging (reshapes internal routing without visible handles)
+  const [draggingSegment, setDraggingSegment] = useState<{
+    segmentIndex: number;
+    currentPoints: Point[];
+  } | null>(null);
+
+  const activeSegmentRef = useRef<{
+    segmentIndex: number;
+    initialPoints: Point[];
+    startFlowPos: Point;
+  } | null>(null);
+
   const effectivePoints = useMemo(() => {
-    if (!draggingWaypoint) return basePoints;
-    return basePoints.map((pt, i) =>
-      i === draggingWaypoint.index ? draggingWaypoint.currentPos : pt
-    );
-  }, [basePoints, draggingWaypoint]);
+    if (draggingMidpoint) {
+      const { delta } = draggingMidpoint;
+      return [
+        { x: basePoints[0].x + delta.x, y: basePoints[0].y + delta.y },
+        { x: basePoints[1].x + delta.x, y: basePoints[1].y + delta.y },
+      ];
+    }
+    if (draggingSegment) {
+      return draggingSegment.currentPoints;
+    }
+    if (draggingWaypoint) {
+      return basePoints.map((pt, i) =>
+        i === draggingWaypoint.index ? draggingWaypoint.currentPos : pt
+      );
+    }
+    return basePoints;
+  }, [basePoints, draggingMidpoint, draggingSegment, draggingWaypoint]);
 
   // Normalize waypoints & update node position and bounds
   const applyNormalizedPoints = useCallback(
@@ -414,14 +470,17 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
 
     const idx = activeWaypointRef.current.index;
     const pts = activeWaypointRef.current.initialPoints;
-    // Snap with neighbor points if close
-    if (pts[idx - 1]) {
-      if (Math.abs(localX - pts[idx - 1].x) < 8) localX = pts[idx - 1].x;
-      if (Math.abs(localY - pts[idx - 1].y) < 8) localY = pts[idx - 1].y;
-    }
-    if (pts[idx + 1]) {
-      if (Math.abs(localX - pts[idx + 1].x) < 8) localX = pts[idx + 1].x;
-      if (Math.abs(localY - pts[idx + 1].y) < 8) localY = pts[idx + 1].y;
+
+    if (shapeType === 'line' && e.shiftKey) {
+      const otherIdx = idx === 0 ? 1 : 0;
+      const otherPt = pts[otherIdx];
+      const dx = localX - otherPt.x;
+      const dy = localY - otherPt.y;
+      const angle = Math.atan2(dy, dx);
+      const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+      const dist = Math.hypot(dx, dy);
+      localX = Math.round(otherPt.x + Math.cos(snapAngle) * dist);
+      localY = Math.round(otherPt.y + Math.sin(snapAngle) * dist);
     }
 
     setDraggingWaypoint({ index: idx, currentPos: { x: localX, y: localY } });
@@ -442,39 +501,170 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
 
     activeWaypointRef.current = null;
     setDraggingWaypoint(null);
-    applyNormalizedPoints(finalPoints);
+    applyNormalizedPoints(shapeType === 'line' ? finalPoints : cleanWaypoints(finalPoints));
   };
 
-  const onDeleteWaypoint = (e: React.MouseEvent, index: number) => {
-    e.stopPropagation();
-    if (basePoints.length <= 2) return;
-    if (index <= 0 || index >= basePoints.length - 1) return;
-    const remaining = basePoints.filter((_, i) => i !== index);
-    applyNormalizedPoints(remaining);
-  };
-
-  const onAddMidpoint = (e: React.PointerEvent, index: number) => {
+  // Line midpoint drag: repositions the entire line preserving angle, length, and straightness
+  const onMidpointPointerDown = (e: React.PointerEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    const p1 = basePoints[index];
-    const p2 = basePoints[index + 1];
-    const midPt = {
-      x: Math.round((p1.x + p2.x) / 2),
-      y: Math.round((p1.y + p2.y) / 2),
+    activeMidpointRef.current = {
+      initialP0: { ...basePoints[0] },
+      initialP1: { ...basePoints[1] },
+      startFlowPos: screenToFlowPosition({ x: e.clientX, y: e.clientY }),
     };
-    const newPoints = [
-      ...basePoints.slice(0, index + 1),
-      midPt,
-      ...basePoints.slice(index + 1),
-    ];
-
-    updateNodeData(id, { points: newPoints });
-    activeWaypointRef.current = {
-      index: index + 1,
-      initialPoints: newPoints,
-    };
-    setDraggingWaypoint({ index: index + 1, currentPos: midPt });
+    setDraggingMidpoint({ delta: { x: 0, y: 0 } });
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const onMidpointPointerMove = (e: React.PointerEvent) => {
+    if (!activeMidpointRef.current) return;
+    e.stopPropagation();
+    const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    const dx = Math.round(flowPos.x - activeMidpointRef.current.startFlowPos.x);
+    const dy = Math.round(flowPos.y - activeMidpointRef.current.startFlowPos.y);
+    setDraggingMidpoint({ delta: { x: dx, y: dy } });
+  };
+
+  const onMidpointPointerUp = (e: React.PointerEvent) => {
+    if (!activeMidpointRef.current) return;
+    e.stopPropagation();
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    const { initialP0, initialP1 } = activeMidpointRef.current;
+    const delta = draggingMidpoint?.delta ?? { x: 0, y: 0 };
+    activeMidpointRef.current = null;
+    setDraggingMidpoint(null);
+    const newPoints: Point[] = [
+      { x: initialP0.x + delta.x, y: initialP0.y + delta.y },
+      { x: initialP1.x + delta.x, y: initialP1.y + delta.y },
+    ];
+    applyNormalizedPoints(newPoints);
+  };
+
+  // Arrow body / segment dragging: reshapes route by shifting the clicked segment
+  const onArrowBodyPointerDown = (e: React.PointerEvent) => {
+    if (!selected || presenting) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    const node = useCanvasStore.getState().nodes.find((n) => n.id === id);
+    const nodeX = node ? node.position.x : 0;
+    const nodeY = node ? node.position.y : 0;
+    const localX = flowPos.x - nodeX;
+    const localY = flowPos.y - nodeY;
+
+    let bestSeg = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < basePoints.length - 1; i++) {
+      const d = perpendicularDistance({ x: localX, y: localY }, basePoints[i], basePoints[i + 1]);
+      if (d < bestDist) {
+        bestDist = d;
+        bestSeg = i;
+      }
+    }
+
+    activeSegmentRef.current = {
+      segmentIndex: bestSeg,
+      initialPoints: [...basePoints],
+      startFlowPos: flowPos,
+    };
+    setDraggingSegment({
+      segmentIndex: bestSeg,
+      currentPoints: [...basePoints],
+    });
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const onArrowBodyPointerMove = (e: React.PointerEvent) => {
+    if (!activeSegmentRef.current) return;
+    e.stopPropagation();
+    const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    const deltaX = Math.round(flowPos.x - activeSegmentRef.current.startFlowPos.x);
+    const deltaY = Math.round(flowPos.y - activeSegmentRef.current.startFlowPos.y);
+
+    const pts = activeSegmentRef.current.initialPoints;
+    const segIdx = activeSegmentRef.current.segmentIndex;
+
+    // 2-point arrow: dragging perpendicularly creates an orthogonal step
+    if (pts.length === 2) {
+      const p0 = pts[0];
+      const p1 = pts[1];
+      const isHoriz = Math.abs(p1.x - p0.x) >= Math.abs(p1.y - p0.y);
+      if (isHoriz) {
+        if (Math.abs(deltaY) >= 4) {
+          const midX = Math.round((p0.x + p1.x) / 2);
+          const newPts = [
+            { x: p0.x, y: p0.y },
+            { x: midX, y: p0.y },
+            { x: midX, y: p0.y + deltaY },
+            { x: p1.x, y: p0.y + deltaY },
+            { x: p1.x, y: p1.y },
+          ];
+          setDraggingSegment({ segmentIndex: 2, currentPoints: cleanWaypoints(newPts) });
+          return;
+        }
+      } else {
+        if (Math.abs(deltaX) >= 4) {
+          const midY = Math.round((p0.y + p1.y) / 2);
+          const newPts = [
+            { x: p0.x, y: p0.y },
+            { x: p0.x, y: midY },
+            { x: p0.x + deltaX, y: midY },
+            { x: p0.x + deltaX, y: p1.y },
+            { x: p1.x, y: p1.y },
+          ];
+          setDraggingSegment({ segmentIndex: 2, currentPoints: cleanWaypoints(newPts) });
+          return;
+        }
+      }
+      return;
+    }
+
+    // Multi-segment arrow: move the clicked segment perpendicularly
+    const newPts = pts.map((p) => ({ ...p }));
+    const pA = pts[segIdx];
+    const pB = pts[segIdx + 1];
+    const isHoriz = Math.abs(pB.x - pA.x) >= Math.abs(pB.y - pA.y);
+
+    if (isHoriz) {
+      if (segIdx > 0 && segIdx < pts.length - 2) {
+        newPts[segIdx] = { x: pA.x, y: pA.y + deltaY };
+        newPts[segIdx + 1] = { x: pB.x, y: pB.y + deltaY };
+      } else if (segIdx === 0) {
+        newPts[1] = { x: pB.x, y: pB.y + deltaY };
+      } else {
+        newPts[segIdx] = { x: pA.x, y: pA.y + deltaY };
+      }
+    } else {
+      if (segIdx > 0 && segIdx < pts.length - 2) {
+        newPts[segIdx] = { x: pA.x + deltaX, y: pA.y };
+        newPts[segIdx + 1] = { x: pB.x + deltaX, y: pB.y };
+      } else if (segIdx === 0) {
+        newPts[1] = { x: pB.x + deltaX, y: pB.y };
+      } else {
+        newPts[segIdx] = { x: pA.x + deltaX, y: pA.y };
+      }
+    }
+
+    setDraggingSegment({ segmentIndex: segIdx, currentPoints: newPts });
+  };
+
+  const onArrowBodyPointerUp = (e: React.PointerEvent) => {
+    if (!activeSegmentRef.current) return;
+    e.stopPropagation();
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    const finalPoints = draggingSegment?.currentPoints ?? activeSegmentRef.current.initialPoints;
+    activeSegmentRef.current = null;
+    setDraggingSegment(null);
+    applyNormalizedPoints(cleanWaypoints(finalPoints));
   };
 
   const [isEditing, setIsEditing] = useState(false);
@@ -592,6 +782,7 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
         isVisible={!!selected && !presenting && !isEditing && !isLine}
         minWidth={30}
         minHeight={30}
+        keepAspectRatio={shapeType === 'circle' || shapeType === 'star'}
         lineStyle={{
           borderColor: '#0ea5e9',
           borderWidth: 1.5,
@@ -640,6 +831,15 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
             arrowStart={data?.arrowStart}
             arrowEnd={data?.arrowEnd}
             points={effectivePoints}
+            onArrowBodyPointerDown={
+              shapeType === 'arrow' && selected && !presenting ? onArrowBodyPointerDown : undefined
+            }
+            onArrowBodyPointerMove={
+              shapeType === 'arrow' && selected && !presenting ? onArrowBodyPointerMove : undefined
+            }
+            onArrowBodyPointerUp={
+              shapeType === 'arrow' && selected && !presenting ? onArrowBodyPointerUp : undefined
+            }
           />
         </svg>
       ) : (
@@ -665,62 +865,106 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
         </svg>
       )}
 
-      {/* Interactive Waypoints and Midpoints for Lines & Arrows */}
+      {/* Interactive Handles for Lines & Arrows */}
       {isLine && selected && !presenting && (
         <div className="absolute inset-0 size-full pointer-events-none overflow-visible">
-          {/* Midpoint '+' buttons to split and add new bends */}
-          {effectivePoints.slice(0, -1).map((pt, i) => {
-            const next = effectivePoints[i + 1];
-            if (!next) return null;
-            const midX = (pt.x + next.x) / 2;
-            const midY = (pt.y + next.y) / 2;
-            return (
-              <button
-                key={`mid-${i}`}
-                type="button"
-                title="Click or drag to add a bend corner"
-                onPointerDown={(e) => onAddMidpoint(e, i)}
-                onPointerMove={onWaypointPointerMove}
-                onPointerUp={onWaypointPointerUp}
-                style={{
-                  left: `${midX}px`,
-                  top: `${midY}px`,
-                  transform: 'translate(-50%, -50%)',
-                }}
-                className="nodrag nopan pointer-events-auto absolute z-20 flex size-3.5 items-center justify-center rounded-full border border-blue-400 bg-white/95 text-blue-600 shadow-sm transition hover:scale-125 hover:bg-blue-600 hover:text-white cursor-pointer"
-              >
-                <span className="text-[10px] font-bold leading-none select-none">+</span>
-              </button>
-            );
-          })}
-
-          {/* Waypoint handle dots for endpoints & bends */}
-          {effectivePoints.map((pt, i) => {
-            const isEnd = i === 0 || i === effectivePoints.length - 1;
-            return (
+          {shapeType === 'line' && (
+            <>
+              {/* Start Handle */}
               <div
-                key={`waypoint-${i}`}
-                title={
-                  isEnd
-                    ? 'Endpoint (Drag to reposition)'
-                    : 'Bend point (Drag to move, double-click to remove)'
-                }
-                onPointerDown={(e) => onWaypointPointerDown(e, i)}
+                key="line-start"
+                title="Start point (Drag to reposition)"
+                onPointerDown={(e) => onWaypointPointerDown(e, 0)}
                 onPointerMove={onWaypointPointerMove}
                 onPointerUp={onWaypointPointerUp}
-                onDoubleClick={(e) => onDeleteWaypoint(e, i)}
                 style={{
-                  left: `${pt.x}px`,
-                  top: `${pt.y}px`,
+                  left: `${effectivePoints[0].x}px`,
+                  top: `${effectivePoints[0].y}px`,
                   transform: 'translate(-50%, -50%)',
                 }}
                 className={cn(
                   'nodrag nopan pointer-events-auto absolute z-30 size-3 rounded-full border-2 border-accent bg-white shadow-md transition-transform hover:scale-125 cursor-move',
-                  draggingWaypoint?.index === i && 'scale-125 ring-2 ring-accent'
+                  draggingWaypoint?.index === 0 && 'scale-125 ring-2 ring-accent'
                 )}
               />
-            );
-          })}
+
+              {/* Midpoint Handle - Translates line preserving straight geometry */}
+              <div
+                key="line-mid"
+                title="Midpoint (Drag to move line)"
+                onPointerDown={onMidpointPointerDown}
+                onPointerMove={onMidpointPointerMove}
+                onPointerUp={onMidpointPointerUp}
+                style={{
+                  left: `${(effectivePoints[0].x + effectivePoints[1].x) / 2}px`,
+                  top: `${(effectivePoints[0].y + effectivePoints[1].y) / 2}px`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                className={cn(
+                  'nodrag nopan pointer-events-auto absolute z-30 size-3 rounded-full border-2 border-accent bg-white shadow-md transition-transform hover:scale-125 cursor-move',
+                  draggingMidpoint && 'scale-125 ring-2 ring-accent'
+                )}
+              />
+
+              {/* End Handle */}
+              <div
+                key="line-end"
+                title="End point (Drag to reposition)"
+                onPointerDown={(e) => onWaypointPointerDown(e, 1)}
+                onPointerMove={onWaypointPointerMove}
+                onPointerUp={onWaypointPointerUp}
+                style={{
+                  left: `${effectivePoints[1].x}px`,
+                  top: `${effectivePoints[1].y}px`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                className={cn(
+                  'nodrag nopan pointer-events-auto absolute z-30 size-3 rounded-full border-2 border-accent bg-white shadow-md transition-transform hover:scale-125 cursor-move',
+                  draggingWaypoint?.index === 1 && 'scale-125 ring-2 ring-accent'
+                )}
+              />
+            </>
+          )}
+
+          {shapeType === 'arrow' && (
+            <>
+              {/* Start Handle */}
+              <div
+                key="arrow-start"
+                title="Start point (Drag to reposition)"
+                onPointerDown={(e) => onWaypointPointerDown(e, 0)}
+                onPointerMove={onWaypointPointerMove}
+                onPointerUp={onWaypointPointerUp}
+                style={{
+                  left: `${effectivePoints[0].x}px`,
+                  top: `${effectivePoints[0].y}px`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                className={cn(
+                  'nodrag nopan pointer-events-auto absolute z-30 size-3 rounded-full border-2 border-accent bg-white shadow-md transition-transform hover:scale-125 cursor-move',
+                  draggingWaypoint?.index === 0 && 'scale-125 ring-2 ring-accent'
+                )}
+              />
+
+              {/* End Handle (arrow tip) */}
+              <div
+                key="arrow-end"
+                title="End point (Drag to reposition)"
+                onPointerDown={(e) => onWaypointPointerDown(e, effectivePoints.length - 1)}
+                onPointerMove={onWaypointPointerMove}
+                onPointerUp={onWaypointPointerUp}
+                style={{
+                  left: `${effectivePoints[effectivePoints.length - 1].x}px`,
+                  top: `${effectivePoints[effectivePoints.length - 1].y}px`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                className={cn(
+                  'nodrag nopan pointer-events-auto absolute z-30 size-3 rounded-full border-2 border-accent bg-white shadow-md transition-transform hover:scale-125 cursor-move',
+                  draggingWaypoint?.index === effectivePoints.length - 1 && 'scale-125 ring-2 ring-accent'
+                )}
+              />
+            </>
+          )}
         </div>
       )}
 

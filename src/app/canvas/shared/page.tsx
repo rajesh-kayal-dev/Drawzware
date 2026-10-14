@@ -49,16 +49,21 @@ function SharedCanvasInner() {
   const components = countComponents(decoded.nodes);
   const size = formatBytes(new TextEncoder().encode(data).length);
 
-  const handleOpen = () => {
+  const handleOpen = async () => {
     if (opening) return;
     setOpening(true);
-    const project = createProjectWithContent(
-      `Shared design (${new Date().toLocaleDateString()})`,
-      '',
-      decoded.nodes,
-      decoded.edges
-    );
-    router.replace(canvasPath(project.id));
+    try {
+      const project = await createProjectWithContent(
+        `Shared design (${new Date().toLocaleDateString()})`,
+        '',
+        decoded.nodes,
+        decoded.edges
+      );
+      router.replace(canvasPath(project.id));
+    } catch (e) {
+      console.error('Failed to open shared design:', e);
+      setOpening(false);
+    }
   };
 
   return (

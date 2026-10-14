@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "../styles/tokens.css";
+@import "../styles/scanner.css";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
@@ -26,6 +27,14 @@
   --color-note: var(--note);
   --color-note-line: var(--note-line);
 
+  /* Component library and surface tokens */
+  --color-card: var(--paper);
+  --color-card-foreground: var(--ink);
+  --color-surface-1: var(--paper);
+  --color-surface-2: var(--line-2);
+  --color-text: var(--ink);
+  --color-text-muted: var(--ink-3);
+
   --radius-chip: 6px;
   --radius-input: 9px;
   --radius-card: 12px;
@@ -34,6 +43,7 @@
 
   --shadow-1: var(--shadow);
   --shadow-2: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
 }
 
 @layer base {
@@ -351,4 +361,102 @@
   .lp-slide-in {
     animation-duration: 1ms;
   }
+}
+
+/* ── Drawzware Active Tool Cursors ────────────────────────────────────────── */
+.cursor-tool-pencil,
+.cursor-tool-pencil .react-flow__pane {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z' fill='%23ffffff' stroke='%23000000' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='m15 5 4 4' stroke='%23000000' stroke-width='1.5'/%3E%3Cpolygon points='2,22 6,20.8 3.2,18' fill='%23000000'/%3E%3C/svg%3E") 2 22, crosshair !important;
+}
+
+.cursor-tool-eraser,
+.cursor-tool-eraser .react-flow__pane {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21' fill='%23ffffff' stroke='%23000000' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M22 21H7' stroke='%23000000' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='m5 11 9 9' stroke='%23000000' stroke-width='1.2' stroke-dasharray='2 2'/%3E%3Cpath d='M2.7 16.7 7 21l3.5-3.5-4.3-4.3z' fill='%23f43f5e' stroke='%23000000' stroke-width='1.2'/%3E%3C/svg%3E") 3 20, cell !important;
+}
+
+.cursor-tool-crosshair,
+.cursor-tool-crosshair .react-flow__pane {
+  cursor: crosshair !important;
+}
+
+.cursor-tool-text,
+.cursor-tool-text .react-flow__pane {
+  cursor: text !important;
+}
+
+/* Hand / Pan Tool (H) & Space Panning */
+.cursor-tool-grab,
+.cursor-tool-grab .react-flow__pane,
+.cursor-tool-grab .react-flow__pane.draggable,
+.cursor-tool-grab .react-flow__node,
+.cursor-tool-grab .react-flow__node.draggable {
+  cursor: grab !important;
+}
+
+.cursor-tool-grab:active,
+.cursor-tool-grab:active .react-flow__pane,
+.cursor-tool-grabbing,
+.cursor-tool-grabbing .react-flow__pane,
+.cursor-tool-grab .react-flow__pane.dragging,
+.cursor-tool-grab .react-flow__node.dragging,
+.cursor-tool-grabbing .react-flow__node {
+  cursor: grabbing !important;
+}
+
+/* Selection Tool (V): Pointer arrow matching Selection icon (transparent inside when idle) */
+.cursor-tool-default,
+.cursor-tool-default .react-flow__pane,
+.cursor-tool-default .react-flow__pane.draggable,
+.cursor-tool-default .react-flow__node,
+.cursor-tool-default .react-flow__node.draggable,
+.cursor-tool-default .react-flow__nodesselection,
+.cursor-tool-default .react-flow__nodesselection-rect {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='19' height='19' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z' fill='none' stroke='%23ffffff' stroke-width='3.2' stroke-linejoin='round' stroke-linecap='round'/%3E%3Cpath d='M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z' fill='none' stroke='%23000000' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E") 3 3, default !important;
+}
+
+/* Selection Tool (V) on Left-Click / Drag: Inner side turns black */
+.cursor-tool-default:active,
+.cursor-tool-default:active .react-flow__pane,
+.cursor-tool-default:active .react-flow__node,
+.cursor-tool-default:active .react-flow__node.draggable,
+.cursor-tool-default .react-flow__pane.dragging,
+.cursor-tool-default .react-flow__pane.selection,
+.cursor-tool-default .react-flow__node.dragging,
+.cursor-tool-default .react-flow__node.draggable.dragging {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='19' height='19' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z' fill='%23000000' stroke='%23ffffff' stroke-width='3.2' stroke-linejoin='round' stroke-linecap='round'/%3E%3Cpath d='M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z' fill='%23000000' stroke='%23000000' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E") 3 3, default !important;
+}
+
+/* Connect handles must show crosshair */
+.cursor-tool-default .react-flow__handle,
+.cursor-tool-default .react-flow__handle.connectable {
+  cursor: crosshair !important;
+}
+
+/* Node resize controls retain their directional resize cursors */
+.cursor-tool-default .react-flow__resize-control.left,
+.cursor-tool-default .react-flow__resize-control.right {
+  cursor: ew-resize !important;
+}
+.cursor-tool-default .react-flow__resize-control.top,
+.cursor-tool-default .react-flow__resize-control.bottom {
+  cursor: ns-resize !important;
+}
+.cursor-tool-default .react-flow__resize-control.top.left,
+.cursor-tool-default .react-flow__resize-control.bottom.right {
+  cursor: nwse-resize !important;
+}
+.cursor-tool-default .react-flow__resize-control.top.right,
+.cursor-tool-default .react-flow__resize-control.bottom.left {
+  cursor: nesw-resize !important;
+}
+
+/* UI panels must always protect their native pointer/selection/text cursors */
+.sidebar-panel,
+.sidebar-rail,
+[role="toolbar"],
+[role="dialog"],
+[role="menu"],
+[data-radix-popper-content-wrapper],
+.react-flow__panel {
+  cursor: default;
 }

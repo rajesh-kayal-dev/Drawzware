@@ -20,30 +20,17 @@ function getFontFamilyClass(family?: string) {
   }
 }
 
-function getCaretOffsetFromPoint(e: React.MouseEvent, text: string): number {
-  if (typeof document === 'undefined') return text.length;
-  try {
-    interface CaretPositionDoc {
-      caretPositionFromPoint?: (x: number, y: number) => { offset?: number } | null;
-      caretRangeFromPoint?: (x: number, y: number) => { startOffset?: number } | null;
-    }
-    const doc = document as unknown as CaretPositionDoc;
-    if (typeof doc.caretPositionFromPoint === 'function') {
-      const pos = doc.caretPositionFromPoint(e.clientX, e.clientY);
-      if (pos && typeof pos.offset === 'number') {
-        return Math.min(pos.offset, text.length);
-      }
-    }
-    if (typeof doc.caretRangeFromPoint === 'function') {
-      const range = doc.caretRangeFromPoint(e.clientX, e.clientY);
-      if (range && typeof range.startOffset === 'number') {
-        return Math.min(range.startOffset, text.length);
-      }
-    }
-  } catch {
-    // fallback
-  }
-  return text.length;
+function hasHtml(str: string): boolean {
+  if (!str) return false;
+  return /<(strong|b|em|i|u|span|p|div|br|font)[\s>]/i.test(str);
+}
+
+function sanitizeRichText(html: string): string {
+  if (!html) return '';
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/\son\w+="[^"]*"/gi, '')
+    .replace(/\son\w+='[^']*'/gi, '');
 }
 
 function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) {
@@ -55,7 +42,7 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
   const [isEditing, setIsEditing] = useState(Boolean(data?.isNew));
   const [draftText, setDraftText] = useState(data?.text ?? data?.label ?? '');
   const [liveFontSize, setLiveFontSize] = useState<number | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const initialTextRef = useRef(data?.text ?? data?.label ?? '');
   const isNewRef = useRef(Boolean(data?.isNew));
   const nodeRef = useRef<HTMLDivElement>(null);
@@ -76,8 +63,12 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
   }, [draftText]);
 
   const finishEditing = useCallback(() => {
-    const current = draftTextRef.current;
-    const trimmed = current.trim();
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    const current = editorRef.current ? editorRef.current.innerHTML : draftTextRef.current;
+    const plainText = editorRef.current
+      ? (editorRef.current.textContent || '')
+      : current.replace(/<[^>]+>/g, '');
+    const trimmed = plainText.trim();
     if (!trimmed) {
       deleteNode(id);
       if (useCanvasStore.getState().activeTool !== 'select') {
@@ -91,7 +82,7 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
 
     if (current !== initialTextRef.current) {
       initialTextRef.current = current;
-      updateNodeData(id, { text: current, label: current, isNew: false });
+      updateNodeData(id, { text: current, label: plainText, isNew: false });
       pushHistory();
     } else if (data?.isNew) {
       updateNodeData(id, { isNew: false });
@@ -103,13 +94,19 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
     }
   }, [id, deleteNode, updateNodeData, pushHistory, data?.isNew]);
 
-  // If in edit mode, immediately and reliably focus textarea ready to type
+  // If in edit mode, immediately and reliably focus contentEditable ready to type
   useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      const el = textareaRef.current;
+    if (isEditing && editorRef.current) {
+      const el = editorRef.current;
+      el.innerHTML = draftTextRef.current;
       el.focus();
-      const len = el.value.length;
-      el.setSelectionRange(len, len);
+      try {
+        const sel = window.getSelection();
+        if (sel) {
+          sel.selectAllChildren(el);
+          sel.collapseToEnd();
+        }
+      } catch {}
 
       const rId = requestAnimationFrame(() => {
         el.focus();
@@ -158,22 +155,37 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
     };
   }, [isEditing, finishEditing]);
 
-  const onBlur = useCallback(() => {
-    blurTimeoutRef.current = setTimeout(() => {
-      const activeEl = document.activeElement;
+  const onBlur = useCallback(
+    (e: React.FocusEvent) => {
+      const related = e.relatedTarget as HTMLElement | null;
       if (
-        activeEl &&
-        (activeEl.closest('[data-text-toolbar]') ||
-          activeEl.closest('[role="toolbar"]') ||
-          activeEl.closest('[data-radix-popper-content-wrapper]') ||
-          activeEl.closest('[role="menu"]') ||
-          activeEl.closest('[role="dialog"]'))
+        related &&
+        (related.closest('[data-text-toolbar]') ||
+          related.closest('[role="toolbar"]') ||
+          related.closest('[data-radix-popper-content-wrapper]') ||
+          related.closest('[role="menu"]') ||
+          related.closest('[role="dialog"]'))
       ) {
         return;
       }
-      finishEditing();
-    }, 150);
-  }, [finishEditing]);
+
+      blurTimeoutRef.current = setTimeout(() => {
+        const activeEl = document.activeElement;
+        if (
+          activeEl &&
+          (activeEl.closest('[data-text-toolbar]') ||
+            activeEl.closest('[role="toolbar"]') ||
+            activeEl.closest('[data-radix-popper-content-wrapper]') ||
+            activeEl.closest('[role="menu"]') ||
+            activeEl.closest('[role="dialog"]'))
+        ) {
+          return;
+        }
+        finishEditing();
+      }, 180);
+    },
+    [finishEditing]
+  );
 
   useEffect(() => {
     return () => {
@@ -192,15 +204,13 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
         const current = data?.text ?? data?.label ?? '';
         setDraftText(current);
         initialTextRef.current = current;
-        const offset = getCaretOffsetFromPoint(e, current);
         setIsEditing(true);
         if (useCanvasStore.getState().selectedNodeId !== id) {
           useCanvasStore.getState().setSelectedNodeId(id);
         }
         requestAnimationFrame(() => {
-          if (textareaRef.current) {
-            textareaRef.current.focus();
-            textareaRef.current.setSelectionRange(offset, offset);
+          if (editorRef.current) {
+            editorRef.current.focus();
           }
         });
       }
@@ -341,111 +351,76 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
 
       {isEditing ? (
         <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          data-text-editor="true"
+          data-node-id={id}
+          aria-label="Text editor"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+          onInput={(e) => {
+            const html = e.currentTarget.innerHTML;
+            draftTextRef.current = html;
+            setDraftText(html);
+          }}
+          onFocus={() => {
+            if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+          }}
+          onBlur={onBlur}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              finishEditing();
+              return;
+            }
+            if (e.key === 'Tab') {
+              e.preventDefault();
+              document.execCommand('insertText', false, '  ');
+              return;
+            }
+            // Stop propagation so typing shortcuts don't trigger canvas actions
+            e.stopPropagation();
+          }}
           className={cn(
-            'relative inline-grid items-start w-fit',
-            textAlignClass
+            'nodrag nowheel nopan border-0 bg-transparent p-0 m-0 outline-none select-text',
+            fontFamilyClass,
+            textAlignClass,
+            bold && 'font-bold',
+            italic && 'italic',
+            underline && 'underline',
+            isFixedWidth ? 'whitespace-pre-wrap break-words max-w-[500px]' : 'whitespace-pre w-max'
           )}
           style={{
-            gridTemplateColumns: 'minmax(0, max-content)',
-            gridTemplateRows: 'minmax(0, max-content)',
+            minWidth: '24px',
+            minHeight: '1.2em',
+            color,
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+            fontWeight: 'inherit',
+            fontStyle: 'inherit',
+            lineHeight: 'inherit',
+            letterSpacing: 'inherit',
+            caretColor: color || '#0ea5e9',
           }}
-        >
-          {/* Mirror element: measures exact width & height of typed text */}
-          <span
-            aria-hidden="true"
-            className={cn(
-              'invisible select-none pointer-events-none p-0 m-0 border-0 overflow-hidden',
-              isFixedWidth ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'
-            )}
-            style={{
-              gridArea: '1 / 1',
-              fontFamily: 'inherit',
-              fontSize: 'inherit',
-              fontWeight: 'inherit',
-              fontStyle: 'inherit',
-              lineHeight: 'inherit',
-              letterSpacing: 'inherit',
-              minWidth: 0,
-              minHeight: 0,
-            }}
-          >
-            {(draftText || ' ') + (draftText.endsWith('\n') ? ' ' : '')}
-          </span>
-          <textarea
-            ref={textareaRef}
-            autoFocus
-            rows={1}
-            cols={1}
-            aria-label="Text editor"
-            value={draftText}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-            }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-            }}
-            onChange={(e) => {
-              draftTextRef.current = e.target.value;
-              setDraftText(e.target.value);
-            }}
-            onFocus={() => {
-              if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
-            }}
-            onBlur={onBlur}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                e.preventDefault();
-                finishEditing();
-                return;
-              }
-              // Stop propagation so typing shortcuts don't trigger canvas actions
-              e.stopPropagation();
-            }}
-            className={cn(
-              'nodrag nowheel nopan resize-none border-0 bg-transparent p-0 m-0 outline-none overflow-hidden',
-              fontFamilyClass,
-              textAlignClass,
-              bold && 'font-bold',
-              italic && 'italic',
-              underline && 'underline',
-              isFixedWidth ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'
-            )}
-            style={{
-              gridArea: '1 / 1',
-              width: '100%',
-              height: '100%',
-              minWidth: 0,
-              minHeight: 0,
-              color,
-              fontFamily: 'inherit',
-              fontSize: 'inherit',
-              fontWeight: 'inherit',
-              fontStyle: 'inherit',
-              lineHeight: 'inherit',
-              letterSpacing: 'inherit',
-              caretColor: color || '#0ea5e9',
-            }}
-            placeholder=""
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-          />
-        </div>
+          spellCheck={false}
+        />
       ) : (
         <div
           className={cn(
-            'p-0 m-0 w-max whitespace-pre cursor-pointer',
+            'p-0 m-0 w-max cursor-pointer',
+            isFixedWidth ? 'whitespace-pre-wrap break-words' : 'whitespace-pre',
             !contentText && 'italic text-ink-3'
           )}
+          dangerouslySetInnerHTML={
+            hasHtml(contentText)
+              ? { __html: sanitizeRichText(contentText) }
+              : undefined
+          }
         >
-          {contentText || 'Type text…'}
+          {hasHtml(contentText) ? null : (contentText || 'Type text…')}
         </div>
       )}
     </div>

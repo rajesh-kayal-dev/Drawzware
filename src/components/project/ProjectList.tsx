@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronDown, LayoutGrid, List, Plus, Search, Trash2 } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, LayoutGrid, List, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -44,6 +44,8 @@ export function ProjectList() {
   const router = useRouter();
   const projects = useProjectStore((s) => s.projects);
   const loaded = useProjectStore((s) => s.loaded);
+  const loading = useProjectStore((s) => s.loading);
+  const error = useProjectStore((s) => s.error);
   const loadProjects = useProjectStore((s) => s.loadProjects);
   const createProject = useProjectStore((s) => s.createProject);
   const renameProject = useProjectStore((s) => s.renameProject);
@@ -56,8 +58,10 @@ export function ProjectList() {
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!loaded) loadProjects();
-  }, [loaded, loadProjects]);
+    if (!loaded && !loading) {
+      loadProjects();
+    }
+  }, [loaded, loading, loadProjects]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -85,9 +89,13 @@ export function ProjectList() {
   const handleRename = useCallback((project: Project) => setModal({ mode: 'rename', project }), []);
   const handleDelete = useCallback((project: Project) => setDeleteTarget(latest(project)), []);
 
-  const handleDuplicate = useCallback((project: Project) => {
-    const copy = useProjectStore.getState().duplicateProject(project.id);
-    if (copy) toast({ message: `Duplicated “${project.name}”`, tone: 'ok' });
+  const handleDuplicate = useCallback(async (project: Project) => {
+    try {
+      const copy = await useProjectStore.getState().duplicateProject(project.id);
+      if (copy) toast({ message: `Duplicated “${project.name}”`, tone: 'ok' });
+    } catch (err) {
+      toast({ message: `Failed to duplicate: ${(err as Error).message}`, tone: 'danger' });
+    }
   }, []);
 
   const handleExport = useCallback((project: Project) => {
@@ -96,33 +104,59 @@ export function ProjectList() {
   }, []);
 
   const handleUseTemplate = useCallback(
-    (templateId: string) => {
-      const project = createFromTemplate(templateId);
-      if (project) router.push(canvasPath(project.id));
+    async (templateId: string) => {
+      try {
+        const project = await createFromTemplate(templateId);
+        if (project) router.push(canvasPath(project.id));
+      } catch (err) {
+        toast({ message: `Failed to create from template: ${(err as Error).message}`, tone: 'danger' });
+      }
     },
     [router]
   );
 
-  const handleModalSubmit = (name: string, description: string) => {
+  const handleModalSubmit = async (name: string, description: string) => {
     if (modal?.mode === 'rename') {
-      renameProject(modal.project.id, name);
-      setModal(null);
+      try {
+        await renameProject(modal.project.id, name);
+        setModal(null);
+        toast({ message: `Renamed to “${name}”`, tone: 'ok' });
+      } catch (err) {
+        toast({ message: `Failed to rename: ${(err as Error).message}`, tone: 'danger' });
+      }
       return;
     }
-    const project = createProject(name, description);
-    setModal(null);
-    router.push(canvasPath(project.id));
+    try {
+      const project = await createProject(name, description);
+      setModal(null);
+      router.push(canvasPath(project.id));
+    } catch (err) {
+      toast({ message: `Failed to create project: ${(err as Error).message}`, tone: 'danger' });
+    }
   };
 
-  const confirmDelete = (project: Project) => {
-    useProjectStore.getState().deleteProject(project.id);
-    setDeleteTarget(null);
-    toast({
-      message: `Deleted “${project.name}”`,
-      icon: Trash2,
-      duration: 5000,
-      action: { label: 'Undo', onClick: () => useProjectStore.getState().restoreProject(project) },
-    });
+  const confirmDelete = async (project: Project) => {
+    try {
+      await useProjectStore.getState().deleteProject(project.id);
+      setDeleteTarget(null);
+      toast({
+        message: `Deleted “${project.name}”`,
+        icon: Trash2,
+        duration: 5000,
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              await useProjectStore.getState().restoreProject(project);
+            } catch (err) {
+              toast({ message: `Failed to restore: ${(err as Error).message}`, tone: 'danger' });
+            }
+          },
+        },
+      });
+    } catch (err) {
+      toast({ message: `Failed to delete project: ${(err as Error).message}`, tone: 'danger' });
+    }
   };
 
   return (
@@ -150,13 +184,49 @@ export function ProjectList() {
         </button>
       </div>
 
+      {/* ── Error Banner with Retry ── */}
+      {error && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-4 rounded-xl border border-red-500/25 bg-red-500/10 p-4 text-sm"
+        >
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="size-5 shrink-0 text-red-500" />
+            <div>
+              <p className="font-semibold text-ink">Failed to load projects</p>
+              <p className="text-xs text-ink-2">{error}</p>
+            </div>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => loadProjects()}
+            className="cursor-pointer shrink-0"
+          >
+            <RefreshCw className="mr-1.5 size-3.5" />
+            <span>Retry</span>
+          </Button>
+        </div>
+      )}
+
+      {/* ── Loading Skeletons ── */}
+      {loading && !loaded && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-[250px] rounded-xl border border-line bg-paper/40" />
+          ))}
+        </div>
+      )}
+
       {/* ── Start from a template ── */}
-      <div>
-        <TemplateStrip onSelect={handleUseTemplate} defaultExpanded={loaded && projects.length === 0} />
-      </div>
+      {!loading && (
+        <div>
+          <TemplateStrip onSelect={handleUseTemplate} defaultExpanded={loaded && projects.length === 0} />
+        </div>
+      )}
 
       {/* ── Your Projects Section ── */}
-      {loaded && (
+      {loaded && !error && (
         <section aria-labelledby="your-projects-heading" className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="your-projects-heading" className="text-base font-semibold text-ink tracking-tight">

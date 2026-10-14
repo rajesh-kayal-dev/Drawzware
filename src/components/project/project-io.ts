@@ -12,9 +12,11 @@ export function countComponents(nodes: { type?: string }[]) {
 }
 
 /** Load stored projects first so a write never replaces them with an empty list. */
-function ensureLoaded() {
+async function ensureLoaded() {
   const store = useProjectStore.getState();
-  if (!store.loaded) store.loadProjects();
+  if (!store.loaded && !store.loading) {
+    await store.loadProjects();
+  }
 }
 
 /** Open the browser file picker. Resolves with the chosen file (never resolves on cancel). */
@@ -48,7 +50,7 @@ export function showReadError(fileName: string, error: unknown) {
  * Returns the created projects; on failure shows an error toast and returns [].
  */
 export async function importFile(file: File): Promise<Project[]> {
-  ensureLoaded();
+  await ensureLoaded();
   try {
     const text = await file.text();
     const { importProjects } = useProjectStore.getState();
@@ -68,20 +70,21 @@ export async function importFile(file: File): Promise<Project[]> {
 }
 
 /** Create a project with the given content (createProject + saveProject). */
-export function createProjectWithContent(
+export async function createProjectWithContent(
   name: string,
   description: string,
   nodes: SystemNode[],
   edges: SystemEdge[]
-): Project {
-  ensureLoaded();
+): Promise<Project> {
+  await ensureLoaded();
   const { createProject, saveProject } = useProjectStore.getState();
-  const project = createProject(name, description);
-  saveProject({ ...project, nodes, edges });
-  return project;
+  const project = await createProject(name, description);
+  const updatedProject = { ...project, nodes, edges };
+  saveProject(updatedProject);
+  return updatedProject;
 }
 
-export function createFromTemplate(templateId: string): Project | null {
+export async function createFromTemplate(templateId: string): Promise<Project | null> {
   const template = TEMPLATES.find((t) => t.id === templateId);
   if (!template) return null;
   return createProjectWithContent(

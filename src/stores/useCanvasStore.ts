@@ -7,7 +7,7 @@ import {
   type Connection,
   type Viewport,
 } from '@xyflow/react';
-import type { SystemNode, SystemEdge, SystemNodeData, SystemEdgeData, CanvasTool, PlacementItem, DrawingFormatting, DiagramType } from '@/types';
+import type { SystemNode, SystemEdge, SystemNodeData, SystemEdgeData, CanvasTool, PlacementItem, DrawingFormatting, DiagramType, LibraryTab } from '@/types';
 import { getInitialSequenceDiagram, getInitialERDiagram } from '@/lib/diagram-templates';
 
 interface HistoryEntry {
@@ -86,6 +86,9 @@ interface CanvasStore {
   libraryCollapsed: boolean;
   setLibraryCollapsed: (collapsed: boolean) => void;
   toggleLibrary: () => void;
+  libraryActiveTab: LibraryTab;
+  setLibraryActiveTab: (tab: LibraryTab) => void;
+  openInsertItem: () => void;
   commandMenuOpen: boolean;
   setCommandMenuOpen: (open: boolean) => void;
   shortcutsOpen: boolean;
@@ -150,6 +153,7 @@ interface CanvasStore {
   onEdgesChange: (changes: EdgeChange<SystemEdge>[]) => void;
   onConnect: (connection: Connection) => void;
   addNode: (node: SystemNode) => void;
+  addElements: (nodes: SystemNode[], edges?: SystemEdge[]) => void;
   updateNodeData: (nodeId: string, data: Partial<SystemNodeData>) => void;
   updateEdgeData: (edgeId: string, data: Partial<SystemEdgeData>) => void;
   deleteNode: (nodeId: string) => void;
@@ -347,9 +351,18 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   pendingEdge: null,
   setPendingEdge: (pending) => set({ pendingEdge: pending }),
 
-  libraryCollapsed: false,
+  libraryCollapsed: true,
   setLibraryCollapsed: (libraryCollapsed) => set({ libraryCollapsed }),
   toggleLibrary: () => set((state) => ({ libraryCollapsed: !state.libraryCollapsed })),
+  libraryActiveTab: 'diagrams',
+  setLibraryActiveTab: (libraryActiveTab) => set({ libraryActiveTab }),
+  openInsertItem: () =>
+    set((state) => {
+      if (state.libraryActiveTab === 'all' && !state.libraryCollapsed) {
+        return { libraryCollapsed: true };
+      }
+      return { libraryActiveTab: 'all', libraryCollapsed: false };
+    }),
   commandMenuOpen: false,
   setCommandMenuOpen: (commandMenuOpen) => set({ commandMenuOpen }),
   shortcutsOpen: false,
@@ -369,10 +382,23 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   activeTool: 'select',
   setActiveTool: (activeTool) => {
-    set((state) => ({
-      activeTool,
-      placementItem: activeTool === 'select' ? null : state.placementItem,
-    }));
+    set((state) => {
+      const isDrawingOrPanning = activeTool !== 'select';
+      return {
+        activeTool,
+        placementItem: activeTool === 'select' ? null : state.placementItem,
+        ...(isDrawingOrPanning
+          ? {
+              selectedNodeId: null,
+              selectedEdgeId: null,
+              editingShapeId: null,
+              activePopover: null,
+              nodes: state.nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+              edges: state.edges.map((e) => (e.selected ? { ...e, selected: false } : e)),
+            }
+          : {}),
+      };
+    });
     if (typeof document !== 'undefined' && document.body) {
       document.body.style.cursor = '';
     }
@@ -558,6 +584,15 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   addNode: (node) => {
     get().pushHistory();
     set((state) => ({ nodes: [...state.nodes, node] }));
+  },
+
+  addElements: (newNodes, newEdges = []) => {
+    if (newNodes.length === 0 && newEdges.length === 0) return;
+    get().pushHistory();
+    set((state) => ({
+      nodes: [...state.nodes, ...newNodes],
+      edges: [...state.edges, ...newEdges],
+    }));
   },
 
   updateNodeData: (nodeId, data) => {

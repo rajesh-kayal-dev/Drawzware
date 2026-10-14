@@ -6,7 +6,10 @@ import { useCanvasStore } from '@/stores/useCanvasStore';
 import { createNoteNode, createSystemNode } from '@/lib/node-factory';
 import { formatKey } from '@/components/ui/kbd';
 import { getShortcutKeys, type ShortcutId } from '@/lib/shortcuts';
-import type { SystemEdge, SystemNode, SystemNodeType } from '@/types';
+import type { CanvasTool, SystemEdge, SystemNode, SystemNodeType } from '@/types';
+import { type StackPreset, TECHNOLOGY_STACK_PRESETS, instantiateStackPreset } from '@/lib/technology-stacks';
+import { type ExpandedComponentItem } from '@/lib/expanded-components-registry';
+import { type PopularServiceItem } from '@/lib/popular-services-registry';
 
 /**
  * fitView options that keep the diagram clear of the floating chrome:
@@ -69,6 +72,74 @@ export function useAddNodeAtCenter() {
 }
 
 /**
+ * Inserts a full technology stack preset at the center of the visible canvas.
+ */
+export function useInsertStackPreset() {
+  const { screenToFlowPosition } = useReactFlow();
+  const storeApi = useStoreApi();
+  const addElements = useCanvasStore((s) => s.addElements);
+  const counter = useRef(0);
+
+  return useCallback(
+    (presetOrId: StackPreset | string) => {
+      const preset =
+        typeof presetOrId === 'string'
+          ? TECHNOLOGY_STACK_PRESETS.find((p) => p.id === presetOrId)
+          : presetOrId;
+      if (!preset) return null;
+
+      const { domNode } = storeApi.getState();
+      const rect = domNode?.getBoundingClientRect();
+      const center = screenToFlowPosition({
+        x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+        y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
+      });
+      const offset = (counter.current++ % 6) * 36;
+      const { nodes, edges } = instantiateStackPreset(preset, {
+        x: center.x - 300 + offset,
+        y: center.y - 100 + offset,
+      });
+      addElements(nodes, edges);
+      return { nodes, edges };
+    },
+    [storeApi, screenToFlowPosition, addElements]
+  );
+}
+
+/**
+ * Adds an expanded component or popular service at the center of the canvas.
+ */
+export function useAddCustomComponentAtCenter() {
+  const { screenToFlowPosition } = useReactFlow();
+  const storeApi = useStoreApi();
+  const addNode = useCanvasStore((s) => s.addNode);
+  const counter = useRef(0);
+
+  return useCallback(
+    (item: ExpandedComponentItem | PopularServiceItem) => {
+      const { domNode } = storeApi.getState();
+      const rect = domNode?.getBoundingClientRect();
+      const center = screenToFlowPosition({
+        x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+        y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
+      });
+      const offset = (counter.current++ % 8) * 24;
+      const position = { x: center.x - 100 + offset, y: center.y - 36 + offset };
+      const node = createSystemNode(item.genericType, position, {
+        label: 'name' in item ? item.name : item.label,
+        customIcon: item.customIcon,
+        color: item.color,
+        description: item.description,
+        techStack: [...item.defaultTechStack],
+      });
+      addNode(node);
+      return node;
+    },
+    [storeApi, screenToFlowPosition, addNode]
+  );
+}
+
+/**
  * Presentation order: BFS over edges (undirected) from the start node, else the
  * first component; unreached components follow in array order. Components only.
  */
@@ -99,4 +170,39 @@ export function presentationOrder(nodes: SystemNode[], edges: SystemEdge[], star
     if (!visited.has(n.id)) order.push(n);
   }
   return order;
+}
+
+/**
+ * Returns the CSS cursor class based on the currently active canvas tool and interaction state.
+ */
+export function getCanvasCursorClass(
+  activeTool: CanvasTool,
+  isSpacePanning: boolean,
+  hasPlacementItem: boolean,
+  isPanning = false
+): string {
+  if (hasPlacementItem) {
+    return 'cursor-tool-crosshair';
+  }
+  if (activeTool === 'hand' || isSpacePanning) {
+    return isPanning ? 'cursor-tool-grabbing' : 'cursor-tool-grab';
+  }
+  if (activeTool === 'pencil') {
+    return 'cursor-tool-pencil';
+  }
+  if (activeTool === 'eraser') {
+    return 'cursor-tool-eraser';
+  }
+  if (
+    activeTool === 'rectangle' ||
+    activeTool === 'circle' ||
+    activeTool === 'arrow' ||
+    activeTool === 'line'
+  ) {
+    return 'cursor-tool-crosshair';
+  }
+  if (activeTool === 'text') {
+    return 'cursor-tool-text';
+  }
+  return 'cursor-tool-default';
 }

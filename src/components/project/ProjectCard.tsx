@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import Link from 'next/link';
-import { Clock, Copy, Download, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Clock, Copy, Download, FileText, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,16 +16,18 @@ import { formatRelative, plural } from '@/lib/utils';
 import type { Project } from '@/types';
 import { countComponents } from './project-io';
 import { canvasPath } from '@/lib/routes';
+import { saveAsDrawzProject } from '@/lib/file-operations';
 
 export interface ProjectCardProps {
   project: Project;
   onRename: (project: Project) => void;
   onDuplicate: (project: Project) => void;
   onExport: (project: Project) => void;
+  onSaveAsDrawz?: (project: Project) => void;
   onDelete: (project: Project) => void;
 }
 
-function ProjectCardComponent({ project, onRename, onDuplicate, onExport, onDelete }: ProjectCardProps) {
+function ProjectCardComponent({ project, onRename, onDuplicate, onExport, onSaveAsDrawz, onDelete }: ProjectCardProps) {
   const components = countComponents(project.nodes);
   const connections = project.edges.length;
 
@@ -85,6 +87,10 @@ function ProjectCardComponent({ project, onRename, onDuplicate, onExport, onDele
               <Copy className="size-3.5 mr-2" />
               Duplicate
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onSaveAsDrawz ? onSaveAsDrawz(project) : saveAsDrawzProject(project)}>
+              <FileText className="size-3.5 mr-2 text-accent" />
+              Save As .drawz…
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onExport(project)}>
               <Download className="size-3.5 mr-2" />
               Export JSON
@@ -104,7 +110,7 @@ function ProjectCardComponent({ project, onRename, onDuplicate, onExport, onDele
   );
 }
 
-export function ProjectListItem({ project, onRename, onDuplicate, onExport, onDelete }: ProjectCardProps) {
+export function ProjectListItem({ project, onRename, onDuplicate, onExport, onSaveAsDrawz, onDelete }: ProjectCardProps) {
   const components = countComponents(project.nodes);
   const connections = project.edges.length;
 
@@ -147,6 +153,10 @@ export function ProjectListItem({ project, onRename, onDuplicate, onExport, onDe
           <DropdownMenuItem onSelect={() => onDuplicate(project)}>
             <Copy className="size-3.5 mr-2" />
             Duplicate
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onSaveAsDrawz ? onSaveAsDrawz(project) : saveAsDrawzProject(project)}>
+            <FileText className="size-3.5 mr-2 text-accent" />
+            Save As .drawz…
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => onExport(project)}>
             <Download className="size-3.5 mr-2" />

@@ -39,7 +39,7 @@ export function pointsToSvgPath(points: Point[], radius = 8): string {
   return d;
 }
 
-function perpendicularDistance(p: Point, p1: Point, p2: Point): number {
+export function perpendicularDistance(p: Point, p1: Point, p2: Point): number {
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   const len2 = dx * dx + dy * dy;
@@ -100,6 +100,44 @@ export function snapOrthogonalPoints(pts: Point[]): Point[] {
     }
   }
   return result;
+}
+
+/**
+ * Simplifies and cleans up waypoints by removing redundant collinear points
+ * and micro-segments while preserving intended corners and angles.
+ */
+export function cleanWaypoints(pts: Point[]): Point[] {
+  if (!pts || pts.length <= 2) return pts ?? [];
+
+  // 1. Remove duplicate adjacent points
+  const deduped: Point[] = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const prev = deduped[deduped.length - 1];
+    const curr = pts[i];
+    if (Math.hypot(curr.x - prev.x, curr.y - prev.y) >= 4) {
+      deduped.push(curr);
+    }
+  }
+
+  if (deduped.length <= 2) return deduped;
+
+  // 2. Remove collinear points on straight horizontal or vertical lines
+  const cleaned: Point[] = [deduped[0]];
+  for (let i = 1; i < deduped.length - 1; i++) {
+    const prev = cleaned[cleaned.length - 1];
+    const curr = deduped[i];
+    const next = deduped[i + 1];
+
+    const isCollinearX = Math.abs(prev.x - curr.x) <= 3 && Math.abs(curr.x - next.x) <= 3;
+    const isCollinearY = Math.abs(prev.y - curr.y) <= 3 && Math.abs(curr.y - next.y) <= 3;
+
+    if (!isCollinearX && !isCollinearY) {
+      cleaned.push(curr);
+    }
+  }
+  cleaned.push(deduped[deduped.length - 1]);
+
+  return cleaned;
 }
 
 /**

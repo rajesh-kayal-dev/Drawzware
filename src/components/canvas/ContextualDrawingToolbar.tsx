@@ -176,7 +176,7 @@ export function ContextualDrawingToolbar() {
     <div
       role="toolbar"
       aria-label="Contextual drawing formatting toolbar"
-      className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-xl border border-white/10 bg-[#18181b]/95 p-1.5 text-white shadow-[0_8px_30px_rgb(0,0,0,0.5)] backdrop-blur-md whitespace-nowrap"
+      className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-xl border border-line bg-paper/95 p-1.5 text-text shadow-[var(--shadow-xl)] backdrop-blur-md whitespace-nowrap cursor-default"
     >
       {/* 1. FILL COLOR (if shape supports fill) */}
       {showFillControl && (
@@ -186,28 +186,28 @@ export function ContextualDrawingToolbar() {
               <button
                 type="button"
                 aria-label="Fill Color"
-                className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-neutral-300 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"
               >
                 {effectiveFillColor === 'transparent' || effectiveFillColor === 'none' ? (
-                  <span className="flex size-4 items-center justify-center rounded-full border border-white/30 text-neutral-400">
+                  <span className="flex size-4 items-center justify-center rounded-full border border-line-hover text-text-muted">
                     <Ban className="size-3" />
                   </span>
                 ) : (
                   <span
-                    className="size-4 rounded-full border border-white/30 shadow-sm"
+                    className="size-4 rounded-full border border-line-hover shadow-xs"
                     style={{ backgroundColor: effectiveFillColor }}
                   />
                 )}
-                <ChevronDown className="size-3 text-neutral-400" />
+                <ChevronDown className="size-3 text-text-muted" />
               </button>
             </PopoverTrigger>
           </SimpleTooltip>
           <PopoverContent
             side="top"
             sideOffset={8}
-            className="w-[200px] rounded-xl border border-white/10 bg-[#1e1e22] p-2 text-white shadow-xl"
+            className="w-[200px] rounded-xl border border-line bg-paper p-2 text-text shadow-[var(--shadow-xl)]"
           >
-            <div className="mb-1.5 px-1 text-center text-[11px] font-medium text-neutral-400">
+            <div className="mb-1.5 px-1 text-center text-[11px] font-medium text-text-muted">
               {hoverFillName ?? (effectiveFillColor === 'transparent' ? 'Transparent' : 'Fill Color')}
             </div>
             <div className="grid grid-cols-5 gap-1.5">
@@ -219,7 +219,7 @@ export function ContextualDrawingToolbar() {
                 onMouseLeave={() => setHoverFillName(null)}
                 aria-label="Transparent"
                 className={cn(
-                  'flex size-7 items-center justify-center rounded-lg border border-white/20 text-neutral-400 transition hover:bg-white/10',
+                  'flex size-7 items-center justify-center rounded-lg border border-line text-text-muted transition hover:bg-surface-2 hover:text-text cursor-pointer',
                   effectiveFillColor === 'transparent' && 'ring-2 ring-accent'
                 )}
               >
@@ -235,7 +235,7 @@ export function ContextualDrawingToolbar() {
                   onMouseLeave={() => setHoverFillName(null)}
                   aria-label={c.name}
                   className={cn(
-                    'size-7 rounded-lg border border-white/20 transition hover:scale-105',
+                    'size-7 rounded-lg border border-line/60 transition hover:scale-105 cursor-pointer',
                     effectiveFillColor === c.value && 'ring-2 ring-accent'
                   )}
                   style={{ backgroundColor: c.value }}
@@ -251,7 +251,7 @@ export function ContextualDrawingToolbar() {
                   onMouseLeave={() => setHoverFillName(null)}
                   aria-label={c.name}
                   className={cn(
-                    'size-7 rounded-lg border border-white/20 transition hover:scale-105',
+                    'size-7 rounded-lg border border-line/60 transition hover:scale-105 cursor-pointer',
                     effectiveFillColor === c.value && 'ring-2 ring-accent'
                   )}
                   style={{ backgroundColor: c.value }}
@@ -265,7 +265,7 @@ export function ContextualDrawingToolbar() {
                 onMouseEnter={() => setHoverFillName('Custom Color')}
                 onMouseLeave={() => setHoverFillName(null)}
                 aria-label="Custom color"
-                className="relative size-7 rounded-lg border border-white/20 overflow-hidden hover:scale-105 transition"
+                className="relative size-7 rounded-lg border border-line/60 overflow-hidden hover:scale-105 transition cursor-pointer"
                 style={{
                   background:
                     'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
@@ -290,29 +290,29 @@ export function ContextualDrawingToolbar() {
             <button
               type="button"
               aria-label="Stroke Color"
-              className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-neutral-300 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+              className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"
             >
               <span
-                className="size-4 rounded-full border border-white/30 shadow-sm"
+                className="size-4 rounded-full border border-line-hover shadow-xs"
                 style={{
                   backgroundColor:
                     effectiveStrokeColor === 'var(--ink)'
-                      ? '#ffffff'
+                      ? 'var(--ink)'
                       : effectiveStrokeColor === 'transparent'
                       ? 'transparent'
                       : effectiveStrokeColor,
                 }}
               />
-              <ChevronDown className="size-3 text-neutral-400" />
+              <ChevronDown className="size-3 text-text-muted" />
             </button>
           </PopoverTrigger>
         </SimpleTooltip>
         <PopoverContent
           side="top"
           sideOffset={8}
-          className="w-[200px] rounded-xl border border-white/10 bg-[#1e1e22] p-2 text-white shadow-xl"
+          className="w-[200px] rounded-xl border border-line bg-paper p-2 text-text shadow-[var(--shadow-xl)]"
         >
-          <div className="mb-1.5 px-1 text-center text-[11px] font-medium text-neutral-400">
+          <div className="mb-1.5 px-1 text-center text-[11px] font-medium text-text-muted">
             {hoverColorName ?? 'Stroke Color'}
           </div>
           <div className="grid grid-cols-5 gap-1.5">
@@ -324,7 +324,7 @@ export function ContextualDrawingToolbar() {
               onMouseLeave={() => setHoverColorName(null)}
               aria-label="No border"
               className={cn(
-                'flex size-7 items-center justify-center rounded-lg border border-white/20 text-neutral-400 transition hover:bg-white/10',
+                'flex size-7 items-center justify-center rounded-lg border border-line text-text-muted transition hover:bg-surface-2 hover:text-text cursor-pointer',
                 effectiveStrokeColor === 'transparent' && 'ring-2 ring-accent'
               )}
             >
@@ -340,7 +340,7 @@ export function ContextualDrawingToolbar() {
                 onMouseLeave={() => setHoverColorName(null)}
                 aria-label={c.name}
                 className={cn(
-                  'size-7 rounded-lg border border-white/20 transition hover:scale-105',
+                  'size-7 rounded-lg border border-line/60 transition hover:scale-105 cursor-pointer',
                   effectiveStrokeColor === c.value && 'ring-2 ring-accent'
                 )}
                 style={{ backgroundColor: c.value }}
@@ -356,7 +356,7 @@ export function ContextualDrawingToolbar() {
                 onMouseLeave={() => setHoverColorName(null)}
                 aria-label={c.name}
                 className={cn(
-                  'size-7 rounded-lg border border-white/20 transition hover:scale-105',
+                  'size-7 rounded-lg border border-line/60 transition hover:scale-105 cursor-pointer',
                   effectiveStrokeColor === c.value && 'ring-2 ring-accent'
                 )}
                 style={{ backgroundColor: c.value }}
@@ -370,7 +370,7 @@ export function ContextualDrawingToolbar() {
               onMouseEnter={() => setHoverColorName('Custom Color')}
               onMouseLeave={() => setHoverColorName(null)}
               aria-label="Custom stroke color"
-              className="relative size-7 rounded-lg border border-white/20 overflow-hidden hover:scale-105 transition"
+              className="relative size-7 rounded-lg border border-line/60 overflow-hidden hover:scale-105 transition cursor-pointer"
               style={{
                 background:
                   'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
@@ -394,31 +394,31 @@ export function ContextualDrawingToolbar() {
             <button
               type="button"
               aria-label="Stroke Width & Style"
-              className="flex h-8 items-center gap-1 rounded-lg px-2 text-neutral-300 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+              className="flex h-8 items-center gap-1 rounded-lg px-2 text-text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"
             >
               <span className="flex flex-col gap-0.5 items-center justify-center">
                 <span className="h-0.5 w-3.5 bg-current rounded-full" />
                 <span className="h-0.5 w-3.5 bg-current rounded-full" />
                 <span className="h-0.5 w-3.5 bg-current rounded-full" />
               </span>
-              <ChevronDown className="size-3 text-neutral-400" />
+              <ChevronDown className="size-3 text-text-muted" />
             </button>
           </PopoverTrigger>
         </SimpleTooltip>
         <PopoverContent
           side="top"
           sideOffset={8}
-          className="w-[160px] rounded-xl border border-white/10 bg-[#1e1e22] p-2 text-white shadow-xl"
+          className="w-[160px] rounded-xl border border-line bg-paper p-2 text-text shadow-[var(--shadow-xl)]"
         >
           {/* Top Style Selector: Solid, Dashed, Dotted */}
-          <div className="flex items-center justify-between gap-1 pb-2 border-b border-white/10">
+          <div className="flex items-center justify-between gap-1 pb-2 border-b border-line">
             <button
               type="button"
               onClick={() => applyFormatting({ strokeStyle: 'solid' })}
               aria-label="Solid line"
               className={cn(
-                'flex-1 flex items-center justify-center h-6 rounded px-1 hover:bg-white/10 transition',
-                effectiveStrokeStyle === 'solid' && 'bg-accent/20 text-accent font-semibold ring-1 ring-accent'
+                'flex-1 flex items-center justify-center h-6 rounded px-1 hover:bg-surface-2 transition text-text-muted cursor-pointer',
+                effectiveStrokeStyle === 'solid' && 'bg-accent/15 text-accent font-semibold ring-1 ring-accent/30'
               )}
             >
               <span className="h-[2px] w-5 bg-current" />
@@ -428,8 +428,8 @@ export function ContextualDrawingToolbar() {
               onClick={() => applyFormatting({ strokeStyle: 'dashed' })}
               aria-label="Dashed line"
               className={cn(
-                'flex-1 flex items-center justify-center h-6 rounded px-1 hover:bg-white/10 transition',
-                effectiveStrokeStyle === 'dashed' && 'bg-accent/20 text-accent font-semibold ring-1 ring-accent'
+                'flex-1 flex items-center justify-center h-6 rounded px-1 hover:bg-surface-2 transition text-text-muted cursor-pointer',
+                effectiveStrokeStyle === 'dashed' && 'bg-accent/15 text-accent font-semibold ring-1 ring-accent/30'
               )}
             >
               <span className="text-[11px] tracking-widest font-mono">---</span>
@@ -439,8 +439,8 @@ export function ContextualDrawingToolbar() {
               onClick={() => applyFormatting({ strokeStyle: 'dotted' })}
               aria-label="Dotted line"
               className={cn(
-                'flex-1 flex items-center justify-center h-6 rounded px-1 hover:bg-white/10 transition',
-                effectiveStrokeStyle === 'dotted' && 'bg-accent/20 text-accent font-semibold ring-1 ring-accent'
+                'flex-1 flex items-center justify-center h-6 rounded px-1 hover:bg-surface-2 transition text-text-muted cursor-pointer',
+                effectiveStrokeStyle === 'dotted' && 'bg-accent/15 text-accent font-semibold ring-1 ring-accent/30'
               )}
             >
               <span className="text-[11px] tracking-widest font-mono">···</span>
@@ -460,8 +460,8 @@ export function ContextualDrawingToolbar() {
                   type="button"
                   onClick={() => applyFormatting({ strokeWidth: p.value })}
                   className={cn(
-                    'flex h-7 w-full items-center justify-between rounded-lg px-2.5 text-[12px] font-medium transition cursor-pointer hover:bg-white/10',
-                    isSelected ? 'bg-accent text-white shadow-xs' : 'text-neutral-300'
+                    'flex h-7 w-full items-center justify-between rounded-lg px-2.5 text-[12px] font-medium transition cursor-pointer hover:bg-surface-2',
+                    isSelected ? 'bg-accent/15 text-accent font-semibold ring-1 ring-accent/30 shadow-xs' : 'text-text-muted hover:text-text'
                   )}
                 >
                   <span className="w-4 text-left">{p.label}</span>
@@ -479,7 +479,7 @@ export function ContextualDrawingToolbar() {
       {/* 4. ARROWHEAD TOGGLES (When line or arrow) */}
       {showArrowControls && (
         <>
-          <div className="mx-0.5 h-4 w-px bg-white/15" />
+          <div className="mx-0.5 h-4 w-px bg-line" />
           <SimpleTooltip label="Toggle Start Arrowhead" side="top">
             <button
               type="button"
@@ -488,8 +488,8 @@ export function ContextualDrawingToolbar() {
               className={cn(
                 'flex size-8 items-center justify-center rounded-lg transition-colors cursor-pointer',
                 effectiveArrowStart
-                  ? 'bg-[#2a2a2a] text-white shadow-sm ring-1 ring-white/15'
-                  : 'text-neutral-400 hover:bg-white/10 hover:text-white'
+                  ? 'bg-surface-2 text-text font-semibold shadow-2xs ring-1 ring-line-hover'
+                  : 'text-text-muted hover:bg-surface-2 hover:text-text'
               )}
             >
               <ArrowLeft className="size-3.5" />
@@ -504,8 +504,8 @@ export function ContextualDrawingToolbar() {
               className={cn(
                 'flex size-8 items-center justify-center rounded-lg transition-colors cursor-pointer',
                 effectiveArrowEnd
-                  ? 'bg-[#2a2a2a] text-white shadow-sm ring-1 ring-white/15'
-                  : 'text-neutral-400 hover:bg-white/10 hover:text-white'
+                  ? 'bg-surface-2 text-text font-semibold shadow-2xs ring-1 ring-line-hover'
+                  : 'text-text-muted hover:bg-surface-2 hover:text-text'
               )}
             >
               <ArrowRight className="size-3.5" />
@@ -519,7 +519,7 @@ export function ContextualDrawingToolbar() {
                 <button
                   type="button"
                   aria-label="Connection Routing Style"
-                  className="flex h-8 items-center gap-1 rounded-lg px-2 text-neutral-300 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                  className="flex h-8 items-center gap-1 rounded-lg px-2 text-text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"
                 >
                   {effectiveRouteType === 'straight' ? (
                     <Minus className="size-3.5" />
@@ -528,14 +528,14 @@ export function ContextualDrawingToolbar() {
                   ) : (
                     <CornerDownRight className="size-3.5" />
                   )}
-                  <ChevronDown className="size-3 text-neutral-400" />
+                  <ChevronDown className="size-3 text-text-muted" />
                 </button>
               </PopoverTrigger>
             </SimpleTooltip>
             <PopoverContent
               side="top"
               sideOffset={8}
-              className="w-[170px] rounded-xl border border-white/10 bg-[#1e1e22] p-1.5 text-white shadow-xl text-[12px]"
+              className="w-[170px] rounded-xl border border-line bg-paper p-1.5 text-text shadow-[var(--shadow-xl)] text-[12px]"
             >
               <button
                 type="button"
@@ -543,8 +543,8 @@ export function ContextualDrawingToolbar() {
                 className={cn(
                   'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 transition text-left cursor-pointer',
                   effectiveRouteType === 'smoothstep'
-                    ? 'bg-accent/20 text-accent font-medium ring-1 ring-accent'
-                    : 'text-neutral-300 hover:bg-white/10 hover:text-white'
+                    ? 'bg-accent/15 text-accent font-medium ring-1 ring-accent/30'
+                    : 'text-text-muted hover:bg-surface-2 hover:text-text'
                 )}
               >
                 <CornerDownRight className="size-3.5" />
@@ -556,8 +556,8 @@ export function ContextualDrawingToolbar() {
                 className={cn(
                   'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 transition text-left cursor-pointer mt-1',
                   effectiveRouteType === 'bezier'
-                    ? 'bg-accent/20 text-accent font-medium ring-1 ring-accent'
-                    : 'text-neutral-300 hover:bg-white/10 hover:text-white'
+                    ? 'bg-accent/15 text-accent font-medium ring-1 ring-accent/30'
+                    : 'text-text-muted hover:bg-surface-2 hover:text-text'
                 )}
               >
                 <Spline className="size-3.5" />
@@ -569,8 +569,8 @@ export function ContextualDrawingToolbar() {
                 className={cn(
                   'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 transition text-left cursor-pointer mt-1',
                   effectiveRouteType === 'straight'
-                    ? 'bg-accent/20 text-accent font-medium ring-1 ring-accent'
-                    : 'text-neutral-300 hover:bg-white/10 hover:text-white'
+                    ? 'bg-accent/15 text-accent font-medium ring-1 ring-accent/30'
+                    : 'text-text-muted hover:bg-surface-2 hover:text-text'
                 )}
               >
                 <Minus className="size-3.5" />
@@ -584,14 +584,14 @@ export function ContextualDrawingToolbar() {
       {/* 5. MORE OPTIONS (Delete, duplicate, send to back) */}
       {(selectedNodeId || selectedEdgeId) && (
         <>
-          <div className="mx-0.5 h-4 w-px bg-white/15" />
+          <div className="mx-0.5 h-4 w-px bg-line" />
           <Popover>
             <SimpleTooltip label="More Actions" side="top">
               <PopoverTrigger asChild>
                 <button
                   type="button"
                   aria-label="More actions"
-                  className="flex size-8 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                  className="flex size-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"
                 >
                   <MoreHorizontal className="size-4" />
                 </button>
@@ -600,12 +600,12 @@ export function ContextualDrawingToolbar() {
             <PopoverContent
               side="top"
               sideOffset={8}
-              className="w-[160px] rounded-xl border border-white/10 bg-[#1e1e22] p-1.5 text-white shadow-xl text-[12.5px]"
+              className="w-[160px] rounded-xl border border-line bg-paper p-1.5 text-text shadow-[var(--shadow-xl)] text-[12.5px]"
             >
               <button
                 type="button"
                 onClick={() => duplicateNodes(selectedNodeId ? [selectedNodeId] : undefined)}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-neutral-300 hover:bg-white/10 hover:text-white transition"
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-text-muted hover:bg-surface-2 hover:text-text transition cursor-pointer"
               >
                 <Copy className="size-3.5" />
                 <span>Duplicate</span>
@@ -614,17 +614,17 @@ export function ContextualDrawingToolbar() {
                 <button
                   type="button"
                   onClick={() => sendToBack(selectedNodeId)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-neutral-300 hover:bg-white/10 hover:text-white transition"
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-text-muted hover:bg-surface-2 hover:text-text transition cursor-pointer"
                 >
                   <Layers className="size-3.5" />
                   <span>Send to Back</span>
                 </button>
               )}
-              <div className="my-1 h-px bg-white/10" />
+              <div className="my-1 h-px bg-line" />
               <button
                 type="button"
                 onClick={() => deleteSelection()}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition"
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-danger hover:bg-danger/10 hover:text-danger transition cursor-pointer"
               >
                 <Trash2 className="size-3.5" />
                 <span>Delete</span>

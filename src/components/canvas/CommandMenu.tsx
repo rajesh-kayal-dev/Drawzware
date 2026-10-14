@@ -317,7 +317,7 @@ function CommandMenuBody({ onClose }: { onClose: () => void }) {
         group: 'Go to',
         label: 'Projects',
         icon: <ActionIcon icon={FolderOpen} />,
-        run: () => router.push('/'),
+        run: () => router.push('/app'),
       },
       {
         id: 'goto-settings',
