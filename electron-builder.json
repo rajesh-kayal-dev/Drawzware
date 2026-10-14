@@ -98,7 +98,9 @@
     "icon": "build/icon.png",
     "category": "Development",
     "desktop": {
-      "StartupWMClass": "drawzware"
+      "entry": {
+        "StartupWMClass": "drawzware"
+      }
     },
     "synopsis": "Local-first visual architecture & system diagramming studio",
     "description": "Drawzware is a client-first, zero-backend visual system architecture diagramming studio."

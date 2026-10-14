@@ -112,7 +112,8 @@ describe('Milestone 3A: Packaging Configuration and CI Automation', () => {
 
     it('configures Linux StartupWMClass to prevent duplicate dock icons', () => {
       const config = JSON.parse(fs.readFileSync(builderConfigPath, 'utf-8'));
-      expect(config.linux?.desktop?.StartupWMClass).toBe('drawzware');
+      const wmClass = config.linux?.desktop?.entry?.StartupWMClass ?? config.linux?.desktop?.StartupWMClass;
+      expect(wmClass).toBe('drawzware');
     });
   });
 
@@ -137,7 +138,7 @@ describe('Milestone 3A: Packaging Configuration and CI Automation', () => {
   describe('3. GitHub Actions Release Workflow', () => {
     it('exists and configures release triggers and permissions', () => {
       expect(fs.existsSync(releaseWorkflowPath)).toBe(true);
-      const content = fs.readFileSync(releaseWorkflowPath, 'utf-8');
+      const content = fs.readFileSync(releaseWorkflowPath, 'utf-8').replace(/\r\n/g, '\n');
 
       // Triggered on version tags
       expect(content).toContain("tags:\n      - 'v*.*.*'");
@@ -146,14 +147,14 @@ describe('Milestone 3A: Packaging Configuration and CI Automation', () => {
     });
 
     it('defines multi-platform runner matrix for Windows, macOS, and Linux', () => {
-      const content = fs.readFileSync(releaseWorkflowPath, 'utf-8');
+      const content = fs.readFileSync(releaseWorkflowPath, 'utf-8').replace(/\r\n/g, '\n');
       expect(content).toContain('windows-latest');
       expect(content).toContain('macos-latest');
       expect(content).toContain('ubuntu-latest');
     });
 
     it('executes full verification suite prior to packaging', () => {
-      const content = fs.readFileSync(releaseWorkflowPath, 'utf-8');
+      const content = fs.readFileSync(releaseWorkflowPath, 'utf-8').replace(/\r\n/g, '\n');
       expect(content).toContain('npm ci');
       expect(content).toContain('npm run lint');
       expect(content).toContain('npx tsc --noEmit');
@@ -164,7 +165,7 @@ describe('Milestone 3A: Packaging Configuration and CI Automation', () => {
     });
 
     it('ensures releases are only published on version tags', () => {
-      const content = fs.readFileSync(releaseWorkflowPath, 'utf-8');
+      const content = fs.readFileSync(releaseWorkflowPath, 'utf-8').replace(/\r\n/g, '\n');
       expect(content).toContain("if: startsWith(github.ref, 'refs/tags/v')");
       expect(content).toContain('softprops/action-gh-release');
     });
@@ -173,7 +174,7 @@ describe('Milestone 3A: Packaging Configuration and CI Automation', () => {
   describe('4. GitHub Actions CI Workflow', () => {
     it('runs verification and smoke test on pull requests and pushes', () => {
       expect(fs.existsSync(ciWorkflowPath)).toBe(true);
-      const content = fs.readFileSync(ciWorkflowPath, 'utf-8');
+      const content = fs.readFileSync(ciWorkflowPath, 'utf-8').replace(/\r\n/g, '\n');
       expect(content).toContain('npm run lint');
       expect(content).toContain('npx tsc --noEmit');
       expect(content).toContain('npm test');
