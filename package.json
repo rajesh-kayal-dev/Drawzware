@@ -14,7 +14,7 @@
     "test:unit": "vitest run",
     "build:electron": "tsc -p electron/tsconfig.json",
     "start:electron": "electron .",
-    "test:smoke": "electron . --smoke-test",
+    "test:smoke": "electron . --smoke-test --no-sandbox",
     "desktop": "next build && npm run build:electron && electron .",
     "dist:dir": "npm run build && npm run build:electron && electron-builder --dir",
     "dist": "npm run build && npm run build:electron && electron-builder",
