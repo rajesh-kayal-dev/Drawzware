@@ -9,6 +9,7 @@ import {
   Download,
   FileCode,
   FileJson,
+  Home,
   ImageIcon,
   Link as LinkIcon,
   Moon,
@@ -32,7 +33,7 @@ import { exportToMermaid } from '@/lib/mermaid';
 import { encodeCanvasToUrl } from '@/lib/share';
 import { downloadFile } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
-import { useIsNarrow } from '@/hooks/useMediaQuery';
+import { useIsNarrow, useMediaQuery } from '@/hooks/useMediaQuery';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { Button } from '@/components/ui/button';
 import { SimpleTooltip } from '@/components/ui/tooltip';
@@ -151,6 +152,9 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
   const ThemeIcon = theme === 'dark' ? Sun : Moon;
   const themeLabel = theme === 'dark' ? 'Light theme' : 'Dark theme';
 
+  // Detect PWA standalone mode — hide the Home button when running as installed PWA
+  const isPwa = useMediaQuery('(display-mode: standalone)');
+
   const handleExportPng = async () => {
     try {
       await exportToPng(exportFilename(projectName));
@@ -212,9 +216,20 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
 
   return (
     <header className="flex h-[52px] shrink-0 items-center gap-2 bg-bg px-4">
+      {/* Home button — links back to the landing page; hidden in PWA standalone mode */}
+      {!isPwa && (
+        <SimpleTooltip label="Home">
+          <Button variant="icon" asChild>
+            <Link href="/" aria-label="Go to homepage">
+              <Home className="size-4" />
+            </Link>
+          </Button>
+        </SimpleTooltip>
+      )}
+
       <SimpleTooltip label="Projects">
         <Button variant="icon" asChild>
-          <Link href="/" aria-label="Back to projects">
+          <Link href="/app" aria-label="Back to projects">
             <ArrowLeft className="size-4" />
           </Link>
         </Button>
@@ -224,7 +239,7 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
         {!narrow && (
           <>
             <Link
-              href="/"
+              href="/app"
               className="rounded-[6px] text-[13.5px] whitespace-nowrap text-ink-3 transition-colors duration-[120ms] hover:text-ink"
             >
               Projects

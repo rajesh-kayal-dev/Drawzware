@@ -2,9 +2,9 @@
   "name": "Drawzware",
   "short_name": "Drawzware",
   "description": "Visual system architecture and diagram design tool. Drag-and-drop cloud components, sequence diagrams, ER diagrams, and steps. 100% in-browser.",
-  "start_url": "/",
+  "start_url": "/app",
   "scope": "/",
-  "id": "/",
+  "id": "/app",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0a0c10",
@@ -64,7 +64,7 @@
       "name": "Projects Dashboard",
       "short_name": "Projects",
       "description": "View and manage system design projects",
-      "url": "/",
+      "url": "/app",
       "icons": [
         {
           "src": "/icons/icon-192x192.png",

@@ -46,3 +46,6 @@ next-env.d.ts
 
 # test tools
 .playwright-mcp/
+
+# downloaded templates
+drawzware landing page website/

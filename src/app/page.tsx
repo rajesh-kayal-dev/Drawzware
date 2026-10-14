@@ -1,24 +1,46 @@
 'use client';
 
-import { Header } from '@/components/layout/Header';
-import { ImportDropZone } from '@/components/project/ImportDropZone';
-import { MigrationBanner } from '@/components/project/MigrationBanner';
-import { ProjectList } from '@/components/project/ProjectList';
-import { useProjectImport } from '@/components/project/useProjectImport';
-import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useState } from 'react';
+import { LandingNavbar } from '@/components/landing/LandingNavbar';
+import { LandingHeroSection } from '@/components/landing/LandingHeroSection';
+import { LandingFeatureHighlights } from '@/components/landing/LandingFeatureHighlights';
+import { LandingWhyDrawzware } from '@/components/landing/LandingWhyDrawzware';
+import { LandingWorkflowIntegrations } from '@/components/landing/LandingWorkflowIntegrations';
+import { LandingExportSection } from '@/components/landing/LandingExportSection';
+import { LandingDarkValueSection } from '@/components/landing/LandingDarkValueSection';
+import { LandingHowItWorks } from '@/components/landing/LandingHowItWorks';
+import { LandingFinalCTA } from '@/components/landing/LandingFinalCTA';
+import { LandingFooter } from '@/components/landing/LandingFooter';
+import { LandingDesktopAppModal } from '@/components/landing/LandingDesktopAppModal';
 
-export default function DashboardPage() {
-  useDocumentTitle('Drawzware');
-  const { handleFiles, importJson, importDockerCompose } = useProjectImport();
+/**
+ * Public landing page at /
+ * The actual canvas application lives at /app
+ */
+export default function LandingPage() {
+  const [isDesktopAppModalOpen, setIsDesktopAppModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-bg dot-grid [background-size:20px_20px] bg-fixed text-ink">
-      <Header onImportJson={importJson} onImportDockerCompose={importDockerCompose} />
-      <main className="mx-auto w-full max-w-[1400px] px-6 sm:px-8 pt-8 pb-20">
-        <MigrationBanner />
-        <ProjectList />
+    <div className="lp-root min-h-screen bg-[#faf8f5] text-neutral-900 flex flex-col font-sans overflow-x-hidden w-full">
+      <LandingNavbar onOpenDesktopApp={() => setIsDesktopAppModalOpen(true)} />
+
+      <main className="flex-1 w-full">
+        <LandingHeroSection onOpenDesktopApp={() => setIsDesktopAppModalOpen(true)} />
+        <LandingFeatureHighlights />
+        <LandingWhyDrawzware />
+        <LandingWorkflowIntegrations />
+        <LandingExportSection />
+        <LandingDarkValueSection />
+        <LandingHowItWorks />
+        <LandingFinalCTA />
       </main>
-      <ImportDropZone onFiles={handleFiles} />
+
+      <LandingFooter />
+
+      <LandingDesktopAppModal
+        isOpen={isDesktopAppModalOpen}
+        onClose={() => setIsDesktopAppModalOpen(false)}
+      />
     </div>
   );
 }
