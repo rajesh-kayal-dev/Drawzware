@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
-import { createApp } from '../apps/api/src/app';
-import { WorkspaceModel } from '../apps/api/src/models/workspace.model';
-import { WorkspaceMemberModel } from '../apps/api/src/models/workspace-member.model';
-import { WorkspaceInvitationModel } from '../apps/api/src/models/workspace-invitation.model';
-import { DiagramModel } from '../apps/api/src/models/diagram.model';
-import { DiagramSnapshotModel } from '../apps/api/src/models/diagram-snapshot.model';
+import { createApp } from '../src/app';
+import { WorkspaceModel } from '../src/models/workspace.model';
+import { WorkspaceMemberModel } from '../src/models/workspace-member.model';
+import { WorkspaceInvitationModel } from '../src/models/workspace-invitation.model';
+import { DiagramModel } from '../src/models/diagram.model';
+import { DiagramSnapshotModel } from '../src/models/diagram-snapshot.model';
 
 describe('Drawzware API (Refactored Mongoose + Express Architecture)', () => {
   let app: any;
