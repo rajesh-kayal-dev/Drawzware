@@ -1,9 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const srcDir = path.resolve('apps/web/out');
-const destDir = path.resolve('out');
+// Sync static export out directory
+const webOut = path.resolve('apps/web/out');
+const rootOut = path.resolve('out');
+if (fs.existsSync(webOut)) {
+  fs.cpSync(webOut, rootOut, { recursive: true, force: true });
+}
 
-if (fs.existsSync(srcDir)) {
-  fs.cpSync(srcDir, destDir, { recursive: true, force: true });
+// Sync .next build directory to root for Vercel deployment detection
+const webNext = path.resolve('apps/web/.next');
+const rootNext = path.resolve('.next');
+if (fs.existsSync(webNext)) {
+  fs.cpSync(webNext, rootNext, { recursive: true, force: true });
 }
