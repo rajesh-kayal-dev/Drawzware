@@ -12,7 +12,6 @@
     "@drawzware/contracts": "*",
     "@drawzware/domain": "*",
     "@drawzware/canvas-core": "*",
-    "@drawzware/storage": "*",
-    "@drawzware/ui": "*"
+    "@drawzware/storage": "*"
   }
 }

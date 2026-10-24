@@ -19,7 +19,6 @@ const PRECACHE_ASSETS = [
   '/icons/apple-touch-icon.png',
   '/favicon.ico',
   '/favicon.png',
-  '/fevicon.png',
 ];
 
 // Install: Cache critical shell assets
