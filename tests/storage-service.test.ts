@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { StorageService, StorageError } from '../electron/services/storage.service';
+import { StorageService, StorageError } from '../apps/desktop/services/storage.service';
 import { sampleArchitectureProject } from './fixtures/projects';
-import type { Project } from '../electron/types/document';
+import type { Project } from '../apps/desktop/types/document';
 
 describe('StorageService (Electron Main-Process Persistence)', () => {
   let tempDir: string;

@@ -13,9 +13,12 @@
 # testing
 /coverage
 
-# next.js
+# next.js & workspace builds
 /.next/
 /out/
+apps/**/.next/
+apps/**/out/
+packages/**/dist/
 
 # production
 /build/*
@@ -24,11 +27,15 @@
 /dist/
 /dist-electron/
 
-# misc
+# misc & OS
 .DS_Store
+Thumbs.db
+[eE]hthumbs.db
+desktop.ini
 *.pem
 
-# debug
+# debug & logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -36,6 +43,7 @@ yarn-error.log*
 
 # env files
 .env*
+!/apps/*/.env.example
 !.env.example
 
 # vercel
@@ -44,10 +52,21 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+apps/**/next-env.d.ts
 
 # cloudflare
 .wrangler/
 .dev.vars*
 
-# test tools
+# test tools & ide
 .playwright-mcp/
+.vscode/
+.idea/
+
+# scratch & agent tooling
+/scratch/
+.agents/agents/
+.agents/skills/
+.agents/workflows/
+.agents/ecc-install-state.json
+skills-lock.json

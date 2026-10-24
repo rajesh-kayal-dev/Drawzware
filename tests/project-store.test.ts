@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useProjectStore } from '../src/stores/useProjectStore';
+import { useProjectStore } from '@/stores/useProjectStore';
 import {
   setStorageAdapterForTesting,
   DesktopStorageAdapter,
   WebStorageAdapter,
   getStorageAdapter,
-} from '../src/lib/adapters';
-import type { DesktopStorageApi } from '../src/types/desktop';
-import type { Project } from '../src/types';
+} from '@drawzware/storage';
+import type { DesktopStorageApi } from '@/types/desktop';
+import type { Project } from '@drawzware/contracts';
 import { sampleArchitectureProject } from './fixtures/projects';
-import { createFromTemplate } from '../src/components/project/project-io';
-import { TEMPLATES } from '../src/lib/templates';
+import { createFromTemplate } from '@/components/project/project-io';
+import { TEMPLATES } from '@/lib/templates';
 
 // Mock localStorage for WebStorageAdapter testing
 const mockLocalStorageStore = new Map<string, string>();

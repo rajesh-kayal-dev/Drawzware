@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { WindowCloseManager } from '../electron/services/window-close-manager';
-import { IPC_CHANNELS, type WindowCloseResponsePayload } from '../electron/types/ipc';
+import { WindowCloseManager } from '../apps/desktop/services/window-close-manager';
+import { IPC_CHANNELS, type WindowCloseResponsePayload } from '../apps/desktop/types/ipc';
 
 // Mock Electron modules
 vi.mock('electron', () => {

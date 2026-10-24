@@ -8,7 +8,7 @@ import {
   ProjectSchema,
   LibraryIndexSchema,
   LibraryProjectMetadataSchema,
-} from '../electron/types/document';
+} from '@drawzware/contracts';
 import {
   sampleArchitectureProject,
   sampleLegacyBackupBundle,

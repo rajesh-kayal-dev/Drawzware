@@ -9,12 +9,26 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    "apps/**/.next/**",
     "out/**",
+    "apps/**/out/**",
     "build/**",
+    "dist/**",
+    "packages/**/dist/**",
     "dist-electron/**",
+    "scratch/**",
     "next-env.d.ts",
+    "apps/**/next-env.d.ts",
     ".playwright-mcp/**",
+    ".agents/**",
   ]),
+  {
+    settings: {
+      next: {
+        rootDir: "apps/web/",
+      },
+    },
+  },
 ]);
 
 export default eslintConfig;

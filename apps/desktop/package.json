@@ -1,0 +1,11 @@
+{
+  "name": "@drawzware/desktop",
+  "version": "0.1.0",
+  "description": "Electron desktop shell for Drawzware",
+  "main": "main.ts",
+  "private": true,
+  "dependencies": {
+    "@drawzware/contracts": "*",
+    "@drawzware/storage": "*"
+  }
+}

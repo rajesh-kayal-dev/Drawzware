@@ -9,8 +9,8 @@ import {
   handleReadProject,
   handleSaveProject,
   handleDeleteProject,
-} from '../electron/ipc/library-handlers';
-import { StorageService } from '../electron/services/storage.service';
+} from '../apps/desktop/ipc/library-handlers';
+import { StorageService } from '../apps/desktop/services/storage.service';
 import { sampleArchitectureProject } from './fixtures/projects';
 
 describe('Main-Process IPC Handlers & Origin Security', () => {

@@ -1,0 +1,12 @@
+{
+  "name": "@drawzware/domain",
+  "version": "0.1.0",
+  "description": "Pure domain entities, validation, and migration logic for Drawzware",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "private": true,
+  "dependencies": {
+    "@drawzware/contracts": "*",
+    "lz-string": "^1.5.0"
+  }
+}
