@@ -45,3 +45,36 @@ export type {
   BackupImportSummary,
   FileBackupImportResult,
 } from './ipc';
+
+export {
+  WorkspaceRoleSchema,
+  WORKSPACE_ROLE_WEIGHTS,
+  hasMinimumRole,
+  WorkspaceSchema,
+  CreateWorkspaceInputSchema,
+  WorkspaceMemberSchema,
+  InvitationStatusSchema,
+  WorkspaceInvitationSchema,
+  CreateInvitationInputSchema,
+  DiagramTypeSchema,
+  DiagramMetadataSchema,
+  CreateDiagramInputSchema,
+  UpdateDiagramInputSchema,
+  ImportDiagramInputSchema,
+} from './collaboration';
+
+export type {
+  WorkspaceRole,
+  Workspace,
+  CreateWorkspaceInput,
+  WorkspaceMember,
+  InvitationStatus,
+  WorkspaceInvitation,
+  CreateInvitationInput,
+  DiagramType,
+  DiagramMetadata,
+  CreateDiagramInput,
+  UpdateDiagramInput,
+  ImportDiagramInput,
+  AuthenticatedUser,
+} from './collaboration';

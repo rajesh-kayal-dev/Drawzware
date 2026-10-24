@@ -14,6 +14,7 @@ export default defineConfig({
       '@drawzware/canvas-core': path.resolve(__dirname, './packages/canvas-core/src'),
       '@drawzware/storage': path.resolve(__dirname, './packages/storage/src'),
       '@drawzware/ui': path.resolve(__dirname, './packages/ui/src'),
+      '@drawzware/api': path.resolve(__dirname, './apps/api/src'),
     },
   },
 });

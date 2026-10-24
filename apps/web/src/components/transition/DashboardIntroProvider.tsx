@@ -29,9 +29,12 @@ export function useDashboardIntro(): DashboardIntroContextValue {
 
 export function DashboardIntroProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  // Initialize to true on cold start so the loading screen renders on the very first frame without dashboard flash
+  // Only run the intro transition overlay when inside the desktop (Electron) app.
+  // In the web environment, users do not need or want the loading screen intro.
   const [isIntroActive, setIsIntroActive] = useState(() => {
     if (typeof window === 'undefined') return false;
+    const isDesktop = Boolean(window.desktopApi?.isDesktop);
+    if (!isDesktop) return false;
     return !hasSeenDashboardIntro();
   });
   const [isDashboardReady, setIsDashboardReady] = useState(false);
@@ -49,8 +52,9 @@ export function DashboardIntroProvider({ children }: { children: React.ReactNode
   }, []);
 
   const startIntroTransition = useCallback((targetUrl = '/app') => {
-    // If already seen in this session, navigate immediately without showing intro
-    if (hasSeenDashboardIntro()) {
+    const isDesktop = typeof window !== 'undefined' && Boolean(window.desktopApi?.isDesktop);
+    // If not desktop or already seen in this session, navigate immediately without showing intro
+    if (!isDesktop || hasSeenDashboardIntro()) {
       if (typeof window !== 'undefined' && window.location.pathname !== targetUrl && window.location.pathname !== `${targetUrl}/`) {
         router.push(targetUrl);
       }
