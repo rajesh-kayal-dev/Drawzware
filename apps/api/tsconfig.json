@@ -9,7 +9,6 @@
     "skipLibCheck": true,
     "noEmit": false,
     "outDir": "./dist",
-    "rootDir": "./src",
     "paths": {
       "@drawzware/contracts": ["../../packages/contracts/src/index.ts"],
       "@drawzware/domain": ["../../packages/domain/src/index.ts"]

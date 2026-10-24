@@ -1,16 +1,11 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { config } from './config';
-import { createRouter } from './routes';
-import { WorkspaceController } from './controllers/workspace.controller';
-import { DiagramController } from './controllers/diagram.controller';
+import { requireAuth } from './middleware/auth';
+import { workspaceRoutes, acceptInvitationHandler } from './routes/workspace.routes';
+import { diagramRoutes } from './routes/diagram.routes';
 
-export interface AppOptions {
-  workspaceController?: WorkspaceController;
-  diagramController?: DiagramController;
-}
-
-export function createApp(options?: AppOptions): Express {
+export function createApp(): Express {
   const app = express();
 
   // Middleware
@@ -22,9 +17,22 @@ export function createApp(options?: AppOptions): Express {
   );
   app.use(express.json({ limit: '10mb' }));
 
-  // API router
-  const router = createRouter(options?.workspaceController, options?.diagramController);
-  app.use('/api', router);
+  // Health check
+  app.get('/api/health', (_req: Request, res: Response) => {
+    res.json({ status: 'ok', service: 'drawzware-api', timestamp: new Date().toISOString() });
+  });
+
+  // Current authenticated user info
+  app.get('/api/me', requireAuth, (req: Request, res: Response) => {
+    res.json({ user: req.user });
+  });
+
+  // Accept Invitation route
+  app.post('/api/invitations/:invitationId/accept', requireAuth, acceptInvitationHandler);
+
+  // Modular resource routes
+  app.use('/api/workspaces', workspaceRoutes);
+  app.use('/api', diagramRoutes);
 
   // 404 Handler
   app.use((_req: Request, res: Response) => {

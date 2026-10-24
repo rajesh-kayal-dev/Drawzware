@@ -1,21 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { WorkspaceRole, hasMinimumRole } from '@drawzware/contracts';
-import { WorkspaceRepository } from '../repositories/workspace.repository';
+import { findWorkspaceMember } from '../services/workspace.service';
 
 export interface WorkspaceAuthRequest extends Request {
   workspaceRole?: WorkspaceRole;
 }
 
-/**
- * Higher-order middleware factory that checks the user's role in the target workspace.
- * Requires `requireAuth` to have run first.
- */
-export function requireWorkspaceRole(
-  minRole: WorkspaceRole,
-  workspaceRepo?: WorkspaceRepository | (() => WorkspaceRepository)
-) {
+export function requireWorkspaceRole(minRole: WorkspaceRole) {
   return async (req: WorkspaceAuthRequest, res: Response, next: NextFunction): Promise<void> => {
-    const repo = typeof workspaceRepo === 'function' ? workspaceRepo() : (workspaceRepo || new WorkspaceRepository());
     const user = req.user;
     if (!user) {
       res.status(401).json({
@@ -35,7 +27,7 @@ export function requireWorkspaceRole(
     }
 
     try {
-      const member = await repo.findMember(workspaceId, user.id);
+      const member = await findWorkspaceMember(workspaceId, user.id);
       if (!member) {
         res.status(403).json({
           error: 'FORBIDDEN',

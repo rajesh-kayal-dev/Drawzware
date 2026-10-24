@@ -1,210 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import { createApp } from '../apps/api/src/app';
-import { DatabasePool, QueryResult } from '../apps/api/src/db/interface';
-import { WorkspaceRepository } from '../apps/api/src/repositories/workspace.repository';
-import { DiagramRepository } from '../apps/api/src/repositories/diagram.repository';
-import { WorkspaceController } from '../apps/api/src/controllers/workspace.controller';
-import { DiagramController } from '../apps/api/src/controllers/diagram.controller';
-import { CURRENT_DOCUMENT_SCHEMA_VERSION, DRAWZ_FILE_TYPE } from '@drawzware/contracts';
+import { WorkspaceModel } from '../apps/api/src/models/workspace.model';
+import { WorkspaceMemberModel } from '../apps/api/src/models/workspace-member.model';
+import { WorkspaceInvitationModel } from '../apps/api/src/models/workspace-invitation.model';
+import { DiagramModel } from '../apps/api/src/models/diagram.model';
+import { DiagramSnapshotModel } from '../apps/api/src/models/diagram-snapshot.model';
 
-/**
- * Mock database pool storing data in memory for deterministic unit and API tests.
- */
-class InMemoryDatabasePool implements DatabasePool {
-  workspaces: Map<string, any> = new Map();
-  members: Map<string, any> = new Map();
-  invitations: Map<string, any> = new Map();
-  diagrams: Map<string, any> = new Map();
-  snapshots: Map<string, any> = new Map();
-
-  async query<T = unknown>(text: string, params: unknown[] = []): Promise<QueryResult<T>> {
-    const cleanSql = text.replace(/\s+/g, ' ').trim();
-
-    // 1. INSERT INTO workspaces
-    if (cleanSql.startsWith('INSERT INTO workspaces')) {
-      const id = `ws-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const name = params[0] as string;
-      const owner_id = params[1] as string;
-      const created_at = new Date().toISOString();
-      const updated_at = created_at;
-      const record = { id, name, owner_id, created_at, updated_at };
-      this.workspaces.set(id, record);
-      return { rows: [record as unknown as T] };
-    }
-
-    // 2. INSERT INTO workspace_members
-    if (cleanSql.startsWith('INSERT INTO workspace_members')) {
-      const workspace_id = params[0] as string;
-      const user_id = params[1] as string;
-      // In createWorkspace: VALUES ($1, $2, 'owner', $3) -> role is 'owner', params[2] is user_email
-      // In acceptInvitation: VALUES ($1, $2, $3, $4) -> params[2] is role, params[3] is user_email
-      let role = 'owner';
-      let user_email = params[2] as string;
-      if (params.length >= 4) {
-        role = params[2] as string;
-        user_email = params[3] as string;
-      }
-      const created_at = new Date().toISOString();
-      const key = `${workspace_id}:${user_id}`;
-      const record = { workspace_id, user_id, role, user_email, created_at };
-      this.members.set(key, record);
-      return { rows: [record as unknown as T] };
-    }
-
-    // 3. SELECT FROM workspace_members (single)
-    if (cleanSql.includes('FROM workspace_members WHERE workspace_id = $1 AND user_id = $2')) {
-      const key = `${params[0]}:${params[1]}`;
-      const record = this.members.get(key);
-      return { rows: record ? [record as unknown as T] : [] };
-    }
-
-    // 4. SELECT FROM workspace_members (list)
-    if (cleanSql.includes('FROM workspace_members WHERE workspace_id = $1')) {
-      const wsId = params[0];
-      const rows = Array.from(this.members.values()).filter((m) => m.workspace_id === wsId);
-      return { rows: rows as unknown as T[] };
-    }
-
-    // 5. SELECT id, name, owner_id FROM workspaces WHERE id = $1
-    if (cleanSql.startsWith('SELECT id, name, owner_id, created_at, updated_at FROM workspaces WHERE id = $1')) {
-      const id = params[0] as string;
-      const ws = this.workspaces.get(id);
-      return { rows: ws ? [ws as unknown as T] : [] };
-    }
-
-    // 6. listWorkspacesForUser
-    if (cleanSql.includes('FROM workspaces w INNER JOIN workspace_members m ON w.id = m.workspace_id WHERE m.user_id = $1')) {
-      const userId = params[0] as string;
-      const userMemberships = Array.from(this.members.values()).filter((m) => m.user_id === userId);
-      const rows = userMemberships.map((m) => {
-        const ws = this.workspaces.get(m.workspace_id);
-        return {
-          id: ws.id,
-          name: ws.name,
-          owner_id: ws.owner_id,
-          created_at: ws.created_at,
-          updated_at: ws.updated_at,
-          role: m.role,
-        };
-      });
-      return { rows: rows as unknown as T[] };
-    }
-
-    // 7. INSERT INTO workspace_invitations
-    if (cleanSql.startsWith('INSERT INTO workspace_invitations')) {
-      const id = `inv-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const workspace_id = params[0] as string;
-      const email = params[1] as string;
-      const role = params[2] as string;
-      const invited_by = params[3] as string;
-      const status = 'pending';
-      const created_at = new Date().toISOString();
-      const expires_at = new Date(Date.now() + 7 * 86400000).toISOString();
-      const record = { id, workspace_id, email, role, invited_by, status, created_at, expires_at };
-      this.invitations.set(id, record);
-      return { rows: [record as unknown as T] };
-    }
-
-    // 8. UPDATE workspace_invitations SET status = 'expired'
-    if (cleanSql.startsWith('UPDATE workspace_invitations SET status = \'expired\' WHERE workspace_id = $1 AND email = $2')) {
-      for (const [id, inv] of this.invitations.entries()) {
-        if (inv.workspace_id === params[0] && inv.email === params[1] && inv.status === 'pending') {
-          inv.status = 'expired';
-          this.invitations.set(id, inv);
-        }
-      }
-      return { rows: [] };
-    }
-
-    // 9. SELECT FROM workspace_invitations WHERE id = $1
-    if (cleanSql.includes('FROM workspace_invitations WHERE id = $1')) {
-      const inv = this.invitations.get(params[0] as string);
-      return { rows: inv ? [inv as unknown as T] : [] };
-    }
-
-    // 10. UPDATE workspace_invitations SET status = 'accepted'
-    if (cleanSql.startsWith('UPDATE workspace_invitations SET status = \'accepted\'')) {
-      const id = params[0] as string;
-      const inv = this.invitations.get(id);
-      if (inv) {
-        inv.status = 'accepted';
-        inv.accepted_at = new Date().toISOString();
-        this.invitations.set(id, inv);
-      }
-      return { rows: [] };
-    }
-
-    // 11. INSERT INTO diagrams
-    if (cleanSql.startsWith('INSERT INTO diagrams')) {
-      const id = `diag-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const workspace_id = params[0] as string;
-      const title = params[1] as string;
-      const diagram_type = params[2] as string;
-      const created_by = params[3] as string;
-      const created_at = new Date().toISOString();
-      const updated_at = created_at;
-      const record = { id, workspace_id, title, diagram_type, created_by, created_at, updated_at };
-      this.diagrams.set(id, record);
-      return { rows: [record as unknown as T] };
-    }
-
-    // 12. INSERT INTO diagram_snapshots
-    if (cleanSql.startsWith('INSERT INTO diagram_snapshots')) {
-      const diagram_id = params[0] as string;
-      const state = params[1];
-      const version = 1;
-      const updated_at = new Date().toISOString();
-      const record = { diagram_id, state, version, updated_at };
-      this.snapshots.set(diagram_id, record);
-      return { rows: [record as unknown as T] };
-    }
-
-    // 13. SELECT FROM diagrams WHERE id = $1
-    if (cleanSql.includes('FROM diagrams WHERE id = $1')) {
-      const diag = this.diagrams.get(params[0] as string);
-      return { rows: diag ? [diag as unknown as T] : [] };
-    }
-
-    // 14. SELECT FROM diagrams WHERE workspace_id = $1
-    if (cleanSql.includes('FROM diagrams WHERE workspace_id = $1')) {
-      const wsId = params[0];
-      const rows = Array.from(this.diagrams.values()).filter((d) => d.workspace_id === wsId);
-      return { rows: rows as unknown as T[] };
-    }
-
-    // 15. UPDATE diagrams
-    if (cleanSql.startsWith('UPDATE diagrams SET')) {
-      const id = params[0] as string;
-      const diag = this.diagrams.get(id);
-      if (diag) {
-        if (params.length > 2) {
-          diag.title = params[1] as string;
-          diag.diagram_type = params[2] as string;
-        } else if (params.length === 2) {
-          diag.title = params[1] as string;
-        }
-        diag.updated_at = new Date().toISOString();
-        this.diagrams.set(id, diag);
-        return { rows: [diag as unknown as T] };
-      }
-      return { rows: [] };
-    }
-
-    // 16. SELECT FROM diagram_snapshots
-    if (cleanSql.includes('FROM diagram_snapshots WHERE diagram_id = $1')) {
-      const snap = this.snapshots.get(params[0] as string);
-      return { rows: snap ? [snap as unknown as T] : [] };
-    }
-
-    return { rows: [] };
-  }
-}
-
-describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
-  let db: InMemoryDatabasePool;
+describe('Drawzware API (Refactored Mongoose + Express Architecture)', () => {
   let app: any;
+
+  // In-memory collections for mocking Mongoose operations
+  const workspaces = new Map<string, any>();
+  const members = new Map<string, any>();
+  const invitations = new Map<string, any>();
+  const diagrams = new Map<string, any>();
+  const snapshots = new Map<string, any>();
 
   const userOwner = { id: 'usr-owner-1', email: 'owner@drawzware.com' };
   const userEditor = { id: 'usr-editor-2', email: 'editor@drawzware.com' };
@@ -221,12 +33,192 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
   const tokenStranger = generateToken(userStranger);
 
   beforeEach(() => {
-    db = new InMemoryDatabasePool();
-    const wsRepo = new WorkspaceRepository(db);
-    const diagRepo = new DiagramRepository(db);
-    const wsController = new WorkspaceController(wsRepo);
-    const diagController = new DiagramController(diagRepo, wsRepo);
-    app = createApp({ workspaceController: wsController, diagramController: diagController });
+    workspaces.clear();
+    members.clear();
+    invitations.clear();
+    diagrams.clear();
+    snapshots.clear();
+
+    // 1. Mock WorkspaceModel
+    vi.spyOn(WorkspaceModel, 'create').mockImplementation(async (data: any) => {
+      const _id = data._id || `ws-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const now = new Date();
+      const doc = {
+        _id,
+        name: data.name,
+        ownerId: data.ownerId,
+        createdAt: now,
+        updatedAt: now,
+      };
+      workspaces.set(_id, doc);
+      return doc as any;
+    });
+
+    vi.spyOn(WorkspaceModel, 'findById').mockImplementation((async (id: string) => {
+      return workspaces.get(id) || null;
+    }) as any);
+
+    vi.spyOn(WorkspaceModel, 'find').mockImplementation(((filter?: any) => {
+      let list = Array.from(workspaces.values());
+      if (filter?._id?.$in) {
+        const set = new Set(filter._id.$in);
+        list = list.filter((w) => set.has(w._id));
+      }
+      return {
+        sort: (_s: any) => Promise.resolve(list),
+      } as any;
+    }) as any);
+
+    // 2. Mock WorkspaceMemberModel
+    vi.spyOn(WorkspaceMemberModel, 'create').mockImplementation(async (data: any) => {
+      const now = new Date();
+      const doc = {
+        workspaceId: data.workspaceId,
+        userId: data.userId,
+        role: data.role,
+        userEmail: data.userEmail,
+        createdAt: now,
+        updatedAt: now,
+      };
+      const key = `${data.workspaceId}:${data.userId}`;
+      members.set(key, doc);
+      return doc as any;
+    });
+
+    vi.spyOn(WorkspaceMemberModel, 'findOne').mockImplementation((async (filter: any) => {
+      const key = `${filter.workspaceId}:${filter.userId}`;
+      return members.get(key) || null;
+    }) as any);
+
+    vi.spyOn(WorkspaceMemberModel, 'find').mockImplementation(((filter: any) => {
+      const list = Array.from(members.values()).filter((m) => {
+        if (filter.workspaceId && m.workspaceId !== filter.workspaceId) return false;
+        if (filter.userId && m.userId !== filter.userId) return false;
+        return true;
+      });
+      const promise: any = Promise.resolve(list);
+      promise.sort = (_s: any) => Promise.resolve(list);
+      return promise;
+    }) as any);
+
+    vi.spyOn(WorkspaceMemberModel, 'findOneAndUpdate').mockImplementation((async (filter: any, update: any) => {
+      const key = `${filter.workspaceId}:${filter.userId}`;
+      const now = new Date();
+      const existing = members.get(key);
+      const doc = {
+        workspaceId: filter.workspaceId,
+        userId: filter.userId,
+        role: update.$set?.role || existing?.role || 'editor',
+        userEmail: update.$set?.userEmail || existing?.userEmail,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+      };
+      members.set(key, doc);
+      return doc as any;
+    }) as any);
+
+    // 3. Mock WorkspaceInvitationModel
+    vi.spyOn(WorkspaceInvitationModel, 'create').mockImplementation(async (data: any) => {
+      const _id = `inv-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const now = new Date();
+      const doc: any = {
+        _id,
+        workspaceId: data.workspaceId,
+        email: data.email,
+        role: data.role,
+        invitedBy: data.invitedBy,
+        status: data.status || 'pending',
+        expiresAt: new Date(Date.now() + 7 * 86400000),
+        createdAt: now,
+        updatedAt: now,
+      };
+      doc.save = async function () {
+        invitations.set(_id, this);
+        return this;
+      };
+      invitations.set(_id, doc);
+      return doc as any;
+    });
+
+    vi.spyOn(WorkspaceInvitationModel, 'findById').mockImplementation((async (id: string) => {
+      return invitations.get(id) || null;
+    }) as any);
+
+    vi.spyOn(WorkspaceInvitationModel, 'updateMany').mockImplementation((async (filter: any, update: any) => {
+      for (const [id, inv] of invitations.entries()) {
+        if (
+          inv.workspaceId === filter.workspaceId &&
+          inv.email === filter.email &&
+          inv.status === filter.status
+        ) {
+          inv.status = update.$set?.status || inv.status;
+          invitations.set(id, inv);
+        }
+      }
+      return { modifiedCount: 1 } as any;
+    }) as any);
+
+    // 4. Mock DiagramModel
+    vi.spyOn(DiagramModel, 'create').mockImplementation(async (data: any) => {
+      const _id = `diag-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const now = new Date();
+      const doc = {
+        _id,
+        workspaceId: data.workspaceId,
+        title: data.title,
+        diagramType: data.diagramType,
+        createdBy: data.createdBy,
+        createdAt: now,
+        updatedAt: now,
+      };
+      diagrams.set(_id, doc);
+      return doc as any;
+    });
+
+    vi.spyOn(DiagramModel, 'findById').mockImplementation((async (id: string) => {
+      return diagrams.get(id) || null;
+    }) as any);
+
+    vi.spyOn(DiagramModel, 'find').mockImplementation(((filter: any) => {
+      const list = Array.from(diagrams.values()).filter((d) => d.workspaceId === filter.workspaceId);
+      return {
+        sort: (_s: any) => Promise.resolve(list),
+      } as any;
+    }) as any);
+
+    vi.spyOn(DiagramModel, 'findByIdAndUpdate').mockImplementation((async (id: string, update: any) => {
+      const doc = diagrams.get(id);
+      if (!doc) return null;
+      if (update.$set?.title !== undefined) doc.title = update.$set.title;
+      if (update.$set?.diagramType !== undefined) doc.diagramType = update.$set.diagramType;
+      doc.updatedAt = new Date();
+      diagrams.set(id, doc);
+      return doc as any;
+    }) as any);
+
+    // 5. Mock DiagramSnapshotModel
+    vi.spyOn(DiagramSnapshotModel, 'create').mockImplementation(async (data: any) => {
+      const now = new Date();
+      const doc = {
+        diagramId: data.diagramId,
+        state: data.state,
+        version: data.version || 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      snapshots.set(data.diagramId, doc);
+      return doc as any;
+    });
+
+    vi.spyOn(DiagramSnapshotModel, 'findOne').mockImplementation((async (filter: any) => {
+      return snapshots.get(filter.diagramId) || null;
+    }) as any);
+
+    app = createApp();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   // ===========================================================================
@@ -270,7 +262,6 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
       expect(res.body.name).toBe('Architecture Core');
       expect(res.body.ownerId).toBe(userOwner.id);
 
-      // Verify workspace listing returns workspace with role: 'owner'
       const listRes = await request(app)
         .get('/api/workspaces')
         .set('Authorization', `Bearer ${tokenOwner}`);
@@ -338,7 +329,6 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
 
       const wsId = createRes.body.id;
 
-      // Stranger attempt
       const strangerInv = await request(app)
         .post(`/api/workspaces/${wsId}/invitations`)
         .set('Authorization', `Bearer ${tokenStranger}`)
@@ -362,7 +352,6 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
 
       const invitationId = invRes.body.id;
 
-      // Accept invitation as userEditor
       const acceptRes = await request(app)
         .post(`/api/invitations/${invitationId}/accept`)
         .set('Authorization', `Bearer ${tokenEditor}`);
@@ -371,7 +360,6 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
       expect(acceptRes.body.member.role).toBe('editor');
       expect(acceptRes.body.member.userId).toBe(userEditor.id);
 
-      // Verify userEditor can now access workspace
       const wsRes = await request(app)
         .get(`/api/workspaces/${wsId}`)
         .set('Authorization', `Bearer ${tokenEditor}`);
@@ -394,7 +382,6 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
 
       const invitationId = invRes.body.id;
 
-      // Stranger tries to accept editor's invitation
       const acceptRes = await request(app)
         .post(`/api/invitations/${invitationId}/accept`)
         .set('Authorization', `Bearer ${tokenStranger}`);
@@ -409,14 +396,12 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
   // ===========================================================================
   describe('4. Diagram Metadata & Role Permissions', () => {
     it('allows editors to create diagram metadata in workspace', async () => {
-      // 1. Owner creates workspace
       const createRes = await request(app)
         .post('/api/workspaces')
         .set('Authorization', `Bearer ${tokenOwner}`)
         .send({ name: 'Backend Cluster' });
       const wsId = createRes.body.id;
 
-      // 2. Invite userEditor and accept
       const invRes = await request(app)
         .post(`/api/workspaces/${wsId}/invitations`)
         .set('Authorization', `Bearer ${tokenOwner}`)
@@ -425,7 +410,6 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
         .post(`/api/invitations/${invRes.body.id}/accept`)
         .set('Authorization', `Bearer ${tokenEditor}`);
 
-      // 3. userEditor creates diagram
       const diagRes = await request(app)
         .post(`/api/workspaces/${wsId}/diagrams`)
         .set('Authorization', `Bearer ${tokenEditor}`)
@@ -438,14 +422,12 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
     });
 
     it('strictly forbids viewers from creating diagrams or updating metadata', async () => {
-      // 1. Owner creates workspace
       const createRes = await request(app)
         .post('/api/workspaces')
         .set('Authorization', `Bearer ${tokenOwner}`)
         .send({ name: 'Viewer Tests' });
       const wsId = createRes.body.id;
 
-      // 2. Invite userViewer as 'viewer' and accept
       const invRes = await request(app)
         .post(`/api/workspaces/${wsId}/invitations`)
         .set('Authorization', `Bearer ${tokenOwner}`)
@@ -454,7 +436,6 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
         .post(`/api/invitations/${invRes.body.id}/accept`)
         .set('Authorization', `Bearer ${tokenViewer}`);
 
-      // 3. Viewer attempts to create diagram -> rejected
       const failCreate = await request(app)
         .post(`/api/workspaces/${wsId}/diagrams`)
         .set('Authorization', `Bearer ${tokenViewer}`)
@@ -463,20 +444,17 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
       expect(failCreate.status).toBe(403);
       expect(failCreate.body.error).toBe('INSUFFICIENT_PERMISSIONS');
 
-      // 4. Owner creates diagram
       const diagRes = await request(app)
         .post(`/api/workspaces/${wsId}/diagrams`)
         .set('Authorization', `Bearer ${tokenOwner}`)
         .send({ title: 'System Overview' });
       const diagId = diagRes.body.id;
 
-      // 5. Viewer can read diagram
       const readRes = await request(app)
         .get(`/api/diagrams/${diagId}`)
         .set('Authorization', `Bearer ${tokenViewer}`);
       expect(readRes.status).toBe(200);
 
-      // 6. Viewer attempts to update diagram -> rejected
       const failUpdate = await request(app)
         .patch(`/api/diagrams/${diagId}`)
         .set('Authorization', `Bearer ${tokenViewer}`)
@@ -524,7 +502,6 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
       expect(importRes.body.diagram.title).toBe('Imported Cloud Architecture');
       expect(importRes.body.diagram.workspaceId).toBe(wsId);
 
-      // Verify the initial diagram snapshot is stored and retrievable
       const diagId = importRes.body.diagram.id;
       const getRes = await request(app)
         .get(`/api/diagrams/${diagId}`)
@@ -544,7 +521,6 @@ describe('Drawzware Phase 1: Backend, Authentication & Workspaces API', () => {
       const wsId = createRes.body.id;
 
       const invalidProject = {
-        // Missing required fields like id, name, createdAt
         nodes: 'invalid',
       };
 
