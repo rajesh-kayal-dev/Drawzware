@@ -1,7 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules/
+**/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -18,6 +19,7 @@
 /out/
 apps/**/.next/
 apps/**/out/
+apps/**/dist/
 packages/**/dist/
 
 # production
@@ -70,3 +72,4 @@ apps/**/next-env.d.ts
 .agents/workflows/
 .agents/ecc-install-state.json
 skills-lock.json
+apps/api/authentication/

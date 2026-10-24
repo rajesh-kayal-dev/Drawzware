@@ -25,7 +25,9 @@
       "@drawzware/domain": ["./packages/domain/src/index.ts"],
       "@drawzware/canvas-core": ["./packages/canvas-core/src/index.ts"],
       "@drawzware/storage": ["./packages/storage/src/index.ts"],
-      "@drawzware/ui": ["./packages/ui/src/index.ts"]
+      "@drawzware/ui": ["./packages/ui/src/index.ts"],
+      "@drawzware/api": ["./apps/api/src/app.ts"],
+      "@drawzware/api/*": ["./apps/api/src/*"]
     }
   },
   "include": [
@@ -36,5 +38,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "dist-electron", "apps/desktop"]
+  "exclude": ["node_modules", "dist-electron", "apps/desktop", "apps/api/authentication", "scratch"]
 }

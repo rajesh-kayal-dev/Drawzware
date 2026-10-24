@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": false,
+    "outDir": "./dist",
+    "paths": {
+      "@drawzware/contracts": ["../../packages/contracts/src/index.ts"],
+      "@drawzware/domain": ["../../packages/domain/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}

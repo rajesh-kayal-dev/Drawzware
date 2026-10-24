@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "apps/**/out/**",
     "build/**",
     "dist/**",
+    "apps/**/dist/**",
     "packages/**/dist/**",
     "dist-electron/**",
     "scratch/**",
@@ -21,12 +22,21 @@ const eslintConfig = defineConfig([
     "apps/**/next-env.d.ts",
     ".playwright-mcp/**",
     ".agents/**",
+    "**/node_modules/**",
+    "apps/api/authentication/**",
   ]),
   {
     settings: {
       next: {
         rootDir: "apps/web/",
       },
+    },
+  },
+  {
+    files: ["tests/**/*.ts", "**/*.test.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
     },
   },
 ]);
