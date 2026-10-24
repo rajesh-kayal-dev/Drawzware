@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getCanvasCursorClass } from '@/components/canvas/canvas-helpers';
-import type { CanvasTool } from '@/types';
+import { getCanvasCursorClass } from '@/features/canvas/utils/canvas-helpers';
+import type { CanvasTool } from '@/features/canvas/types/canvas.types';
 
 describe('Drawzware Active Tool Cursors & Bottom Toolbar Theming', () => {
   describe('Active Tool Mouse Cursor Mapping', () => {

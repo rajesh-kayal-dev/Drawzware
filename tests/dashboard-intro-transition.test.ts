@@ -4,8 +4,8 @@ import {
   markDashboardIntroSeen,
   resetDashboardIntroForTesting,
   DASHBOARD_INTRO_STORAGE_KEY,
-} from '@/lib/intro-state';
-import { isDesktopEnvironment } from '@/hooks/useIsDesktop';
+} from '@/shared/utils/intro-state';
+import { isDesktopEnvironment } from '@/shared/hooks/useIsDesktop';
 
 // In-memory storage mocks for node test environment
 const mockSessionStore = new Map<string, string>();

@@ -91,8 +91,16 @@ drawzware/
 - **Prohibited Dependencies**: UI, Next.js, Electron, canvas layout engines.
 
 ### `apps/web`
-- **Responsibility**: User interface presentation, Next.js App Router pages, `@xyflow/react` node/edge views, presentation overlays, keyboard shortcuts, and Zustand view-state stores (`useCanvasStore`, `useProjectStore`, `useSettingsStore`).
-- **Build Mode**: Next.js static export (`output: "export"`, target: `./out`).
+- **Responsibility**: Feature-based Next.js App Router client with zero-backend offline capability (`output: "export"`, target: `./out`).
+- **Internal Structure**:
+  - `src/features/canvas/`: Canvas components, custom nodes, edges, registries, diagram templates, and `useCanvasStore`.
+  - `src/features/projects/`: Project CRUD, template instantiation, `.drawz` persistence, and `useProjectStore`.
+  - `src/features/import-export/`: Format converters (Docker Compose YAML, JSON, SVG/PNG, Mermaid) and export dialogs.
+  - `src/features/sharing/`: URL-based state sharing and hash encoding/decoding.
+  - `src/features/settings/`: Studio settings and `useSettingsStore`.
+  - `src/features/marketing/`: Marketing landing page components and hero sections.
+  - `src/features/pwa/`: Offline PWA install prompt and registration.
+  - `src/shared/`: Reusable Radix/Tailwind design system primitives (`ui/`), global layout (`Header.tsx`), and feedback components.
 - **Allowed Dependencies**: `contracts`, `domain`, `canvas-core`, `storage`, `ui`, `@xyflow/react`, `zustand`, `lucide-react`.
 - **Prohibited Dependencies**: `apps/desktop`, `apps/api`, Node.js native APIs (`fs`, `child_process`).
 

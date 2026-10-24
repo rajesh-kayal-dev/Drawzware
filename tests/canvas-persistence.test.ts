@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { useCanvasStore } from '@/stores/useCanvasStore';
-import { useProjectStore } from '@/stores/useProjectStore';
+import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
+import { useProjectStore } from '@/features/projects/stores/useProjectStore';
 import {
   setStorageAdapterForTesting,
   WebStorageAdapter,
 } from '@drawzware/storage';
 import type { DesktopStorageApi } from '@/types/desktop';
-import type { Project, SystemNode, SystemEdge, DiagramType } from '@/types';
+import type { Project } from '@/features/projects/types/project.types';
+import type { SystemNode, SystemEdge, DiagramType } from '@/features/canvas/types/canvas.types';
 import { sampleArchitectureProject } from './fixtures/projects';
-import { persistCanvasSnapshot, type CanvasSnapshot } from '@/hooks/useAutoSave';
+import { persistCanvasSnapshot, type CanvasSnapshot } from '@/features/projects/hooks/useAutoSave';
 
 // Mock localStorage for WebStorageAdapter testing
 const mockLocalStorageStore = new Map<string, string>();

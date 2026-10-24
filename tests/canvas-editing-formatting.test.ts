@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useCanvasStore } from '@/stores/useCanvasStore';
-import type { SystemNode, SystemNodeData } from '@/types';
-import { saveStepFormatting, getStepFormatting } from '@/lib/steps-registry';
+import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
+import type { SystemNode, SystemNodeData } from '@/features/canvas/types/canvas.types';
+import { saveStepFormatting, getStepFormatting } from '@/features/canvas/registries/steps-registry';
 
 const mockStore = new Map<string, string>();
 const mockLocalStorage = {

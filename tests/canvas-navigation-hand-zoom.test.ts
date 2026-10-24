@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useCanvasStore } from '@/stores/useCanvasStore';
-import { getCanvasCursorClass, getFitViewOptions } from '@/components/canvas/canvas-helpers';
-import type { CanvasTool } from '@/types';
+import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
+import { getCanvasCursorClass, getFitViewOptions } from '@/features/canvas/utils/canvas-helpers';
+import type { CanvasTool } from '@/features/canvas/types/canvas.types';
 
 describe('Canvas Navigation, Hand Tool, Zoom, and Toolbar Synchronization', () => {
   beforeEach(() => {

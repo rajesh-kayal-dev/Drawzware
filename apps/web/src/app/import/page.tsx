@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FolderInput, Unlink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { MinimapThumb } from '@/components/shared/MinimapThumb';
-import { useProjectStore } from '@/stores/useProjectStore';
-import { useSettingsStore } from '@/stores/useSettingsStore';
+import { Button } from '@/shared/components/ui/button';
+import { MinimapThumb } from '@/features/canvas/components/MinimapThumb';
+import { useProjectStore } from '@/features/projects/stores/useProjectStore';
+import { useSettingsStore } from '@/features/settings/stores/useSettingsStore';
 import { toast } from '@/stores/useToastStore';
-import { applyMigratedPreferences, decodeMigrationHash, type MigrationPayload } from '@/lib/migration';
-import { plural } from '@/lib/utils';
-import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { applyMigratedPreferences, decodeMigrationHash, type MigrationPayload } from '@/features/projects/utils/migration';
+import { plural } from '@/shared/utils/utils';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 
 type State = { kind: 'loading' } | { kind: 'invalid' } | { kind: 'ready'; payload: MigrationPayload };
 

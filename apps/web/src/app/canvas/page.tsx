@@ -3,10 +3,10 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Canvas } from '@/components/canvas/Canvas';
-import { Button } from '@/components/ui/button';
-import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useProjectStore } from '@/stores/useProjectStore';
+import { Canvas } from '@/features/canvas/components/Canvas';
+import { Button } from '@/shared/components/ui/button';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
+import { useProjectStore } from '@/features/projects/stores/useProjectStore';
 
 function CanvasRoute() {
   const id = useSearchParams().get('id');

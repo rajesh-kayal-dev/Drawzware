@@ -4,15 +4,15 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FolderInput, Unlink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { MinimapThumb } from '@/components/shared/MinimapThumb';
-import { countComponents, createProjectWithContent } from '@/components/project/project-io';
-import { decodeCanvasFromUrl } from '@/lib/share';
-import { formatBytes, plural } from '@/lib/utils';
-import { useProjectStore } from '@/stores/useProjectStore';
-import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { Button } from '@/shared/components/ui/button';
+import { MinimapThumb } from '@/features/canvas/components/MinimapThumb';
+import { countComponents, createProjectWithContent } from '@/features/projects/utils/project-templates';
+import { decodeCanvasFromUrl } from '@/features/sharing/utils/share';
+import { formatBytes, plural } from '@/shared/utils/utils';
+import { useProjectStore } from '@/features/projects/stores/useProjectStore';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 
-import { canvasPath } from '@/lib/routes';
+import { canvasPath } from '@/shared/utils/routes';
 function SharedCanvasInner() {
   const searchParams = useSearchParams();
   const router = useRouter();

@@ -1,4 +1,4 @@
-import { AppDataSchema, type AppData } from '@/types';
+import { AppDataSchema, type AppData } from '@/features/projects/types/project.types';
 
 const STORAGE_KEY = 'system-design-canvas';
 const CURRENT_VERSION = 1;

@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Header } from '@/components/layout/Header';
-import { ImportDropZone } from '@/components/project/ImportDropZone';
-import { MigrationBanner } from '@/components/project/MigrationBanner';
-import { ProjectList } from '@/components/project/ProjectList';
-import { useProjectImport } from '@/components/project/useProjectImport';
-import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { openDrawzProject, importProjectBackup, exportAllProjectsBackup } from '@/lib/file-operations';
-import { useProjectStore } from '@/stores/useProjectStore';
-import { useDashboardIntro } from '@/components/transition/DashboardIntroProvider';
+import { Header } from '@/shared/components/layout/Header';
+import { ImportDropZone } from '@/features/import-export/components/ImportDropZone';
+import { MigrationBanner } from '@/features/projects/components/MigrationBanner';
+import { ProjectList } from '@/features/projects/components/ProjectList';
+import { useProjectImport } from '@/features/projects/hooks/useProjectImport';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
+import { openDrawzProject, importProjectBackup, exportAllProjectsBackup } from '@/features/projects/utils/file-operations';
+import { useProjectStore } from '@/features/projects/stores/useProjectStore';
+import { useDashboardIntro } from '@/shared/components/feedback/DashboardIntroProvider';
 
 /** Dashboard at /app — the existing project list and canvas entry point. */
 export default function AppDashboardPage() {

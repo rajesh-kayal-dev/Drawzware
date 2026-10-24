@@ -36,6 +36,11 @@ Before creating any file, check [docs/engineering/AGENT_PLACEMENT_GUIDE.md](file
 - Pure algorithms and math $\rightarrow$ `packages/canvas-core`
 - Entity validations and migrations $\rightarrow$ `packages/domain`
 - DTOs and Zod schemas $\rightarrow$ `packages/contracts`
-- Visual React Flow nodes/edges $\rightarrow$ `apps/web/src/components/nodes/` or `edges/`
+- Visual React Flow nodes/edges $\rightarrow$ `apps/web/src/features/canvas/nodes/` or `edges/`
+- Canvas UI registries & presets $\rightarrow$ `apps/web/src/features/canvas/registries/`
+- Canvas diagram templates $\rightarrow$ `apps/web/src/features/canvas/templates/`
+- Project persistence & native .drawz $\rightarrow$ `apps/web/src/features/projects/`
+- Format conversion (Docker, Mermaid, SVG/PNG) $\rightarrow$ `apps/web/src/features/import-export/`
+- Marketing & landing page UI $\rightarrow$ `apps/web/src/features/marketing/`
 - OS file & window operations $\rightarrow$ `apps/desktop/src/`
-- Generic UI controls $\rightarrow$ `packages/ui/src/primitives/`
+- Generic UI controls $\rightarrow$ `apps/web/src/shared/components/ui/` or `packages/ui/src/primitives/`

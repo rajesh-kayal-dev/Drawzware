@@ -27,16 +27,22 @@ This guide instructs developers and AI coding agents on where to add new files, 
 | **REST / WebSocket DTO** | `packages/contracts/src/api/` | `packages/contracts/src/api/sync-dtos.ts` |
 | **Architecture Rule / Diagram Validator** | `packages/domain/src/validation/` | `packages/domain/src/validation/cycle-detector.ts` |
 | **Document Migration (e.g. v2 to v3)** | `packages/domain/src/migration/` | `packages/domain/src/migration/migrate-v2-to-v3.ts` |
-| **Auto-layout Algorithm or Geometry Math** | `packages/canvas-core/src/layout/` | `packages/canvas-core/src/layout/orthogonal-router.ts` |
+| **Pure Routing Algorithm / Geometry Math** | `packages/canvas-core/src/` | `packages/canvas-core/src/line-routing.ts` |
 | **Diagram Importer / Exporter** | `packages/canvas-core/src/exporters/`| `packages/canvas-core/src/exporters/terraform.ts` |
-| **Generic UI Primitive (Button, Dialog)** | `packages/ui/src/primitives/` | `packages/ui/src/primitives/slider.tsx` |
-| **Studio Design Tokens / Colors** | `packages/ui/src/tokens/` | `packages/ui/src/tokens/tokens.css` |
+| **Generic UI Primitive (Button, Dialog)** | `apps/web/src/shared/components/ui/` | `apps/web/src/shared/components/ui/button.tsx` |
+| **Studio Design Tokens / Colors** | `apps/web/src/styles/` | `apps/web/src/styles/tokens.css` |
 | **Storage Backend (e.g. OPFS, Cloud)** | `packages/storage/src/` | `packages/storage/src/browser/opfs-adapter.ts` |
-| **Visual Custom Node (React Flow)** | `apps/web/src/components/nodes/` | `apps/web/src/components/nodes/CloudServiceNode.tsx` |
-| **Visual Custom Edge (React Flow)** | `apps/web/src/components/edges/` | `apps/web/src/components/edges/AnimatedTrafficEdge.tsx` |
-| **Canvas Toolbars, Overlays, Menus** | `apps/web/src/components/canvas/`| `apps/web/src/components/canvas/MiniMapControls.tsx` |
-| **Next.js Page / Route** | `apps/web/src/app/` | `apps/web/src/app/export/page.tsx` |
-| **Canvas State (Zustand)** | `apps/web/src/stores/` | `apps/web/src/stores/useCanvasStore.ts` |
+| **Visual Custom Node (React Flow)** | `apps/web/src/features/canvas/nodes/` | `apps/web/src/features/canvas/nodes/StepNode.tsx` |
+| **Visual Custom Edge (React Flow)** | `apps/web/src/features/canvas/edges/` | `apps/web/src/features/canvas/edges/SystemEdge.tsx` |
+| **Canvas Toolbars, Overlays, Menus** | `apps/web/src/features/canvas/components/`| `apps/web/src/features/canvas/components/CanvasToolbar.tsx` |
+| **Canvas Catalog & Tech Registries** | `apps/web/src/features/canvas/registries/`| `apps/web/src/features/canvas/registries/cloud-registry.ts` |
+| **Diagram & Canvas Templates** | `apps/web/src/features/canvas/templates/`| `apps/web/src/features/canvas/templates/templates.ts` |
+| **Canvas State (Zustand)** | `apps/web/src/features/canvas/stores/` | `apps/web/src/features/canvas/stores/useCanvasStore.ts` |
+| **Project Persistence & Templates** | `apps/web/src/features/projects/` | `apps/web/src/features/projects/stores/useProjectStore.ts` |
+| **Native .drawz File Operations** | `apps/web/src/features/projects/utils/` | `apps/web/src/features/projects/utils/file-operations.ts` |
+| **Format Conversion (Docker/JSON/SVG/PNG)** | `apps/web/src/features/import-export/utils/` | `apps/web/src/features/import-export/utils/file-import.ts` |
+| **Marketing & Landing Page UI** | `apps/web/src/features/marketing/components/` | `apps/web/src/features/marketing/components/LandingHeroSection.tsx` |
+| **Next.js Page / Route** | `apps/web/src/app/` | `apps/web/src/app/canvas/page.tsx` |
 | **Electron Main Process Service** | `apps/desktop/src/services/` | `apps/desktop/src/services/tray-manager.ts` |
 | **Electron IPC Handler** | `apps/desktop/src/ipc/` | `apps/desktop/src/ipc/native-export-handlers.ts` |
 | **Database Schema or Migration** | `packages/database/src/schema/` | `packages/database/src/schema/projects.ts` |
