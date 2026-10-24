@@ -24,8 +24,9 @@ The Drawzware API is a lightweight, function-based Node.js, TypeScript, and Expr
 ```text
 apps/api/
 ├── src/
-│   ├── config/
-│   │   └── db.ts                 # MongoDB connection & disconnection
+│   ├── config/                   # Environment validation & DB connection
+│   │   ├── db.ts                 # MongoDB connection & disconnection
+│   │   └── env.ts                # Environment validation & configuration
 │   ├── models/                   # Mongoose schemas and models
 │   │   ├── user.model.ts
 │   │   ├── workspace.model.ts
@@ -51,14 +52,22 @@ apps/api/
 │   │   ├── auth.routes.ts
 │   │   ├── workspace.routes.ts
 │   │   └── diagram.routes.ts
-│   ├── middleware/
+│   ├── middleware/               # Express middleware functions
 │   │   ├── auth.ts               # Standard JWT token verification
 │   │   ├── workspace-auth.ts     # Role-based workspace authorization
 │   │   ├── validate.ts           # Zod schema request body validation
 │   │   ├── not-found.ts          # Centralized 404 handler
 │   │   └── error-handler.ts      # Centralized 500 error handler
-│   ├── types/
-│   │   └── express.d.ts          # Express Request declaration merging
+│   ├── validators/               # Zod validation schemas
+│   │   └── auth.validator.ts
+│   ├── utils/                    # Reusable helper functions
+│   │   ├── date.util.ts
+│   │   ├── jwt.util.ts
+│   │   ├── password.util.ts
+│   │   └── error.util.ts
+│   ├── types/                    # Express extensions & domain interfaces
+│   │   ├── express.d.ts          # Express Request declaration merging
+│   │   └── auth.types.ts
 │   ├── app.ts                    # Express app & middleware configuration
 │   └── server.ts                 # Database connection & HTTP server entrypoint
 ├── tests/                        # API integration and contract tests

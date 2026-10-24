@@ -8,11 +8,7 @@ import {
 } from '../repositories/diagram.repository.js';
 import { IDiagram } from '../models/diagram.model.js';
 import { DiagramMetadata, DiagramType, Project } from '@drawzware/contracts';
-
-function toIso(d: Date | string | undefined): string {
-  if (!d) return new Date().toISOString();
-  return d instanceof Date ? d.toISOString() : new Date(d).toISOString();
-}
+import { toIso } from '../utils/date.util.js';
 
 function mapDiagramMetadata(diagram: IDiagram): DiagramMetadata {
   return {

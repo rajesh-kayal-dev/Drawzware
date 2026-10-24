@@ -1,14 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-
-interface JwtUserPayload {
-  id?: string;
-  sub?: string;
-  email?: string;
-  name?: string;
-  exp?: number;
-  [key: string]: unknown;
-}
+import type { JwtUserPayload } from "../types/auth.types.js";
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;

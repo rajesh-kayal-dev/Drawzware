@@ -19,11 +19,7 @@ import { IWorkspace } from '../models/workspace.model.js';
 import { IWorkspaceMember } from '../models/workspace-member.model.js';
 import { IWorkspaceInvitation } from '../models/workspace-invitation.model.js';
 import { Workspace, WorkspaceMember, WorkspaceInvitation, WorkspaceRole } from '@drawzware/contracts';
-
-function toIso(d: Date | string | undefined): string {
-  if (!d) return new Date().toISOString();
-  return d instanceof Date ? d.toISOString() : new Date(d).toISOString();
-}
+import { toIso } from '../utils/date.util.js';
 
 function mapWorkspace(ws: IWorkspace): Workspace {
   return {
