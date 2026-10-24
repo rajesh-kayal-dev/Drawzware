@@ -1,4 +1,4 @@
-import mongoose, { Document, Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import crypto from 'node:crypto';
 import { InvitationStatus } from '@drawzware/contracts';
 
@@ -13,6 +13,7 @@ export interface IWorkspaceInvitation {
   acceptedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  save?: () => Promise<IWorkspaceInvitation>;
 }
 
 const workspaceInvitationSchema = new mongoose.Schema(
@@ -63,7 +64,7 @@ const workspaceInvitationSchema = new mongoose.Schema(
     timestamps: true,
     _id: false,
     toJSON: {
-      transform: (_doc, ret: Record<string, any>) => {
+      transform: (_doc, ret: Record<string, unknown>) => {
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;

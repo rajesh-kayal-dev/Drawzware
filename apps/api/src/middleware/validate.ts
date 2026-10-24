@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
 
 export function validateBody<T>(schema: ZodSchema<T>) {
@@ -8,7 +8,7 @@ export function validateBody<T>(schema: ZodSchema<T>) {
       const err = result.error as ZodError;
       res.status(400).json({
         error: 'VALIDATION_ERROR',
-        message: 'Invalid request body',
+        message: err.issues.map((e) => e.message).join(', ') || 'Invalid request body',
         details: err.issues.map((e) => ({
           path: e.path.join('.'),
           message: e.message,

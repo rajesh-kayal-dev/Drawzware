@@ -4,7 +4,10 @@ import path from 'path';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'apps/api/tests/**/*.test.ts'],
+    env: {
+      JWT_SECRET: 'test-secret',
+    },
   },
   resolve: {
     alias: {

@@ -115,7 +115,7 @@ export const ImportDiagramInputSchema = z.object({
 export type ImportDiagramInput = z.infer<typeof ImportDiagramInputSchema>;
 
 /**
- * Authenticated User representation extracted from verified Supabase JWT
+ * Authenticated User representation extracted from verified JWT claims
  */
 export interface AuthenticatedUser {
   id: string;

@@ -1,7 +1,7 @@
-import mongoose, { Document, Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { WorkspaceRole } from '@drawzware/contracts';
 
-export interface IWorkspaceMember extends Document {
+export interface IWorkspaceMember {
   workspaceId: string;
   userId: string;
   role: WorkspaceRole;
@@ -37,7 +37,7 @@ const workspaceMemberSchema = new mongoose.Schema(
   {
     timestamps: true,
     toJSON: {
-      transform: (_doc, ret: Record<string, any>) => {
+      transform: (_doc, ret: Record<string, unknown>) => {
         delete ret._id;
         delete ret.__v;
         return ret;

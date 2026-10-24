@@ -1,143 +1,51 @@
-import { WorkspaceModel } from '../models/workspace.model';
-import { WorkspaceMemberModel } from '../models/workspace-member.model';
-import { WorkspaceInvitationModel } from '../models/workspace-invitation.model';
 import {
-  Workspace,
-  WorkspaceMember,
-  WorkspaceInvitation,
-  WorkspaceRole,
-} from '@drawzware/contracts';
+  createWorkspaceDoc,
+  findWorkspaceDocById,
+  findWorkspaceDocsByIds,
+} from '../repositories/workspace.repository.js';
+import {
+  createWorkspaceMemberDoc,
+  findWorkspaceMemberDoc,
+  findWorkspaceMembersDocs,
+  findWorkspaceMembershipsForUserDocs,
+  upsertWorkspaceMemberDoc,
+} from '../repositories/workspace-member.repository.js';
+import {
+  createInvitationDoc,
+  findInvitationDocById,
+  expirePendingInvitationsDoc,
+} from '../repositories/workspace-invitation.repository.js';
+import { IWorkspace } from '../models/workspace.model.js';
+import { IWorkspaceMember } from '../models/workspace-member.model.js';
+import { IWorkspaceInvitation } from '../models/workspace-invitation.model.js';
+import { Workspace, WorkspaceMember, WorkspaceInvitation, WorkspaceRole } from '@drawzware/contracts';
 
-export const createWorkspace = async (
-  name: string,
-  ownerId: string,
-  ownerEmail?: string
-): Promise<Workspace> => {
-  const workspace = await WorkspaceModel.create({
-    name,
-    ownerId,
-  });
+function toIso(d: Date | string | undefined): string {
+  if (!d) return new Date().toISOString();
+  return d instanceof Date ? d.toISOString() : new Date(d).toISOString();
+}
 
-  await WorkspaceMemberModel.create({
-    workspaceId: workspace._id,
-    userId: ownerId,
-    role: 'owner',
-    userEmail: ownerEmail || undefined,
-  });
-
+function mapWorkspace(ws: IWorkspace): Workspace {
   return {
-    id: workspace._id,
-    name: workspace.name,
-    ownerId: workspace.ownerId,
-    createdAt: workspace.createdAt.toISOString(),
-    updatedAt: workspace.updatedAt.toISOString(),
-  };
-};
-
-export const findWorkspaceById = async (id: string): Promise<Workspace | null> => {
-  const workspace = await WorkspaceModel.findById(id);
-  if (!workspace) return null;
-
-  return {
-    id: workspace._id,
-    name: workspace.name,
-    ownerId: workspace.ownerId,
-    createdAt: workspace.createdAt.toISOString(),
-    updatedAt: workspace.updatedAt.toISOString(),
-  };
-};
-
-export const listWorkspacesForUser = async (
-  userId: string
-): Promise<Array<Workspace & { role: WorkspaceRole }>> => {
-  const memberships = await WorkspaceMemberModel.find({ userId });
-  if (memberships.length === 0) return [];
-
-  const workspaceIds = memberships.map((m) => m.workspaceId);
-  const workspaces = await WorkspaceModel.find({ _id: { $in: workspaceIds } }).sort({
-    createdAt: -1,
-  });
-
-  const memberRoleMap = new Map(memberships.map((m) => [m.workspaceId, m.role]));
-
-  return workspaces.map((ws) => ({
     id: ws._id,
     name: ws.name,
     ownerId: ws.ownerId,
-    createdAt: ws.createdAt.toISOString(),
-    updatedAt: ws.updatedAt.toISOString(),
-    role: memberRoleMap.get(ws._id) || 'viewer',
-  }));
-};
-
-export const findWorkspaceMember = async (
-  workspaceId: string,
-  userId: string
-): Promise<WorkspaceMember | null> => {
-  const member = await WorkspaceMemberModel.findOne({ workspaceId, userId });
-  if (!member) return null;
-
-  return {
-    workspaceId: member.workspaceId,
-    userId: member.userId,
-    role: member.role,
-    userEmail: member.userEmail,
-    createdAt: member.createdAt.toISOString(),
+    createdAt: toIso(ws.createdAt),
+    updatedAt: toIso(ws.updatedAt),
   };
-};
+}
 
-export const listWorkspaceMembers = async (
-  workspaceId: string
-): Promise<WorkspaceMember[]> => {
-  const members = await WorkspaceMemberModel.find({ workspaceId }).sort({ createdAt: 1 });
-
-  return members.map((m) => ({
+function mapMember(m: IWorkspaceMember): WorkspaceMember {
+  return {
     workspaceId: m.workspaceId,
     userId: m.userId,
     role: m.role,
     userEmail: m.userEmail,
-    createdAt: m.createdAt.toISOString(),
-  }));
-};
-
-export const createWorkspaceInvitation = async (
-  workspaceId: string,
-  email: string,
-  role: 'editor' | 'viewer',
-  invitedBy: string
-): Promise<WorkspaceInvitation> => {
-  const normalizedEmail = email.toLowerCase().trim();
-
-  // Expire any existing pending invitations for this email and workspace
-  await WorkspaceInvitationModel.updateMany(
-    { workspaceId, email: normalizedEmail, status: 'pending' },
-    { $set: { status: 'expired' } }
-  );
-
-  const invitation = await WorkspaceInvitationModel.create({
-    workspaceId,
-    email: normalizedEmail,
-    role,
-    invitedBy,
-    status: 'pending',
-  });
-
-  return {
-    id: invitation._id,
-    workspaceId: invitation.workspaceId,
-    email: invitation.email,
-    role: invitation.role,
-    invitedBy: invitation.invitedBy,
-    status: invitation.status,
-    createdAt: invitation.createdAt.toISOString(),
-    expiresAt: invitation.expiresAt.toISOString(),
+    createdAt: toIso(m.createdAt),
   };
-};
+}
 
-export const findInvitationById = async (id: string): Promise<WorkspaceInvitation | null> => {
-  const inv = await WorkspaceInvitationModel.findById(id);
-  if (!inv) return null;
-
+function mapInvitation(inv: IWorkspaceInvitation): WorkspaceInvitation {
   return {
     id: inv._id,
     workspaceId: inv.workspaceId,
@@ -145,28 +53,73 @@ export const findInvitationById = async (id: string): Promise<WorkspaceInvitatio
     role: inv.role,
     invitedBy: inv.invitedBy,
     status: inv.status,
-    createdAt: inv.createdAt.toISOString(),
-    expiresAt: inv.expiresAt.toISOString(),
+    createdAt: toIso(inv.createdAt),
+    expiresAt: toIso(inv.expiresAt),
   };
+}
+
+export const createWorkspace = async (name: string, ownerId: string, ownerEmail?: string): Promise<Workspace> => {
+  const workspace = await createWorkspaceDoc({ name, ownerId });
+  await createWorkspaceMemberDoc({ workspaceId: workspace._id, userId: ownerId, role: 'owner', userEmail: ownerEmail || undefined });
+  return mapWorkspace(workspace);
 };
 
-export const acceptWorkspaceInvitation = async (
-  invitationId: string,
-  userId: string,
-  userEmail: string
-): Promise<WorkspaceMember> => {
-  const inv = await WorkspaceInvitationModel.findById(invitationId);
-  if (!inv) {
-    throw new Error('INVITATION_NOT_FOUND');
-  }
+export const findWorkspaceById = async (id: string): Promise<Workspace | null> => {
+  const workspace = await findWorkspaceDocById(id);
+  return workspace ? mapWorkspace(workspace) : null;
+};
 
-  if (inv.status !== 'pending') {
-    throw new Error(`INVITATION_${inv.status.toUpperCase()}`);
-  }
+export const listWorkspacesForUser = async (userId: string): Promise<Array<Workspace & { role: WorkspaceRole }>> => {
+  const memberships = await findWorkspaceMembershipsForUserDocs(userId);
+  if (memberships.length === 0) return [];
 
-  if (inv.expiresAt.getTime() <= Date.now()) {
+  const workspaceIds = memberships.map((m) => m.workspaceId);
+  const workspaces = await findWorkspaceDocsByIds(workspaceIds);
+  const memberRoleMap = new Map(memberships.map((m) => [m.workspaceId, m.role]));
+
+  return workspaces.map((ws) => ({
+    ...mapWorkspace(ws),
+    role: memberRoleMap.get(ws._id) || 'viewer',
+  }));
+};
+
+export const findWorkspaceMember = async (workspaceId: string, userId: string): Promise<WorkspaceMember | null> => {
+  const member = await findWorkspaceMemberDoc(workspaceId, userId);
+  return member ? mapMember(member) : null;
+};
+
+export const listWorkspaceMembers = async (workspaceId: string): Promise<WorkspaceMember[]> => {
+  const members = await findWorkspaceMembersDocs(workspaceId);
+  return members.map(mapMember);
+};
+
+export const createWorkspaceInvitation = async (workspaceId: string, email: string, role: 'editor' | 'viewer', invitedBy: string): Promise<WorkspaceInvitation> => {
+  const normalizedEmail = email.toLowerCase().trim();
+  await expirePendingInvitationsDoc(workspaceId, normalizedEmail);
+
+  const invitation = await createInvitationDoc({
+    workspaceId,
+    email: normalizedEmail,
+    role,
+    invitedBy,
+  });
+
+  return mapInvitation(invitation);
+};
+
+export const findInvitationById = async (id: string): Promise<WorkspaceInvitation | null> => {
+  const inv = await findInvitationDocById(id);
+  return inv ? mapInvitation(inv) : null;
+};
+
+export const acceptWorkspaceInvitation = async (invitationId: string, userId: string, userEmail: string): Promise<WorkspaceMember> => {
+  const inv = await findInvitationDocById(invitationId);
+  if (!inv) throw new Error('INVITATION_NOT_FOUND');
+  if (inv.status !== 'pending') throw new Error(`INVITATION_${inv.status.toUpperCase()}`);
+
+  if (new Date(inv.expiresAt).getTime() <= Date.now()) {
     inv.status = 'expired';
-    await inv.save();
+    await inv.save?.();
     throw new Error('INVITATION_EXPIRED');
   }
 
@@ -174,22 +127,10 @@ export const acceptWorkspaceInvitation = async (
     throw new Error('INVITATION_EMAIL_MISMATCH');
   }
 
-  // Update or insert workspace member
-  const member = await WorkspaceMemberModel.findOneAndUpdate(
-    { workspaceId: inv.workspaceId, userId },
-    { $set: { role: inv.role, userEmail } },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
-
+  const member = await upsertWorkspaceMemberDoc(inv.workspaceId, userId, inv.role, userEmail);
   inv.status = 'accepted';
   inv.acceptedAt = new Date();
-  await inv.save();
+  await inv.save?.();
 
-  return {
-    workspaceId: member.workspaceId,
-    userId: member.userId,
-    role: member.role,
-    userEmail: member.userEmail,
-    createdAt: member.createdAt.toISOString(),
-  };
+  return mapMember(member);
 };

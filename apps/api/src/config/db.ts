@@ -1,20 +1,19 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-export async function connectDB(uri?: string): Promise<typeof mongoose> {
-  const mongoUri = uri || process.env.MONGO_URI || 'mongodb://localhost:27017/drawzware';
+export async function connectDB() {
   try {
-    const conn = await mongoose.connect(mongoUri);
-    return conn;
+    await mongoose.connect(process.env.MONGO_URI!);
+    console.log("MongoDB connected");
   } catch (error) {
-    console.error('MongoDB connection failed:', error);
-    throw error;
+    console.error("MongoDB connection failed:", error);
+    process.exit(1);
   }
 }
 
-export async function disconnectDB(): Promise<void> {
+export async function disconnectDB() {
   try {
     await mongoose.disconnect();
   } catch (error) {
-    console.error('MongoDB disconnect error:', error);
+    console.error("MongoDB disconnect error:", error);
   }
 }

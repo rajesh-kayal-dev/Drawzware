@@ -1,58 +1,26 @@
-import { Router } from 'express';
-import { requireAuth } from '../middleware/auth';
-import { validateBody } from '../middleware/validate';
-import { requireWorkspaceRole } from '../middleware/workspace-auth';
+import { Router } from "express";
+import { requireAuth } from "../middleware/auth.js";
+import { validateBody } from "../middleware/validate.js";
+import { requireWorkspaceRole } from "../middleware/workspace-auth.js";
 import {
   listDiagramsHandler,
   createDiagramHandler,
   importDiagramHandler,
   getDiagramHandler,
   updateDiagramHandler,
-} from '../controllers/diagram.controller';
+} from "../controllers/diagram.controller.js";
 import {
   CreateDiagramInputSchema,
   UpdateDiagramInputSchema,
   ImportDiagramInputSchema,
-} from '@drawzware/contracts';
+} from "@drawzware/contracts";
 
 const router = Router();
 
-// Diagrams in workspace
-router.get(
-  '/workspaces/:workspaceId/diagrams',
-  requireAuth,
-  requireWorkspaceRole('viewer'),
-  listDiagramsHandler
-);
-
-router.post(
-  '/workspaces/:workspaceId/diagrams',
-  requireAuth,
-  requireWorkspaceRole('editor'),
-  validateBody(CreateDiagramInputSchema),
-  createDiagramHandler
-);
-
-router.post(
-  '/workspaces/:workspaceId/diagrams/import',
-  requireAuth,
-  requireWorkspaceRole('editor'),
-  validateBody(ImportDiagramInputSchema),
-  importDiagramHandler
-);
-
-// Individual diagram
-router.get(
-  '/diagrams/:diagramId',
-  requireAuth,
-  getDiagramHandler
-);
-
-router.patch(
-  '/diagrams/:diagramId',
-  requireAuth,
-  validateBody(UpdateDiagramInputSchema),
-  updateDiagramHandler
-);
+router.get("/workspaces/:workspaceId/diagrams", requireAuth, requireWorkspaceRole("viewer"), listDiagramsHandler);
+router.post("/workspaces/:workspaceId/diagrams", requireAuth, requireWorkspaceRole("editor"), validateBody(CreateDiagramInputSchema), createDiagramHandler);
+router.post("/workspaces/:workspaceId/diagrams/import", requireAuth, requireWorkspaceRole("editor"), validateBody(ImportDiagramInputSchema), importDiagramHandler);
+router.get("/diagrams/:diagramId", requireAuth, getDiagramHandler);
+router.patch("/diagrams/:diagramId", requireAuth, validateBody(UpdateDiagramInputSchema), updateDiagramHandler);
 
 export const diagramRoutes = router;

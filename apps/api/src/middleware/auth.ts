@@ -1,93 +1,66 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { config } from '../config';
-import { AuthenticatedUser } from '@drawzware/contracts';
+import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Request {
-      user?: AuthenticatedUser;
-    }
-  }
-}
-
-/**
- * Supabase JWT payload structure
- */
-interface SupabaseJwtPayload {
-  sub: string;
+interface JwtUserPayload {
+  id?: string;
+  sub?: string;
   email?: string;
-  role?: string;
-  app_metadata?: Record<string, unknown>;
-  user_metadata?: Record<string, unknown>;
+  name?: string;
   exp?: number;
   [key: string]: unknown;
 }
 
-/**
- * Middleware that validates the Supabase JWT Bearer token on incoming requests.
- * Extracts user ID, email, and metadata, attaching `req.user`.
- */
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     res.status(401).json({
-      error: 'UNAUTHORIZED',
-      message: 'Missing or malformed Authorization header. Bearer token required.',
+      error: "UNAUTHORIZED",
+      message: "Missing or malformed Authorization header. Bearer token required.",
     });
     return;
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.split(" ")[1];
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    res.status(500).json({
+      error: "SERVER_CONFIGURATION_ERROR",
+      message: "JWT_SECRET environment variable is missing.",
+    });
+    return;
+  }
 
   try {
-    // If a JWT secret is configured, verify signature strictly.
-    // In local development or mock test environments without secret set, decode claims safely.
-    let payload: SupabaseJwtPayload;
-    if (config.supabaseJwtSecret) {
-      payload = jwt.verify(token, config.supabaseJwtSecret) as SupabaseJwtPayload;
-    } else {
-      payload = jwt.decode(token) as SupabaseJwtPayload;
-      if (!payload || !payload.sub) {
-        res.status(401).json({
-          error: 'INVALID_TOKEN',
-          message: 'Malformed or invalid authentication token claims.',
-        });
-        return;
-      }
-    }
+    const payload = jwt.verify(token, secret) as JwtUserPayload;
+    const userId = payload.id || payload.sub;
 
-    if (!payload.sub) {
+    if (!userId) {
       res.status(401).json({
-        error: 'INVALID_TOKEN',
-        message: 'Token subject (user ID) is missing.',
-      });
-      return;
-    }
-
-    // Check expiration if present
-    if (payload.exp && Date.now() >= payload.exp * 1000) {
-      res.status(401).json({
-        error: 'TOKEN_EXPIRED',
-        message: 'Authentication token has expired.',
+        error: "INVALID_TOKEN",
+        message: "Token subject (user ID) is missing.",
       });
       return;
     }
 
     req.user = {
-      id: payload.sub,
+      id: userId,
       email: payload.email,
-      appMetadata: payload.app_metadata,
-      userMetadata: payload.user_metadata,
     };
 
     next();
   } catch (err: unknown) {
+    if (err instanceof jwt.TokenExpiredError) {
+      res.status(401).json({
+        error: "TOKEN_EXPIRED",
+        message: "Authentication token has expired.",
+      });
+      return;
+    }
     res.status(401).json({
-      error: 'INVALID_TOKEN',
-      message: 'Failed to verify authentication token.',
+      error: "INVALID_TOKEN",
+      message: "Failed to verify authentication token.",
       details: err instanceof Error ? err.message : undefined,
     });
   }

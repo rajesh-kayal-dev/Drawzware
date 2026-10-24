@@ -1,0 +1,8 @@
+import { Request, Response } from 'express';
+
+export const notFoundHandler = (_req: Request, res: Response): void => {
+  res.status(404).json({
+    error: 'NOT_FOUND',
+    message: 'Requested API endpoint not found.',
+  });
+};

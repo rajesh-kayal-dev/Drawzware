@@ -1,4 +1,4 @@
-import mongoose, { Document, Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import crypto from 'node:crypto';
 
 export interface IWorkspace {
@@ -31,7 +31,7 @@ const workspaceSchema = new mongoose.Schema(
     timestamps: true,
     _id: false,
     toJSON: {
-      transform: (_doc, ret: Record<string, any>) => {
+      transform: (_doc, ret: Record<string, unknown>) => {
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;
