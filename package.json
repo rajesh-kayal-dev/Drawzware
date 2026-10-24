@@ -16,7 +16,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:unit": "vitest run",
-    "build:electron": "tsc -p apps/desktop/tsconfig.json",
+    "build:electron": "tsc -p packages/contracts/tsconfig.json && tsc -p apps/desktop/tsconfig.json",
     "start:electron": "electron .",
     "test:smoke": "electron . --smoke-test --no-sandbox",
     "desktop": "next build && npm run build:electron && electron .",
