@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
-import { IPC_CHANNELS } from '../electron/types/ipc';
+import { IPC_CHANNELS } from '../apps/desktop/types/ipc';
 import { sampleArchitectureProject } from './fixtures/projects';
-import type { DesktopApi } from '../src/types/desktop';
+import type { DesktopApi } from '@/types/desktop';
 
 // Mock electron contextBridge and ipcRenderer
 const exposedApis = new Map<string, unknown>();
@@ -31,7 +31,7 @@ function getDesktopApi(): DesktopApi & Record<string, unknown> {
 describe('Preload Bridge Security & API Surface', () => {
   beforeAll(async () => {
     // Dynamically import preload to trigger exposeInMainWorld once
-    await import('../electron/preload');
+    await import('../apps/desktop/preload');
   });
 
   beforeEach(() => {

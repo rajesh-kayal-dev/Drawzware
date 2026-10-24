@@ -1,0 +1,11 @@
+{
+  "name": "@drawzware/contracts",
+  "version": "0.1.0",
+  "description": "Canonical schemas, DTOs, and IPC contracts for Drawzware",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "zod": "^4.3.6"
+  }
+}

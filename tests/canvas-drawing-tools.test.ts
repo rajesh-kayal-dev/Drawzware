@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useCanvasStore } from '../src/stores/useCanvasStore';
-import { cleanWaypoints, perpendicularDistance, pointsToSvgPath, type Point } from '../src/lib/line-routing';
-import type { SystemNodeData, SystemNode } from '../src/types';
+import { useCanvasStore } from '@/stores/useCanvasStore';
+import { cleanWaypoints, perpendicularDistance, pointsToSvgPath, type Point } from '@drawzware/canvas-core';
+import type { SystemNodeData, SystemNode } from '@/types';
 
 describe('Canvas UX and Drawing Tools (Sidebar, Toolbar, Straight Line, Arrow)', () => {
   beforeEach(() => {

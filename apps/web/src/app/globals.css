@@ -1,0 +1,544 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "../styles/tokens.css";
+@import "../styles/scanner.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), 'Georgia', 'Times New Roman', ui-serif, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --color-bg: var(--bg);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-dots: var(--dots);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-note: var(--note);
+  --color-note-line: var(--note-line);
+
+  /* Component library and surface tokens */
+  --color-card: var(--paper);
+  --color-card-foreground: var(--ink);
+  --color-surface-1: var(--paper);
+  --color-surface-2: var(--line-2);
+  --color-text: var(--ink);
+  --color-text-muted: var(--ink-3);
+
+  --radius-chip: 6px;
+  --radius-input: 9px;
+  --radius-card: 12px;
+  --radius-panel: 14px;
+  --radius-dialog: 16px;
+
+  --shadow-1: var(--shadow);
+  --shadow-2: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+  html {
+    color-scheme: light;
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+/* Keyboard focus ring for any control: accent border + 3px soft ring. */
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}
+
+/* Canvas dot grid used outside React Flow (thumbnails, empty states, dashboard). */
+@utility dot-grid {
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--dots) 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+}
+
+/* ── Motion ─────────────────────────────────────────── */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes panel-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+@keyframes status-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes edge-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+@keyframes edge-flow-fast {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.animate-panel-in {
+  animation: panel-in 160ms ease-out;
+}
+.animate-panel-in-right {
+  animation: panel-in-right 160ms ease-out;
+}
+.animate-dialog-in {
+  animation: dialog-in 160ms ease-out;
+}
+.animate-fade-in {
+  animation: fade-in 160ms ease-out;
+}
+.animate-toast-in {
+  animation: toast-in 160ms ease-out;
+}
+.animate-status-pulse {
+  animation: status-pulse 1s ease-in-out infinite;
+}
+.edge-animated-slow {
+  animation: edge-flow 3s linear infinite;
+}
+.edge-animated-fast {
+  animation: edge-flow-fast 1.5s linear infinite;
+}
+.edges-static .edge-animated-slow,
+.edges-static .edge-animated-fast {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-animated-slow,
+  .edge-animated-fast,
+  .animate-status-pulse {
+    animation: none;
+  }
+  .animate-panel-in,
+  .animate-panel-in-right,
+  .animate-dialog-in,
+  .animate-fade-in,
+  .animate-toast-in {
+    animation-duration: 1ms;
+  }
+  .react-flow__node,
+  .react-flow__edge {
+    transition: none !important;
+  }
+}
+
+/* ── React Flow ─────────────────────────────────────── */
+.react-flow {
+  --xy-background-color-default: transparent;
+  --xy-edge-stroke-default: var(--ink-3);
+  --xy-edge-stroke-selected-default: var(--accent);
+  --xy-connectionline-stroke-default: var(--accent);
+  --xy-attribution-background-color-default: transparent;
+  --xy-selection-background-color-default: color-mix(in oklch, var(--accent-soft) 35%, transparent);
+  --xy-selection-border-default: 1px solid var(--accent);
+  --xy-resize-background-color-default: var(--accent);
+  --xy-handle-background-color-default: var(--ink-3);
+  --xy-handle-border-color-default: var(--paper);
+}
+
+/* Remove the post-selection bounding box shadow around multi-selected nodes */
+.react-flow__nodesselection,
+.react-flow__nodesselection-rect {
+  display: none !important;
+}
+
+.react-flow__node {
+  transition: opacity 200ms ease;
+}
+.react-flow__node.react-flow__node-text,
+.react-flow__node[data-type="text"] {
+  width: auto !important;
+  height: auto !important;
+  max-width: max-content !important;
+  max-height: max-content !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.react-flow__node.react-flow__node-text > * {
+  width: max-content !important;
+  height: auto !important;
+}
+.react-flow__edge {
+  transition: opacity 200ms ease;
+}
+
+/* Node handles: 8px dots, hidden until hover/selected. */
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  min-width: 0;
+  min-height: 0;
+  border: 2px solid var(--paper);
+  background: var(--ink-3);
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    background-color 120ms ease;
+}
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle,
+.react-flow.connecting .react-flow__handle {
+  opacity: 1;
+}
+.react-flow__node.selected .react-flow__handle {
+  background: var(--accent);
+}
+@media (pointer: coarse) {
+  .react-flow__handle {
+    opacity: 1;
+  }
+  .react-flow__handle::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
+  }
+}
+
+.react-flow__resize-control.handle {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid #0ea5e9;
+  background: #ffffff;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+  z-index: 40;
+  touch-action: none;
+}
+
+/* Generous interaction target around each resize handle (26px x 26px) */
+.react-flow__resize-control.handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  pointer-events: auto;
+  cursor: inherit;
+}
+
+.react-flow__resize-control.line {
+  border-color: #0ea5e9;
+  z-index: 35;
+  touch-action: none;
+}
+
+/* Generous interaction target along each resize line (18px) */
+.react-flow__resize-control.line::after {
+  content: "";
+  position: absolute;
+  pointer-events: auto;
+  cursor: inherit;
+}
+
+.react-flow__resize-control.line.top::after,
+.react-flow__resize-control.line.bottom::after {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 18px;
+  transform: translateY(-50%);
+}
+
+.react-flow__resize-control.line.left::after,
+.react-flow__resize-control.line.right::after {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  transform: translateX(-50%);
+}
+
+.react-flow__attribution {
+  font-size: 10px;
+}
+.react-flow__attribution a {
+  color: var(--ink-3);
+}
+
+.react-flow__minimap {
+  background: color-mix(in oklch, var(--paper) 85%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+/* ── Canvas Background Scoped Contrast ───────────────── */
+[data-canvas-background="white"] {
+  --bg: #ffffff;
+  --dots: oklch(0.86 0.008 80);
+  --line: oklch(0.90 0.006 80);
+}
+[data-canvas-background="white"][data-theme="dark"] {
+  --ink: oklch(0.22 0.01 60);
+  --ink-2: oklch(0.48 0.012 60);
+  --ink-3: oklch(0.66 0.01 60);
+  --line: oklch(0.88 0.006 80);
+}
+[data-canvas-background="dark"] {
+  --bg: #121212;
+  --dots: oklch(0.34 0.008 60);
+  --line: oklch(0.30 0.008 60);
+}
+[data-canvas-background="dark"][data-theme="light"] {
+  --ink: oklch(0.94 0.005 80);
+  --ink-2: oklch(0.72 0.008 60);
+  --ink-3: oklch(0.56 0.008 60);
+  --line: oklch(0.35 0.008 60);
+}
+[data-canvas-background="neutral"] {
+  --bg: var(--canvas-neutral);
+}
+
+/* ── Landing Page Scoped Styles ───────────────────────── */
+/* Override canvas theme tokens inside .lp-root so the landing page
+   always renders in its own light cream palette regardless of data-theme. */
+.lp-root {
+  /* Reset canvas dark-mode vars for landing page */
+  --bg: #faf8f5;
+  color-scheme: light;
+  color: #1a2e26;
+  background-color: #faf8f5;
+  font-family: var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* Prevent canvas h/w token leakage */
+  min-height: 100dvh;
+}
+
+/* Serif font class for landing page headings */
+.lp-font-serif {
+  font-family: var(--font-newsreader), 'Georgia', serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Dot grid for dark sections */
+.lp-bg-grid-dots-dark {
+  background-image: radial-gradient(rgba(52, 211, 153, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Navbar: ensure always uses landing page bg, not canvas bg */
+.lp-navbar {
+  background-color: rgba(250, 248, 245, 0.9);
+}
+
+/* Landing page animations */
+@keyframes lp-float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+@keyframes lp-float-reverse {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(8px) rotate(-1deg); }
+}
+
+@keyframes lp-pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.08); }
+}
+
+@keyframes lp-slide-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lp-float-slow {
+  animation: lp-float-slow 7s ease-in-out infinite;
+}
+
+.lp-float-reverse {
+  animation: lp-float-reverse 8s ease-in-out infinite;
+}
+
+.lp-pulse-glow {
+  animation: lp-pulse-glow 4s ease-in-out infinite;
+}
+
+.lp-slide-in {
+  animation: lp-slide-in 200ms ease-out;
+}
+
+/* Respect reduced motion for landing page animations */
+@media (prefers-reduced-motion: reduce) {
+  .lp-float-slow,
+  .lp-float-reverse,
+  .lp-pulse-glow {
+    animation: none;
+  }
+  .lp-slide-in {
+    animation-duration: 1ms;
+  }
+}
+
+/* ── Drawzware Active Tool Cursors ────────────────────────────────────────── */
+.cursor-tool-pencil,
+.cursor-tool-pencil .react-flow__pane {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z' fill='%23ffffff' stroke='%23000000' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='m15 5 4 4' stroke='%23000000' stroke-width='1.5'/%3E%3Cpolygon points='2,22 6,20.8 3.2,18' fill='%23000000'/%3E%3C/svg%3E") 2 22, crosshair !important;
+}
+
+.cursor-tool-eraser,
+.cursor-tool-eraser .react-flow__pane {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21' fill='%23ffffff' stroke='%23000000' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M22 21H7' stroke='%23000000' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='m5 11 9 9' stroke='%23000000' stroke-width='1.2' stroke-dasharray='2 2'/%3E%3Cpath d='M2.7 16.7 7 21l3.5-3.5-4.3-4.3z' fill='%23f43f5e' stroke='%23000000' stroke-width='1.2'/%3E%3C/svg%3E") 3 20, cell !important;
+}
+
+.cursor-tool-crosshair,
+.cursor-tool-crosshair .react-flow__pane {
+  cursor: crosshair !important;
+}
+
+.cursor-tool-text,
+.cursor-tool-text .react-flow__pane {
+  cursor: text !important;
+}
+
+/* Hand / Pan Tool (H) & Space Panning */
+.cursor-tool-grab,
+.cursor-tool-grab .react-flow__pane,
+.cursor-tool-grab .react-flow__pane.draggable,
+.cursor-tool-grab .react-flow__node,
+.cursor-tool-grab .react-flow__node.draggable {
+  cursor: grab !important;
+}
+
+.cursor-tool-grab:active,
+.cursor-tool-grab:active .react-flow__pane,
+.cursor-tool-grabbing,
+.cursor-tool-grabbing .react-flow__pane,
+.cursor-tool-grab .react-flow__pane.dragging,
+.cursor-tool-grab .react-flow__node.dragging,
+.cursor-tool-grabbing .react-flow__node {
+  cursor: grabbing !important;
+}
+
+/* Selection Tool (V): Pointer arrow matching Selection icon (transparent inside when idle) */
+.cursor-tool-default,
+.cursor-tool-default .react-flow__pane,
+.cursor-tool-default .react-flow__pane.draggable,
+.cursor-tool-default .react-flow__node,
+.cursor-tool-default .react-flow__node.draggable,
+.cursor-tool-default .react-flow__nodesselection,
+.cursor-tool-default .react-flow__nodesselection-rect {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='19' height='19' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z' fill='none' stroke='%23ffffff' stroke-width='3.2' stroke-linejoin='round' stroke-linecap='round'/%3E%3Cpath d='M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z' fill='none' stroke='%23000000' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E") 3 3, default !important;
+}
+
+/* Selection Tool (V) on Left-Click / Drag: Inner side turns black */
+.cursor-tool-default:active,
+.cursor-tool-default:active .react-flow__pane,
+.cursor-tool-default:active .react-flow__node,
+.cursor-tool-default:active .react-flow__node.draggable,
+.cursor-tool-default .react-flow__pane.dragging,
+.cursor-tool-default .react-flow__pane.selection,
+.cursor-tool-default .react-flow__node.dragging,
+.cursor-tool-default .react-flow__node.draggable.dragging {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='19' height='19' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z' fill='%23000000' stroke='%23ffffff' stroke-width='3.2' stroke-linejoin='round' stroke-linecap='round'/%3E%3Cpath d='M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z' fill='%23000000' stroke='%23000000' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E") 3 3, default !important;
+}
+
+/* Connect handles must show crosshair */
+.cursor-tool-default .react-flow__handle,
+.cursor-tool-default .react-flow__handle.connectable {
+  cursor: crosshair !important;
+}
+
+/* Node resize controls retain their directional resize cursors */
+.cursor-tool-default .react-flow__resize-control.left,
+.cursor-tool-default .react-flow__resize-control.right,
+.react-flow__resize-control.left,
+.react-flow__resize-control.right {
+  cursor: ew-resize !important;
+}
+.cursor-tool-default .react-flow__resize-control.top,
+.cursor-tool-default .react-flow__resize-control.bottom,
+.react-flow__resize-control.top,
+.react-flow__resize-control.bottom {
+  cursor: ns-resize !important;
+}
+.cursor-tool-default .react-flow__resize-control.top.left,
+.cursor-tool-default .react-flow__resize-control.bottom.right,
+.react-flow__resize-control.top.left,
+.react-flow__resize-control.bottom.right {
+  cursor: nwse-resize !important;
+}
+.cursor-tool-default .react-flow__resize-control.top.right,
+.cursor-tool-default .react-flow__resize-control.bottom.left,
+.react-flow__resize-control.top.right,
+.react-flow__resize-control.bottom.left {
+  cursor: nesw-resize !important;
+}
+
+/* UI panels must always protect their native pointer/selection/text cursors */
+.sidebar-panel,
+.sidebar-rail,
+[role="toolbar"],
+[role="dialog"],
+[role="menu"],
+[data-radix-popper-content-wrapper],
+.react-flow__panel {
+  cursor: default;
+}

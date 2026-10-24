@@ -1,5 +1,5 @@
-import type { Project, DrawzDocument, LegacyAppData } from '../../electron/types/document';
-import { DRAWZ_FILE_TYPE, CURRENT_DOCUMENT_SCHEMA_VERSION } from '../../electron/types/document';
+import type { Project, DrawzDocument, LegacyAppData } from '@drawzware/contracts';
+import { DRAWZ_FILE_TYPE, CURRENT_DOCUMENT_SCHEMA_VERSION } from '@drawzware/contracts';
 
 export const sampleArchitectureProject: Project = {
   id: 'arch-sample-001',

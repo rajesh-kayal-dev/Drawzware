@@ -1,4 +1,5 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -19,7 +20,12 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./apps/web/src/*"],
+      "@drawzware/contracts": ["./packages/contracts/src/index.ts"],
+      "@drawzware/domain": ["./packages/domain/src/index.ts"],
+      "@drawzware/canvas-core": ["./packages/canvas-core/src/index.ts"],
+      "@drawzware/storage": ["./packages/storage/src/index.ts"],
+      "@drawzware/ui": ["./packages/ui/src/index.ts"]
     }
   },
   "include": [
@@ -30,5 +36,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "dist-electron", "electron"]
+  "exclude": ["node_modules", "dist-electron", "apps/desktop"]
 }

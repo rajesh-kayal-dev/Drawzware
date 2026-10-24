@@ -1,0 +1,18 @@
+{
+  "name": "@drawzware/web",
+  "version": "0.1.0",
+  "description": "Next.js web and canvas studio application for Drawzware",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@drawzware/contracts": "*",
+    "@drawzware/domain": "*",
+    "@drawzware/canvas-core": "*",
+    "@drawzware/storage": "*",
+    "@drawzware/ui": "*"
+  }
+}

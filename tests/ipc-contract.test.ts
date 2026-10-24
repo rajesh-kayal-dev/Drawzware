@@ -4,7 +4,7 @@ import {
   type IpcResult,
   type IpcErrorCode,
   type LibraryStorageIpcApi,
-} from '../electron/types/ipc';
+} from '../apps/desktop/types/ipc';
 import { sampleArchitectureProject } from './fixtures/projects';
 
 describe('IPC Contracts & Channel Definitions', () => {

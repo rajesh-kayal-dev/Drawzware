@@ -9,8 +9,8 @@ import {
   importDrawzFileFromDisk,
   sanitizeFilename,
   defaultWriteFileAtomic,
-} from '../electron/ipc/file-handlers';
-import { StorageService } from '../electron/services/storage.service';
+} from '../apps/desktop/ipc/file-handlers';
+import { StorageService } from '../apps/desktop/services/storage.service';
 import {
   serializeDrawzDocument,
   parseProjectDocument,
@@ -18,7 +18,7 @@ import {
   type Project,
   CURRENT_DOCUMENT_SCHEMA_VERSION,
   CURRENT_BACKUP_SCHEMA_VERSION,
-} from '../electron/types/document';
+} from '@drawzware/contracts';
 import { sampleArchitectureProject } from './fixtures/projects';
 
 describe('Milestone 2C: Native .drawz File Open and Save', () => {

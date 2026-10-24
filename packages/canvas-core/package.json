@@ -1,0 +1,13 @@
+{
+  "name": "@drawzware/canvas-core",
+  "version": "0.1.0",
+  "description": "Headless graph algorithms, layout, and routing for Drawzware",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "private": true,
+  "dependencies": {
+    "@dagrejs/dagre": "^2.0.4",
+    "@drawzware/contracts": "*",
+    "js-yaml": "^4.1.1"
+  }
+}

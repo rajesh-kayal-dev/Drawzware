@@ -5,8 +5,8 @@ import {
   getStorageAdapter,
   setStorageAdapterForTesting,
   StorageAdapterError,
-} from '../src/lib/adapters';
-import type { DesktopStorageApi } from '../src/types/desktop';
+} from '@drawzware/storage';
+import type { DesktopStorageApi } from '@/types/desktop';
 import { sampleArchitectureProject } from './fixtures/projects';
 
 // Mock localStorage for WebStorageAdapter testing

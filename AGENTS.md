@@ -27,10 +27,16 @@ This repository contains **Drawzware**, an opinionated system architecture diagr
 ## 3. Modular Rule System
 
 Specific, actionable constraints are maintained in `.agents/rules/`:
+- [monorepo.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/.agents/rules/monorepo.md): Monorepo package boundaries, dependency rules, and placement invariants.
 - [architecture.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/.agents/rules/architecture.md): Process isolation, main/preload/renderer boundaries, persistence abstraction.
 - [typescript-react.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/.agents/rules/typescript-react.md): TypeScript rigor, React 19 conventions, Zustand rules, Studio tokens.
 - [testing.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/.agents/rules/testing.md): Unit, integration, E2E expectations, and CI gate enforcement.
 - [desktop-security.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/.agents/rules/desktop-security.md): Electron sandbox, IPC whitelist, CSP, and input validation.
+
+Architecture specifications and placement guides:
+- [MONOREPO_ARCHITECTURE.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/docs/engineering/MONOREPO_ARCHITECTURE.md): Complete monorepo taxonomy, responsibilities, and dependency rules.
+- [AGENT_PLACEMENT_GUIDE.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/docs/engineering/AGENT_PLACEMENT_GUIDE.md): Feature placement lookup and naming conventions for AI agents.
+- [ADR-007](file:///d:/AI%20Projects/drawzware-system-design-canvas/docs/engineering/adr/ADR-007-monorepo-structure-and-module-boundaries.md): Monorepo structure and module boundaries decision.
 
 ---
 
