@@ -143,6 +143,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} ${newsreader.variable} antialiased`}
       >
         <Providers>{children}</Providers>

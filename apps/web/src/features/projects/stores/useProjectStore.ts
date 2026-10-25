@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { clearAppData, loadAppData, saveAppData } from '@/lib/storage';
 import { getStorageAdapter } from '@/lib/adapters';
-import type { Project, AppData } from '@/features/projects/types/project.types';
+import { ProjectSchema, type Project, type AppData } from '@/features/projects/types/project.types';
 
 interface ProjectStore {
   projects: Project[];
@@ -168,11 +168,11 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     try {
       const parsed = JSON.parse(json);
       const now = new Date().toISOString();
-      const project: Project = {
+      const rawProject = {
         id: crypto.randomUUID(),
-        name: parsed.name || 'Imported Project',
-        description: parsed.description || '',
-        createdAt: now,
+        name: typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : 'Imported Project',
+        description: typeof parsed.description === 'string' ? parsed.description : '',
+        createdAt: typeof parsed.createdAt === 'string' ? parsed.createdAt : now,
         updatedAt: now,
         nodes: Array.isArray(parsed.nodes) ? parsed.nodes : [],
         edges: Array.isArray(parsed.edges) ? parsed.edges : [],
@@ -181,6 +181,13 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         diagramData: parsed.diagramData,
       };
 
+      const validation = ProjectSchema.safeParse(rawProject);
+      if (!validation.success) {
+        console.error('[useProjectStore] Failed to import project: schema validation failed', validation.error);
+        return null;
+      }
+
+      const project: Project = validation.data as Project;
       const adapter = getStorageAdapter();
       await adapter.saveProject(project);
 

@@ -25,3 +25,15 @@ export const upsertWorkspaceMemberDoc = async (workspaceId: string, userId: stri
   );
   return member!;
 };
+
+export const findWorkspaceMemberByEmailDoc = async (
+  workspaceId: string,
+  userEmail: string
+): Promise<IWorkspaceMember | null> => {
+  return await WorkspaceMemberModel.findOne({
+    workspaceId,
+    userEmail: userEmail.toLowerCase().trim(),
+  });
+};
+
+

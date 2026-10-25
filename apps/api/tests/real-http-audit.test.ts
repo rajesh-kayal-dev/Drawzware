@@ -15,6 +15,9 @@ import {
   WorkspaceInvitationSchema,
   DiagramMetadataSchema,
   ProjectSchema,
+  SaveDiagramSnapshotInputSchema,
+  DiagramSnapshotResponseSchema,
+  DiagramSnapshotConflictErrorSchema,
   WorkspaceRole,
   Project,
 } from '@drawzware/contracts';
@@ -215,11 +218,39 @@ describe('Comprehensive Drawzware Real HTTP & Contract Audit Suite', () => {
       return snap as any;
     });
     vi.spyOn(diagramRepo, 'findDiagramSnapshotDoc').mockImplementation(async (diagId: string) => snapshots.get(diagId) || null);
+    vi.spyOn(diagramRepo, 'touchDiagramDoc').mockImplementation(async (id: string) => {
+      const existing = diagrams.get(id);
+      if (!existing) return null;
+      existing.updatedAt = new Date();
+      return existing;
+    });
+    vi.spyOn(diagramRepo, 'saveDiagramSnapshotDoc').mockImplementation(
+      async (diagId: string, state: any, clientVersion?: number) => {
+        const existing = snapshots.get(diagId);
+        if (!existing) {
+          const snap = { diagramId: diagId, state, version: 1, createdAt: new Date(), updatedAt: new Date() };
+          snapshots.set(diagId, snap);
+          return { success: true, snapshot: snap as any };
+        }
+        if (clientVersion !== undefined && clientVersion !== existing.version) {
+          return {
+            success: false,
+            conflict: true,
+            currentVersion: existing.version,
+            currentSnapshot: existing.state,
+          };
+        }
+        existing.version += 1;
+        existing.state = state;
+        existing.updatedAt = new Date();
+        return { success: true, snapshot: existing as any };
+      }
+    );
   });
 
   async function executeCase(
     endpoint: string,
-    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     scenario: string,
     expectedStatus: number,
     expectedBehavior: string,
@@ -1007,7 +1038,96 @@ describe('Comprehensive Drawzware Real HTTP & Contract Audit Suite', () => {
     );
   });
 
-  // --- 11. CENTRALIZED 404 ROUTE ---
+  // --- 11. DIAGRAM CANVAS SNAPSHOT ENDPOINTS ---
+  it('GET /api/diagrams/:diagramId/snapshot - Viewer retrieves snapshot', async () => {
+    // Prime a snapshot for sampleDiagId
+    snapshots.set(sampleDiagId, {
+      diagramId: sampleDiagId,
+      state: validProjectData,
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await executeCase(
+      '/api/diagrams/:diagramId/snapshot',
+      'GET',
+      'Viewer retrieves diagram snapshot metadata',
+      200,
+      'Returns DiagramSnapshotResponse matching schema',
+      {
+        token: viewerToken,
+        pathParams: { diagramId: sampleDiagId },
+        contractValidator: function SnapshotResponseContract(body: any) {
+          const parsed = DiagramSnapshotResponseSchema.safeParse(body);
+          return { passed: parsed.success, mismatch: parsed.success ? null : JSON.stringify(parsed.error.issues) };
+        },
+      }
+    );
+  });
+
+  it('PUT /api/diagrams/:diagramId/snapshot - Viewer blocked (Editor required)', async () => {
+    await executeCase(
+      '/api/diagrams/:diagramId/snapshot',
+      'PUT',
+      'Forbidden snapshot save for viewer member (Editor required)',
+      403,
+      'Returns 403 INSUFFICIENT_PERMISSIONS',
+      {
+        token: viewerToken,
+        pathParams: { diagramId: sampleDiagId },
+        body: { project: validProjectData },
+      }
+    );
+  });
+
+  it('PUT /api/diagrams/:diagramId/snapshot - Editor saves cloud snapshot', async () => {
+    await executeCase(
+      '/api/diagrams/:diagramId/snapshot',
+      'PUT',
+      'Editor successfully updates cloud canvas snapshot',
+      200,
+      'Returns updated snapshot matching DiagramSnapshotResponseSchema with version 2',
+      {
+        token: editorToken,
+        pathParams: { diagramId: sampleDiagId },
+        body: { project: validProjectData },
+        contractValidator: function SaveSnapshotContract(body: any) {
+          const parsed = DiagramSnapshotResponseSchema.safeParse(body);
+          const verMatches = body?.version === 2;
+          return {
+            passed: parsed.success && verMatches,
+            mismatch: !parsed.success ? `DiagramSnapshotResponseSchema failed: ${JSON.stringify(parsed.error.issues)}` : (!verMatches ? `Version was ${body?.version}` : null),
+          };
+        },
+      }
+    );
+  });
+
+  it('PUT /api/diagrams/:diagramId/snapshot - Stale clientVersion returns 409 conflict', async () => {
+    await executeCase(
+      '/api/diagrams/:diagramId/snapshot',
+      'PUT',
+      'Stale clientVersion rejected with 409 Conflict',
+      409,
+      'Returns DiagramSnapshotConflictErrorSchema with current server version',
+      {
+        token: editorToken,
+        pathParams: { diagramId: sampleDiagId },
+        body: { project: validProjectData, clientVersion: 1 }, // server is currently at version 2
+        contractValidator: function ConflictContract(body: any) {
+          const parsed = DiagramSnapshotConflictErrorSchema.safeParse(body);
+          const verMatches = body?.currentVersion === 2;
+          return {
+            passed: parsed.success && verMatches,
+            mismatch: !parsed.success ? `DiagramSnapshotConflictErrorSchema failed: ${JSON.stringify(parsed.error.issues)}` : (!verMatches ? `CurrentVersion was ${body?.currentVersion}` : null),
+          };
+        },
+      }
+    );
+  });
+
+  // --- 12. CENTRALIZED 404 ROUTE ---
   it('GET /api/unknown-endpoint - Centralized 404 handler', async () => {
     await executeCase(
       '/api/unrecognized-route-path',

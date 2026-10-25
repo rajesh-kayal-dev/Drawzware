@@ -56,6 +56,9 @@ import { ShortcutsDialog } from './ShortcutsDialog';
 import { OnboardingOverlay } from './OnboardingOverlay';
 import { ShareDialog } from '@/features/sharing/components/ShareDialog';
 import { ExportDialog } from '@/features/import-export/components/ExportDialog';
+import { LiveCollaboratorsOverlay } from '@/features/collaboration/components/LiveCollaboratorsOverlay';
+import { CollaborationController } from '@/features/collaboration/components/CollaborationController';
+import { useCollaborationSync } from '@/features/collaboration/hooks/useCollaborationSync';
 import { FreehandDrawingNode } from '@/features/canvas/nodes/FreehandDrawingNode';
 import { CanvasTextNode } from '@/features/canvas/nodes/CanvasTextNode';
 import { ShapeNode } from '@/features/canvas/nodes/ShapeNode';
@@ -188,6 +191,23 @@ function CanvasInner({ projectId }: { projectId: string }) {
   useAutoSave();
   useKeyboardShortcuts();
 
+  const { isReadOnly, broadcastCursor } = useCollaborationSync({
+    projectId,
+  });
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      const selectedIds = selectedNodeId ? [selectedNodeId] : [];
+      broadcastCursor(flowPos, selectedIds);
+    },
+    [screenToFlowPosition, selectedNodeId, broadcastCursor]
+  );
+
+  const handlePointerLeave = useCallback(() => {
+    broadcastCursor(null, []);
+  }, [broadcastCursor]);
+
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
   const projects = useProjectStore((s) => s.projects);
@@ -307,6 +327,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
 
   const onPaneClick = useCallback(
     (e: ReactMouseEvent) => {
+      if (isReadOnly) return;
       if (placementItem) {
         const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
         let newNode: SystemNode | null = null;
@@ -512,6 +533,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
       setPlacementItem,
       setActiveTool,
       clearSelection,
+      isReadOnly,
     ]
   );
 
@@ -546,18 +568,20 @@ function CanvasInner({ projectId }: { projectId: string }) {
 
   const onNodesDelete = useCallback(
     (deleted: SystemNode[]) => {
+      if (isReadOnly) return;
       const nodeIds = deleted.map((n) => n.id);
       deleteElements(nodeIds, []);
     },
-    [deleteElements]
+    [deleteElements, isReadOnly]
   );
 
   const onEdgesDelete = useCallback(
     (deleted: SystemEdgeModel[]) => {
+      if (isReadOnly) return;
       const edgeIds = deleted.map((e) => e.id);
       deleteElements([], edgeIds);
     },
-    [deleteElements]
+    [deleteElements, isReadOnly]
   );
 
   const [isPanning, setIsPanning] = useState(false);
@@ -584,6 +608,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
 
   const handleConnect: OnConnect = useCallback(
     (connection) => {
+      if (isReadOnly) return;
       let finalConnection = connection;
       // If user started dragging from a node that React Flow canonicalized as target,
       // restore the original source and target so the arrow points in the user's drag direction.
@@ -606,7 +631,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
       const newEdge = latest[latest.length - 1];
       if (newEdge) setPendingEdge({ edgeId: newEdge.id, position: connectEndPos.current });
     },
-    [onConnect, setPendingEdge]
+    [onConnect, setPendingEdge, isReadOnly]
   );
 
   const onConnectEnd = useCallback((event: MouseEvent | TouchEvent) => {
@@ -622,11 +647,12 @@ function CanvasInner({ projectId }: { projectId: string }) {
 
   const onReconnect: OnReconnect<SystemEdgeModel> = useCallback(
     (oldEdge, newConnection) => {
+      if (isReadOnly) return;
       edgeReconnectSuccessful.current = true;
       pushHistory();
       setEdges(reconnectEdge(oldEdge, newConnection, useCanvasStore.getState().edges) as SystemEdgeModel[]);
     },
-    [pushHistory, setEdges]
+    [pushHistory, setEdges, isReadOnly]
   );
 
   const onReconnectEnd = useCallback(() => {
@@ -641,6 +667,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const onDrop = useCallback(
     (event: DragEvent) => {
       event.preventDefault();
+      if (isReadOnly) return;
       const customItemJson = event.dataTransfer.getData('application/system-design-item');
       if (customItemJson) {
         try {
@@ -817,7 +844,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
       pushHistory();
       addNode(node);
     },
-    [screenToFlowPosition, addNode, addElements, pushHistory, nodes, edges, setNodes, setEdges]
+    [screenToFlowPosition, addNode, addElements, pushHistory, nodes, edges, setNodes, setEdges, isReadOnly]
   );
 
   const onPaneContextMenu = useCallback(
@@ -875,16 +902,18 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const toolCursorClass = getCanvasCursorClass(activeTool, isSpacePanning, Boolean(placementItem), isPanning);
 
   return (
-    <div className="flex h-dvh w-screen flex-col bg-bg">
+    <div suppressHydrationWarning className="flex h-screen h-dvh w-screen flex-col bg-bg">
       {!presenting && <CanvasHeader projectId={projectId} projectName={currentProject?.name} />}
       <div
         data-canvas-background={canvasBackground}
         className={cn(
-          'relative flex-1 overflow-hidden transition-colors duration-150',
+          'relative flex-1 w-full h-full min-h-0 overflow-hidden transition-colors duration-150',
           !animatedEdges && 'edges-static',
           toolCursorClass
         )}
-        style={canvasBgStyle}
+        style={{ width: '100%', height: '100%', ...canvasBgStyle }}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
         onContextMenu={(e) => {
           e.preventDefault();
           if (useCanvasStore.getState().placementItem) {
@@ -938,17 +967,17 @@ function CanvasInner({ projectId }: { projectId: string }) {
             zoomActivationKeyCode={['Control', 'Meta']}
             zoomOnDoubleClick={false}
             selectionKeyCode={null}
-            selectionOnDrag={!presenting && activeTool === 'select' && !isSpacePanning}
+            selectionOnDrag={!isReadOnly && !presenting && activeTool === 'select' && !isSpacePanning}
             multiSelectionKeyCode={['Control', 'Meta', 'Shift']}
             snapToGrid={snap}
             snapGrid={[20, 20]}
-            nodesDraggable={!presenting && activeTool === 'select' && !isSpacePanning}
-            nodesConnectable={!presenting && activeTool === 'select' && !isSpacePanning}
+            nodesDraggable={!isReadOnly && !presenting && activeTool === 'select' && !isSpacePanning}
+            nodesConnectable={!isReadOnly && !presenting && activeTool === 'select' && !isSpacePanning}
             elementsSelectable={!presenting && activeTool === 'select' && !isSpacePanning}
-            edgesReconnectable={!presenting && activeTool === 'select' && !isSpacePanning}
+            edgesReconnectable={!isReadOnly && !presenting && activeTool === 'select' && !isSpacePanning}
             panOnDrag={activeTool === 'hand' || isSpacePanning ? [0, 1] : [1]}
             deleteKeyCode={null}
-            style={canvasBgStyle}
+            style={{ width: '100%', height: '100%', ...canvasBgStyle }}
             className="transition-colors duration-150"
           >
             <CanvasBackgroundLayer />
@@ -972,12 +1001,14 @@ function CanvasInner({ projectId }: { projectId: string }) {
           </ReactFlow>
         </ValidationWarningsContext.Provider>
 
+        <LiveCollaboratorsOverlay />
+
         {!presenting && (
           <>
-            <NodePalette />
+            {!isReadOnly && <NodePalette />}
             <CanvasToolbar />
-            <SelectionActions />
-            <TextFormattingToolbar />
+            {!isReadOnly && <SelectionActions />}
+            {!isReadOnly && <TextFormattingToolbar />}
             {showValidation && <ValidationPanel issues={issues} editorOpen={editorOpen} />}
             {nodes.length === 0 && <EmptyCanvas offsetLeft={libraryOffset} />}
             {placementItem && (
@@ -992,12 +1023,12 @@ function CanvasInner({ projectId }: { projectId: string }) {
           </>
         )}
 
-        <NodeEditor />
-        <EdgeEditor />
-        <ConnectionTypePicker />
+        {!isReadOnly && <NodeEditor />}
+        {!isReadOnly && <EdgeEditor />}
+        {!isReadOnly && <ConnectionTypePicker />}
 
         {presenting && <PresentationOverlay order={order} projectName={currentProject?.name} />}
-        {contextMenu && !presenting && (
+        {contextMenu && !presenting && !isReadOnly && (
           <CanvasContextMenu key={`${contextMenu.x}-${contextMenu.y}`} menu={contextMenu} onClose={closeContextMenu} />
         )}
 
@@ -1006,6 +1037,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
         <OnboardingOverlay />
         <ShareDialog />
         <ExportDialog />
+        <CollaborationController />
       </div>
     </div>
   );
@@ -1065,7 +1097,7 @@ export function Canvas({ projectId }: { projectId: string }) {
 
   if (hydrationStatus === 'loading') {
     return (
-      <div className="dot-grid flex h-screen w-screen items-center justify-center bg-bg">
+      <div suppressHydrationWarning className="dot-grid flex h-screen w-screen items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-3">
           <div className="size-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           <span className="text-[13px] text-ink-3">Loading design…</span>

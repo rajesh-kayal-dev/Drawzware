@@ -10,6 +10,14 @@ export function requireWorkspaceRole(minRole: WorkspaceRole) {
       return;
     }
 
+    if (!user.isEmailVerified) {
+      res.status(403).json({
+        error: 'EMAIL_NOT_VERIFIED',
+        message: 'Email verification is required to access cloud workspaces.',
+      });
+      return;
+    }
+
     const workspaceId = req.params.workspaceId;
     if (!workspaceId) {
       res.status(400).json({ error: 'INVALID_WORKSPACE_ID', message: 'Workspace ID parameter is required.' });

@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   ChevronRight,
-  Copy,
   Download,
   FileCode,
   FileJson,
@@ -14,13 +13,11 @@ import {
   FolderOpen,
   Home,
   ImageIcon,
-  Link as LinkIcon,
   Moon,
   Play,
   Check,
   Grid,
   Settings2,
-  Share2,
   Sun,
   Workflow,
 } from 'lucide-react';
@@ -33,10 +30,8 @@ import {
   exportToSvg,
   exportToJson,
   exportFilename,
-  copyPngToClipboard,
 } from '@/features/import-export/utils/export';
 import { exportToMermaid } from '@/features/import-export/utils/mermaid';
-import { encodeCanvasToUrl } from '@/features/sharing/utils/share';
 import { downloadFile } from '@/shared/utils/utils';
 import { openDrawzProject, saveAsDrawzProject } from '@/features/projects/utils/file-operations';
 import type { Project } from '@/features/projects/types/project.types';
@@ -56,6 +51,9 @@ import {
 } from '@/shared/components/ui/dropdown-menu';
 import { getShortcutKeys } from '@/features/canvas/utils/shortcuts';
 import { cn } from '@/shared/utils/utils';
+
+import { useCollaborationStore } from '@/features/collaboration/stores/useCollaborationStore';
+import { CollaborationHeaderActions } from '@/features/collaboration/components/CollaborationHeaderActions';
 
 const STATUS: Record<SaveStatus, { label: string; dot: string }> = {
   saved: { label: 'Saved', dot: 'bg-ok' },
@@ -165,7 +163,6 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
   const hasComponents = useCanvasStore((s) => s.nodes.some((n) => n.type === 'system'));
   const startPresentation = useCanvasStore((s) => s.startPresentation);
   const setExportOpen = useCanvasStore((s) => s.setExportOpen);
-  const setShareOpen = useCanvasStore((s) => s.setShareOpen);
   const ThemeIcon = theme === 'dark' ? Sun : Moon;
   const themeLabel = theme === 'dark' ? 'Light theme' : 'Dark theme';
 
@@ -173,6 +170,14 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
   const isDesktop = useIsDesktop();
   const canvasBackground = useSettingsStore((s) => s.canvasBackground);
   const setCanvasBackground = useSettingsStore((s) => s.setCanvasBackground);
+  const isLive = useCollaborationStore((s) => s.isLive);
+  const isReadOnly = useCollaborationStore((s) => s.isReadOnly);
+
+  useEffect(() => {
+    if (projectName) {
+      useCollaborationStore.getState().invitationData.projectName = projectName;
+    }
+  }, [projectName]);
 
   const handleExportPng = async () => {
     try {
@@ -210,26 +215,6 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
       toast({ message: 'Mermaid downloaded', tone: 'ok' });
     } catch {
       toast({ message: 'Export failed', tone: 'danger' });
-    }
-  };
-
-  const handleCopyShareLink = async () => {
-    const { nodes, edges } = useCanvasStore.getState();
-    const url = nodes.length > 0 ? encodeCanvasToUrl(nodes, edges) : (typeof window !== 'undefined' ? window.location.href : '');
-    try {
-      await navigator.clipboard.writeText(url);
-      toast({ message: 'Share link copied to clipboard', tone: 'ok' });
-    } catch {
-      toast({ message: "Couldn't copy link", tone: 'danger' });
-    }
-  };
-
-  const handleCopyCanvasImage = async () => {
-    try {
-      await copyPngToClipboard();
-      toast({ message: 'Diagram image copied to clipboard', tone: 'ok' });
-    } catch {
-      toast({ message: "Couldn't copy image to clipboard", tone: 'danger' });
     }
   };
 
@@ -323,15 +308,33 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
         {projectName !== undefined && <ProjectName key={projectName} projectId={projectId} name={projectName} />}
       </nav>
 
-      <span
-        className="ml-2 inline-flex shrink-0 items-center gap-[5px] text-[12px] whitespace-nowrap text-ink-3"
-        role="status"
-        aria-live="polite"
-        title={narrow ? STATUS[status].label : undefined}
-      >
-        <span className={cn('size-1.5 rounded-full', STATUS[status].dot)} />
-        {narrow ? <span className="sr-only">{STATUS[status].label}</span> : STATUS[status].label}
-      </span>
+      {isLive ? (
+        <span
+          className={cn(
+            'ml-2 inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11.5px] font-medium shadow-2xs',
+            isReadOnly
+              ? 'bg-amber-500/10 border border-amber-500/30 text-amber-500'
+              : 'bg-ok/10 border border-ok/30 text-ok'
+          )}
+          role="status"
+          aria-live="polite"
+        >
+          <span
+            className={cn('size-1.5 rounded-full', isReadOnly ? 'bg-amber-500' : 'bg-ok animate-pulse')}
+          />
+          {isReadOnly ? 'View Only' : 'Live'}
+        </span>
+      ) : (
+        <span
+          className="ml-2 inline-flex shrink-0 items-center gap-[5px] text-[12px] whitespace-nowrap text-ink-3"
+          role="status"
+          aria-live="polite"
+          title={narrow ? STATUS[status].label : undefined}
+        >
+          <span className={cn('size-1.5 rounded-full', STATUS[status].dot)} />
+          {narrow ? <span className="sr-only">{STATUS[status].label}</span> : STATUS[status].label}
+        </span>
+      )}
 
       {/* ── TOP-RIGHT ACTION BUTTONS: PRESENT, EXPORT, SHARE, THEME ── */}
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -400,40 +403,8 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* 3. Share (Share menu) */}
-        <DropdownMenu>
-          <SimpleTooltip label="Share">
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="Share options"
-                className={cn(
-                  'group relative flex h-8 px-3 items-center justify-center rounded-full border border-[#818cf8]/40 bg-[#818cf8]/20 text-[#a5b4fc] shadow-2xs transition-all duration-150',
-                  'hover:-translate-y-0.5 hover:border-[#818cf8]/60 hover:bg-[#818cf8]/30 hover:text-white hover:shadow-xs active:translate-y-0 active:scale-95 cursor-pointer',
-                  'data-[state=open]:border-[#818cf8] data-[state=open]:bg-[#818cf8]/35 data-[state=open]:text-white data-[state=open]:shadow-xs'
-                )}
-              >
-                <Share2 className="size-3.5 stroke-[2.2] transition-transform duration-150 group-hover:scale-110" />
-              </button>
-            </DropdownMenuTrigger>
-          </SimpleTooltip>
-          <DropdownMenuContent align="end" className="w-[205px]">
-            <DropdownMenuLabel>Share Canvas</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={handleCopyShareLink} className="cursor-pointer">
-              <LinkIcon className="size-3.5 mr-2 text-ink-2" />
-              Copy share link
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleCopyCanvasImage} className="cursor-pointer">
-              <Copy className="size-3.5 mr-2 text-ink-2" />
-              Copy diagram image
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setShareOpen(true)} className="cursor-pointer">
-              <Share2 className="size-3.5 mr-2 text-ink-2" />
-              Share snapshot dialog…
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* 3. Share & Collaboration Actions (Live Avatar Stack, Invite, Share Dropdown) */}
+        <CollaborationHeaderActions onExportPng={handleExportPng} />
 
         {/* 4. Canvas Background Selector */}
         <DropdownMenu>

@@ -5,9 +5,17 @@ import {
   listDiagramsInWorkspace,
   updateDiagramMetadata,
   getDiagramSnapshot,
+  getDiagramSnapshotWithMeta,
+  saveDiagramSnapshot,
 } from '../services/diagram.service.js';
 import { findWorkspaceMember } from '../services/workspace.service.js';
-import { CreateDiagramInput, UpdateDiagramInput, ImportDiagramInput, hasMinimumRole } from '@drawzware/contracts';
+import {
+  CreateDiagramInput,
+  UpdateDiagramInput,
+  ImportDiagramInput,
+  SaveDiagramSnapshotInput,
+  hasMinimumRole,
+} from '@drawzware/contracts';
 import { serverError } from '../middleware/error-handler.js';
 
 export const listDiagramsHandler = async (req: Request, res: Response) => {
@@ -92,5 +100,75 @@ export const updateDiagramHandler = async (req: Request, res: Response) => {
     return res.json(updated);
   } catch (err: unknown) {
     return serverError(res, 'Failed to update diagram.', err);
+  }
+};
+
+export const getDiagramSnapshotHandler = async (req: Request, res: Response) => {
+  const user = req.user!;
+  try {
+    const diagram = await findDiagramById(req.params.diagramId);
+    if (!diagram) {
+      return res.status(404).json({ error: 'NOT_FOUND', message: 'Diagram not found.' });
+    }
+
+    const member = await findWorkspaceMember(diagram.workspaceId, user.id);
+    if (!member) {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
+    }
+
+    const snapshot = await getDiagramSnapshotWithMeta(req.params.diagramId);
+    if (!snapshot) {
+      return res.status(404).json({ error: 'NOT_FOUND', message: 'No snapshot found for this diagram.' });
+    }
+
+    return res.json(snapshot);
+  } catch (err: unknown) {
+    return serverError(res, 'Failed to retrieve diagram snapshot.', err);
+  }
+};
+
+export const saveDiagramSnapshotHandler = async (req: Request, res: Response) => {
+  const user = req.user!;
+  const body = req.body as SaveDiagramSnapshotInput;
+  try {
+    const diagram = await findDiagramById(req.params.diagramId);
+    if (!diagram) {
+      return res.status(404).json({ error: 'NOT_FOUND', message: 'Diagram not found.' });
+    }
+
+    const member = await findWorkspaceMember(diagram.workspaceId, user.id);
+    if (!member) {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
+    }
+
+    if (!hasMinimumRole(member.role, 'editor')) {
+      return res.status(403).json({
+        error: 'INSUFFICIENT_PERMISSIONS',
+        message: "Users with 'viewer' role cannot update diagram snapshots.",
+      });
+    }
+
+    const projectState = body.project || body.state!;
+    const result = await saveDiagramSnapshot(req.params.diagramId, projectState, body.clientVersion);
+
+    if (result.conflict) {
+      return res.status(409).json({
+        error: 'VERSION_CONFLICT',
+        message: 'Cloud snapshot version conflict. The diagram has been modified by another session.',
+        currentVersion: result.currentVersion,
+        currentSnapshot: result.currentSnapshot,
+      });
+    }
+
+    if (!result.success || !result.snapshot) {
+      return res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Failed to save diagram snapshot.' });
+    }
+
+    return res.status(200).json({
+      message: 'Diagram snapshot saved successfully.',
+      ...result.snapshot,
+    });
+  } catch (err: unknown) {
+    return serverError(res, 'Failed to save diagram snapshot.', err);
   }
 };

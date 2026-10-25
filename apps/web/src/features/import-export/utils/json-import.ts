@@ -256,9 +256,14 @@ function endpointDiagram(endpoints: EndpointRecord[]): JsonImportItem {
   };
 }
 
+const MAX_IMPORT_NODES = 10000;
+const MAX_IMPORT_EDGES = 20000;
+
 function isProjectLike(value: unknown): value is { name?: string; description?: string; nodes: SystemNode[]; edges: SystemEdge[] } {
   const rec = asRecord(value);
-  return !!rec && Array.isArray(rec.nodes) && Array.isArray(rec.edges);
+  if (!rec || !Array.isArray(rec.nodes) || !Array.isArray(rec.edges)) return false;
+  if (rec.nodes.length > MAX_IMPORT_NODES || rec.edges.length > MAX_IMPORT_EDGES) return false;
+  return rec.nodes.every((n) => n && typeof n === 'object') && rec.edges.every((e) => e && typeof e === 'object');
 }
 
 function projectItem(value: { name?: string; description?: string; nodes: SystemNode[]; edges: SystemEdge[] }): JsonImportItem {

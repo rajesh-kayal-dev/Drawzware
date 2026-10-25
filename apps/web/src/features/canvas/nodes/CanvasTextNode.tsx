@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useRef, useEffect, useCallback } from 'react';
+import React, { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { NodeResizer, type NodeProps } from '@xyflow/react';
 import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
 import { cn } from '@/shared/utils/utils';
@@ -20,17 +20,185 @@ function getFontFamilyClass(family?: string) {
   }
 }
 
+const ALLOWED_TAGS = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'P', 'DIV', 'BR', 'FONT']);
+const DANGEROUS_TAGS = new Set([
+  'SCRIPT',
+  'IFRAME',
+  'OBJECT',
+  'EMBED',
+  'SVG',
+  'MATH',
+  'IMG',
+  'AUDIO',
+  'VIDEO',
+  'INPUT',
+  'BUTTON',
+  'FORM',
+  'LINK',
+  'STYLE',
+  'META',
+  'BASE',
+  'FRAME',
+  'FRAMESET',
+]);
+
+function isSafeColor(color: string): boolean {
+  const trimmed = color.trim().toLowerCase();
+  if (/^#([0-9a-f]{3,8})$/.test(trimmed)) return true;
+  if (/^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+\s*)?\)$/.test(trimmed)) return true;
+  if (/^hsla?\(\s*\d+\s*,\s*[\d.]+%?\s*,\s*[\d.]+%?\s*(?:,\s*[\d.]+\s*)?\)$/.test(trimmed)) return true;
+  if (/^[a-z]{3,20}$/.test(trimmed) && !['javascript', 'expression', 'url'].includes(trimmed)) return true;
+  return false;
+}
+
+function extractSafeColor(styleStr: string | null): string | undefined {
+  if (!styleStr) return undefined;
+  const match = styleStr.match(/(?:^|;)\s*color\s*:\s*([^;]+)/i);
+  if (match) {
+    const val = match[1].trim();
+    if (isSafeColor(val)) return val;
+  }
+  return undefined;
+}
+
+function domNodeToReact(node: Node, key: number | string): React.ReactNode {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent || '';
+  }
+
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return null;
+  }
+
+  const el = node as HTMLElement;
+  const tag = el.tagName.toUpperCase();
+
+  if (DANGEROUS_TAGS.has(tag)) {
+    return null;
+  }
+
+  const childNodes = Array.from(el.childNodes);
+  const children = childNodes
+    .map((child, idx) => domNodeToReact(child, `${key}-${idx}`))
+    .filter((child) => child !== null && child !== '');
+
+  switch (tag) {
+    case 'BR':
+      return <br key={key} />;
+    case 'B':
+    case 'STRONG':
+      return (
+        <strong key={key} className="font-semibold">
+          {children}
+        </strong>
+      );
+    case 'I':
+    case 'EM':
+      return (
+        <em key={key} className="italic">
+          {children}
+        </em>
+      );
+    case 'U':
+      return (
+        <u key={key} className="underline">
+          {children}
+        </u>
+      );
+    case 'P':
+      return (
+        <p key={key} className="my-0">
+          {children}
+        </p>
+      );
+    case 'DIV':
+      return <div key={key}>{children}</div>;
+    case 'FONT': {
+      const colorAttr = el.getAttribute('color');
+      const safeColor = colorAttr && isSafeColor(colorAttr) ? colorAttr : undefined;
+      return <span key={key} style={safeColor ? { color: safeColor } : undefined}>{children}</span>;
+    }
+    case 'SPAN': {
+      const safeColor = extractSafeColor(el.getAttribute('style'));
+      return <span key={key} style={safeColor ? { color: safeColor } : undefined}>{children}</span>;
+    }
+    default:
+      return children.length > 0 ? <React.Fragment key={key}>{children}</React.Fragment> : null;
+  }
+}
+
 function hasHtml(str: string): boolean {
   if (!str) return false;
   return /<(strong|b|em|i|u|span|p|div|br|font)[\s>]/i.test(str);
 }
 
-function sanitizeRichText(html: string): string {
+export function sanitizeRichText(html: string): string {
   if (!html) return '';
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/\son\w+="[^"]*"/gi, '')
-    .replace(/\son\w+='[^']*'/gi, '');
+  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
+    return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/<[^>]+>/g, '');
+  }
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+    const container = doc.body.firstElementChild || doc.body;
+
+    const dangerousElements = container.querySelectorAll(
+      'script, iframe, object, embed, svg, math, img, audio, video, input, button, form, link, style, meta, base'
+    );
+    dangerousElements.forEach((el) => el.remove());
+
+    const allElements = container.querySelectorAll('*');
+    allElements.forEach((el) => {
+      const tag = el.tagName.toUpperCase();
+      if (!ALLOWED_TAGS.has(tag)) {
+        const parent = el.parentNode;
+        while (el.firstChild) {
+          parent?.insertBefore(el.firstChild, el);
+        }
+        parent?.removeChild(el);
+        return;
+      }
+
+      const attrs = Array.from(el.attributes);
+      for (const attr of attrs) {
+        if (tag === 'SPAN' && attr.name.toLowerCase() === 'style') {
+          const safeColor = extractSafeColor(attr.value);
+          if (safeColor) {
+            el.setAttribute('style', `color: ${safeColor}`);
+          } else {
+            el.removeAttribute(attr.name);
+          }
+        } else if (tag === 'FONT' && attr.name.toLowerCase() === 'color') {
+          if (!isSafeColor(attr.value)) {
+            el.removeAttribute(attr.name);
+          }
+        } else {
+          el.removeAttribute(attr.name);
+        }
+      }
+    });
+
+    return container.innerHTML;
+  } catch {
+    return '';
+  }
+}
+
+function renderSafeRichText(html: string): React.ReactNode {
+  if (!html) return null;
+  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
+    return html.replace(/<[^>]+>/g, '');
+  }
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+    const container = doc.body.firstElementChild || doc.body;
+    return Array.from(container.childNodes).map((child, idx) => domNodeToReact(child, idx));
+  } catch {
+    return html.replace(/<[^>]+>/g, '');
+  }
 }
 
 function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) {
@@ -98,7 +266,7 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
   useEffect(() => {
     if (isEditing && editorRef.current) {
       const el = editorRef.current;
-      el.innerHTML = draftTextRef.current;
+      el.innerHTML = sanitizeRichText(draftTextRef.current);
       el.focus();
       try {
         const sel = window.getSelection();
@@ -411,13 +579,8 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
             isFixedWidth ? 'whitespace-pre-wrap break-words' : 'whitespace-pre',
             !contentText && 'italic text-ink-3'
           )}
-          dangerouslySetInnerHTML={
-            hasHtml(contentText)
-              ? { __html: sanitizeRichText(contentText) }
-              : undefined
-          }
         >
-          {hasHtml(contentText) ? null : (contentText || 'Type text…')}
+          {hasHtml(contentText) ? renderSafeRichText(contentText) : (contentText || 'Type text…')}
         </div>
       )}
     </div>

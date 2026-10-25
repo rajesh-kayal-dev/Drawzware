@@ -3,6 +3,8 @@ export interface JwtUserPayload {
   sub?: string;
   email?: string;
   name?: string;
+  isEmailVerified?: boolean;
+  tokenVersion?: number;
   exp?: number;
   [key: string]: unknown;
 }
@@ -11,11 +13,18 @@ export interface UserSummary {
   id: string;
   name: string;
   email: string;
+  isEmailVerified: boolean;
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 
 export interface AuthResult {
   user: UserSummary;
-  token: string;
+  tokens: AuthTokens;
 }
 
 export interface RegisterInput {
@@ -28,3 +37,4 @@ export interface LoginInput {
   email: string;
   password: string;
 }
+

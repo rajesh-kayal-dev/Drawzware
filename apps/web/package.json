@@ -9,9 +9,10 @@
     "start": "next start"
   },
   "dependencies": {
+    "@drawzware/canvas-core": "*",
     "@drawzware/contracts": "*",
     "@drawzware/domain": "*",
-    "@drawzware/canvas-core": "*",
-    "@drawzware/storage": "*"
+    "@drawzware/storage": "*",
+    "yjs": "^13.6.33"
   }
 }

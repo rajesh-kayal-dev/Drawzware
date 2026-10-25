@@ -6,8 +6,8 @@ This repository contains **Drawzware**, an opinionated system architecture diagr
 
 ## 1. Prime Directives
 
-1. **Client-First, Zero-Backend Invariant:** Drawzware has no backend server, no database daemon, and no remote authentication. Everything runs client-side. Never introduce remote API calls, cloud auth, or background server assumptions.
-2. **Preserve Existing Working Functionality:** The Next.js static export (`output: "export"`), `@xyflow/react` controlled canvas, Zustand stores, and studio design system are proven and working. Do not perform speculative rewrites.
+1. **Client-First, Offline-Primary Invariant:** Drawzware's personal canvas experience is 100% offline and client-side by default with zero required backend dependencies. Local auto-save and native exports must never depend on remote services. Cloud authentication, remote persistence, and multi-user collaboration are strictly opt-in and handled via the dedicated `@drawzware/api` service and typed contracts in `@drawzware/contracts`. Client applications (`apps/web` and `apps/desktop`) must never directly import database or server packages.
+2. **Preserve Existing Working Functionality:** The Next.js static export (`output: "export"`), `@xyflow/react` controlled canvas, Zustand stores, and studio design system are proven and working. Do not perform speculative rewrites. Static export requires client-compatible routes (e.g., query-parameter or client-hydrated routes for public views) backed by secure public API endpoints in `@drawzware/api`.
 3. **Inspect Before Changing:** Read source code, types, and existing tests before modifying any file. Never assume API contracts or component props.
 4. **Plan Non-Trivial Changes:** For any task involving multi-file edits, architecture shifts, or new dependencies, outline an evidence-based plan before implementing.
 5. **No Hallucinated Test Results:** Never report that a test, build, or lint check passed unless you actually ran the command and observed success output. If an environment limitation prevents execution, report it explicitly.
@@ -20,7 +20,8 @@ This repository contains **Drawzware**, an opinionated system architecture diagr
 - **Canvas Engine:** `@xyflow/react` v12.10.1 (React Flow in controlled Zustand mode)
 - **State Management:** Zustand v5 (`useCanvasStore`, `useProjectStore`, `useSettingsStore`)
 - **Styling:** Tailwind CSS v4 + Studio design tokens ([src/styles/tokens.css](file:///d:/AI%20Projects/drawzware-system-design-canvas/src/styles/tokens.css)) + Radix UI primitives
-- **Desktop Subsystem:** Electron with isolated preload bridge and atomic file-based persistence
+- **Desktop Subsystem:** Electron with isolated preload bridge, atomic file-based persistence, and hardened CSP permitting only configured trusted API origins
+- **Collaboration & Cloud Backend (Opt-In):** Node.js / Express REST & WebSocket API (`@drawzware/api`) backed by MongoDB for workspaces, invitations, remote canvas sync, and background cleanup workers when required (7-day Trash lifecycle)
 
 ---
 
@@ -34,9 +35,9 @@ Specific, actionable constraints are maintained in `.agents/rules/`:
 - [desktop-security.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/.agents/rules/desktop-security.md): Electron sandbox, IPC whitelist, CSP, and input validation.
 
 Architecture specifications and placement guides:
-- [MONOREPO_ARCHITECTURE.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/docs/engineering/MONOREPO_ARCHITECTURE.md): Complete monorepo taxonomy, responsibilities, and dependency rules.
-- [AGENT_PLACEMENT_GUIDE.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/docs/engineering/AGENT_PLACEMENT_GUIDE.md): Feature placement lookup and naming conventions for AI agents.
-- [ADR-007](file:///d:/AI%20Projects/drawzware-system-design-canvas/docs/engineering/adr/ADR-007-monorepo-structure-and-module-boundaries.md): Monorepo structure and module boundaries decision.
+- [System_Design.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/docs/System_Design.md): Complete system architecture, state models, and collaboration lifecycle.
+- [MVP_PLAN.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/docs/MVP_PLAN.md): Feature scope, acceptance gates, and delivery requirements.
+- [AUDIT_REPORT.md](file:///d:/AI%20Projects/drawzware-system-design-canvas/AUDIT_REPORT.md): Codebase audit findings, gap analysis, and verified invariants.
 
 ---
 

@@ -9,6 +9,7 @@ import {
 } from '@xyflow/react';
 import type { SystemNode, SystemEdge, SystemNodeData, SystemEdgeData, CanvasTool, PlacementItem, DrawingFormatting, DiagramType, LibraryTab } from '@/features/canvas/types/canvas.types';
 import { getInitialSequenceDiagram, getInitialERDiagram } from '@/features/canvas/templates/diagram-templates';
+import { useCollaborationStore } from '@/features/collaboration/stores/useCollaborationStore';
 
 interface HistoryEntry {
   nodes: SystemNode[];
@@ -1034,6 +1035,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   undo: () => {
+    const collabState = useCollaborationStore.getState();
+    if (collabState.isLive && collabState.undoManager) {
+      collabState.collabUndo();
+      return;
+    }
     const { historyIndex, history } = get();
     if (historyIndex <= 0) return;
     const prev = history[historyIndex - 1];
@@ -1045,6 +1051,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   redo: () => {
+    const collabState = useCollaborationStore.getState();
+    if (collabState.isLive && collabState.undoManager) {
+      collabState.collabRedo();
+      return;
+    }
     const { historyIndex, history } = get();
     if (historyIndex >= history.length - 1) return;
     const next = history[historyIndex + 1];

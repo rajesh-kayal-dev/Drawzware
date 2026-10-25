@@ -59,7 +59,7 @@ export function useKeyboardShortcuts() {
     const handleKeyDown = (e: KeyboardEvent) => {
       const s = useCanvasStore.getState();
       const mod = e.metaKey || e.ctrlKey;
-      const key = e.key.toLowerCase();
+      const key = e.key ? e.key.toLowerCase() : '';
 
       // ⌘K works everywhere, including inside inputs and the command menu itself.
       if (mod && !e.shiftKey && !e.altKey && key === 'k') {
