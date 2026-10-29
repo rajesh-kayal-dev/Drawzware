@@ -1090,7 +1090,6 @@ export function Canvas({ projectId }: { projectId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset hydration status when projectId changes
     setHydrationStatus('loading');
     setLoadError(null);
 
@@ -1113,8 +1112,8 @@ export function Canvas({ projectId }: { projectId: string }) {
                 description: cloudDiagram.snapshot?.description,
                 createdAt: cloudDiagram.createdAt ? new Date(cloudDiagram.createdAt).toISOString() : new Date().toISOString(),
                 updatedAt: cloudDiagram.updatedAt ? new Date(cloudDiagram.updatedAt).toISOString() : new Date().toISOString(),
-                nodes: (cloudDiagram.snapshot?.nodes || []) as any,
-                edges: (cloudDiagram.snapshot?.edges || []) as any,
+                nodes: (cloudDiagram.snapshot?.nodes || []) as Project['nodes'],
+                edges: (cloudDiagram.snapshot?.edges || []) as Project['edges'],
                 viewport: cloudDiagram.snapshot?.viewport || { x: 0, y: 0, zoom: 1 },
                 diagramType: cloudDiagram.diagramType || cloudDiagram.snapshot?.diagramType || 'architecture',
                 diagramData: cloudDiagram.snapshot?.diagramData,

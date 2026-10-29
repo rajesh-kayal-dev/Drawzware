@@ -32,7 +32,7 @@ export function LiveCollaboratorsOverlay() {
   const liveCursors = useCollaborationStore((s) => s.liveCursors);
   const viewport = useCanvasStore((s) => s.viewport);
 
-  const [now, setNow] = useState<number>(Date.now());
+  const [now, setNow] = useState<number>(0);
 
   // Periodically check for idle cursors to gracefully fade out inactive pointers
   useEffect(() => {
@@ -54,7 +54,7 @@ export function LiveCollaboratorsOverlay() {
             liveCursors.map((cursor) => {
               const screenX = cursor.x * viewport.zoom + viewport.x;
               const screenY = cursor.y * viewport.zoom + viewport.y;
-              const isIdle = cursor.lastActiveAt ? now - cursor.lastActiveAt > 8000 : false;
+              const isIdle = cursor.lastActiveAt && now > 0 ? now - cursor.lastActiveAt > 8000 : false;
 
               return (
                 <div
