@@ -16,9 +16,9 @@ import { type PopularServiceItem } from '@/features/canvas/registries/popular-se
  * library (left), validation panel (top), toolbar (bottom), open editor (right).
  */
 export function getFitViewOptions(duration?: number): FitViewOptions {
-  if (typeof window === 'undefined') return { padding: 0.15, duration };
+  if (typeof window === 'undefined') return { padding: 0.15, duration, maxZoom: 1, minZoom: 0.1 };
   if (window.matchMedia('(max-width: 899px)').matches) {
-    return { padding: { top: '72px', right: '24px', bottom: '24px', left: '24px' }, duration };
+    return { padding: { top: '72px', right: '24px', bottom: '24px', left: '24px' }, duration, maxZoom: 1, minZoom: 0.1 };
   }
   const { libraryCollapsed, selectedNodeId, selectedEdgeId } = useCanvasStore.getState();
   return {
@@ -29,6 +29,8 @@ export function getFitViewOptions(duration?: number): FitViewOptions {
       left: libraryCollapsed ? '96px' : '308px',
     },
     duration,
+    maxZoom: 1,
+    minZoom: 0.1,
   };
 }
 

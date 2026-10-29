@@ -9,6 +9,7 @@ import {
   revokeWorkspaceInvitation,
   getInvitationPreview,
   acceptWorkspaceInvitation,
+  signupWithInvitation,
 } from '../services/workspace.service.js';
 import { CreateWorkspaceInput, CreateInvitationInput } from '@drawzware/contracts';
 import { serverError } from '../middleware/error-handler.js';
@@ -59,7 +60,15 @@ export const createInvitationHandler = async (req: Request, res: Response) => {
   const user = req.user!;
   const body = req.body as CreateInvitationInput;
   try {
-    const invitation = await createWorkspaceInvitation(req.params.workspaceId, body.email, body.role, user.id);
+    const invitation = await createWorkspaceInvitation(
+      req.params.workspaceId,
+      body.email,
+      body.role,
+      user.id,
+      body.returnUrl,
+      body.canvasUrl,
+      body.diagramId
+    );
     return res.status(201).json(invitation);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : '';
@@ -130,7 +139,7 @@ export const acceptInvitationHandler = async (req: Request, res: Response) => {
       user.email,
       Boolean(user.isEmailVerified)
     );
-    return res.json({ message: 'Invitation accepted successfully.', member });
+    return res.json({ message: 'Invitation accepted successfully.', member, canvasUrl: member.canvasUrl, role: member.role });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : '';
     if (msg === 'EMAIL_NOT_VERIFIED') {
@@ -158,5 +167,46 @@ export const acceptInvitationHandler = async (req: Request, res: Response) => {
       });
     }
     return serverError(res, 'Failed to accept invitation.', err);
+  }
+};
+
+export const invitationSignupHandler = async (req: Request, res: Response) => {
+  const invitationId = req.params.invitationId || req.body.invitationId;
+  const { password } = req.body;
+
+  if (!invitationId || !password) {
+    return res.status(400).json({
+      error: 'BAD_REQUEST',
+      message: 'Invitation ID and password are required.',
+    });
+  }
+
+  try {
+    const result = await signupWithInvitation(invitationId, password, {
+      userAgent: req.headers['user-agent'],
+      ipAddress: req.ip,
+    });
+    return res.status(201).json(result);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg === 'INVITATION_NOT_FOUND') {
+      return res.status(404).json({ error: 'NOT_FOUND', message: 'Invitation not found.' });
+    }
+    if (msg === 'INVITATION_EXPIRED') {
+      return res.status(410).json({ error: 'EXPIRED', message: 'This invitation has expired.' });
+    }
+    if (msg.startsWith('INVITATION_')) {
+      return res.status(409).json({
+        error: 'INVALID_STATUS',
+        message: `Invitation is already ${msg.replace('INVITATION_', '').toLowerCase()}.`,
+      });
+    }
+    if (msg.includes('Account already exists')) {
+      return res.status(401).json({
+        error: 'INVALID_CREDENTIALS',
+        message: msg,
+      });
+    }
+    return serverError(res, 'Failed to complete signup with invitation.', err);
   }
 };

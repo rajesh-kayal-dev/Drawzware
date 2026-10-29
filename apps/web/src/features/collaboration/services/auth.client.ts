@@ -10,6 +10,11 @@ import type {
   InvitationPreview,
   WorkspaceInvitation,
   WorkspaceMember,
+  Project,
+  Workspace,
+  DiagramMetadata,
+  CreateWorkspaceInput,
+  ImportDiagramInput,
 } from '@drawzware/contracts';
 
 const ACCESS_TOKEN_KEY = 'drawzware_access_token';
@@ -120,10 +125,13 @@ async function apiFetch<T>(
   const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 
   if (!response.ok) {
-    const errorMsg =
+    let errorMsg =
       (typeof data?.message === 'string' && data.message) ||
       (typeof data?.error === 'string' && data.error) ||
       `HTTP ${response.status} Error`;
+    if (response.status === 401 && (errorMsg.includes('Authorization header') || errorMsg.includes('Bearer token required'))) {
+      errorMsg = 'Authentication required. Please sign in.';
+    }
     throw new ApiError(errorMsg, response.status, data);
   }
 
@@ -159,11 +167,27 @@ export const authClient = {
     return result;
   },
 
-  async verifyEmail(input: VerifyEmailInput): Promise<{ success: boolean; message: string }> {
-    return apiFetch<{ success: boolean; message: string }>('/api/auth/verify-email', {
+  async verifyEmail(input: VerifyEmailInput): Promise<{
+    success: boolean;
+    message: string;
+    user?: ClientUserSummary;
+    tokens?: AuthTokens;
+    alreadyVerified?: boolean;
+  }> {
+    const res = await apiFetch<{
+      success: boolean;
+      message: string;
+      user?: ClientUserSummary;
+      tokens?: AuthTokens;
+      alreadyVerified?: boolean;
+    }>('/api/auth/verify-email', {
       method: 'POST',
       body: JSON.stringify(input),
     });
+    if (res.tokens) {
+      setStoredTokens(res.tokens);
+    }
+    return res;
   },
 
   async resendVerification(input: ResendVerificationInput): Promise<{ success: boolean; message: string }> {
@@ -253,26 +277,67 @@ export const authClient = {
     }
   },
 
+  async updateProfile(payload: { name: string }): Promise<{ user: ClientUserSummary; message: string }> {
+    return apiFetch<{ user: ClientUserSummary; message: string }>('/api/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
   async getInvitationPreview(invitationId: string): Promise<InvitationPreview> {
     return apiFetch<InvitationPreview>(`/api/invitations/${invitationId}`, {}, false);
   },
 
-  async acceptInvitation(invitationId: string): Promise<WorkspaceMember> {
-    const res = await apiFetch<{ message: string; member: WorkspaceMember }>(
+  async acceptInvitation(invitationId: string): Promise<WorkspaceMember & { canvasUrl?: string }> {
+    const res = await apiFetch<{ message: string; member: WorkspaceMember; canvasUrl?: string; role?: string }>(
       `/api/invitations/${invitationId}/accept`,
       { method: 'POST' }
     );
-    return res.member;
+    return { ...res.member, canvasUrl: res.canvasUrl, role: (res.role as WorkspaceMember['role']) || res.member.role };
+  },
+
+  async invitationSignup(
+    invitationId: string,
+    password: string
+  ): Promise<{
+    message: string;
+    user: ClientUserSummary;
+    tokens: AuthTokens;
+    token: string;
+    workspaceId: string;
+    role: string;
+    canvasUrl: string;
+  }> {
+    const res = await apiFetch<{
+      message: string;
+      user: ClientUserSummary;
+      tokens: AuthTokens;
+      token: string;
+      workspaceId: string;
+      role: string;
+      canvasUrl: string;
+    }>(`/api/invitations/${invitationId}/signup`, {
+      method: 'POST',
+      body: JSON.stringify({ invitationId, password }),
+    }, false);
+
+    if (res.tokens) {
+      setStoredTokens(res.tokens);
+    }
+    return res;
   },
 
   async sendWorkspaceInvitation(
     workspaceId: string,
     email: string,
-    role: 'editor' | 'viewer'
+    role: 'editor' | 'viewer',
+    returnUrl?: string,
+    canvasUrl?: string,
+    diagramId?: string
   ): Promise<WorkspaceInvitation> {
     return apiFetch<WorkspaceInvitation>(`/api/workspaces/${workspaceId}/invitations`, {
       method: 'POST',
-      body: JSON.stringify({ email, role }),
+      body: JSON.stringify({ email, role, returnUrl, canvasUrl, diagramId }),
     });
   },
 
@@ -289,5 +354,43 @@ export const authClient = {
       { method: 'POST' }
     );
     return res.invitation;
+  },
+
+  async listWorkspaces(): Promise<Array<Workspace & { role?: string }>> {
+    return apiFetch<Array<Workspace & { role?: string }>>('/api/workspaces');
+  },
+
+  async createWorkspace(input: CreateWorkspaceInput): Promise<Workspace> {
+    return apiFetch<Workspace>('/api/workspaces', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  },
+
+  async importDiagram(
+    workspaceId: string,
+    project: Project,
+    title?: string
+  ): Promise<{ message: string; diagram: DiagramMetadata }> {
+    const payload: ImportDiagramInput = {
+      project,
+      title: title || project.name || 'Untitled Diagram',
+    };
+    return apiFetch<{ message: string; diagram: DiagramMetadata }>(
+      `/api/workspaces/${workspaceId}/diagrams/import`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+
+  async getDiagram(diagramId: string): Promise<DiagramMetadata & { snapshot?: Project | null }> {
+    return apiFetch<DiagramMetadata & { snapshot?: Project | null }>(`/api/diagrams/${diagramId}`);
+  },
+
+  async getDiagramSnapshot(diagramId: string): Promise<Project | null> {
+    const res = await apiFetch<{ snapshot: Project | null }>(`/api/diagrams/${diagramId}/snapshot`);
+    return res.snapshot || null;
   },
 };

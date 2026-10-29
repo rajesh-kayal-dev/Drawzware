@@ -21,6 +21,9 @@ import {
 } from '@/shared/components/ui/dropdown-menu';
 import { toast } from '@/stores/useToastStore';
 import { useCollaborationStore } from '../stores/useCollaborationStore';
+import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
+import { useProjectStore } from '@/features/projects/stores/useProjectStore';
+import { authClient } from '../services/auth.client';
 import type { CollaboratorRole } from '../types/collaboration.types';
 
 interface InviteRow {
@@ -78,7 +81,7 @@ export function InvitePeopleDialog() {
     );
   };
 
-  const handleSendInvitations = (e: React.FormEvent) => {
+  const handleSendInvitations = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentUser) {
@@ -108,23 +111,140 @@ export function InvitePeopleDialog() {
     }
 
     setIsSending(true);
-    setTimeout(() => {
-      setIsSending(false);
-      validEmails.forEach((r) => {
-        addCollaborator(r.email, r.role);
+    try {
+      // 1. Resolve workspace
+      let wsId = useCollaborationStore.getState().activeWorkspaceId;
+      if (!wsId) {
+        let wsList = useCollaborationStore.getState().workspaces;
+        if (wsList.length === 0) {
+          wsList = await useCollaborationStore.getState().loadWorkspaces();
+        }
+        if (wsList.length === 0) {
+          const defaultWs = await authClient.createWorkspace({ name: 'Personal Workspace' });
+          wsId = defaultWs.id;
+          useCollaborationStore.setState({
+            workspaces: [{ ...defaultWs, role: 'owner' }],
+            activeWorkspaceId: defaultWs.id,
+          });
+        } else {
+          wsId = wsList[0].id;
+          useCollaborationStore.setState({ activeWorkspaceId: wsId });
+        }
+      }
+
+      // 2. Resolve or publish current canvas to cloud
+      let targetDiagramId = useCollaborationStore.getState().activeDiagramId;
+      const currentCanvasId = useCanvasStore.getState().projectId;
+      const projectStore = useProjectStore.getState();
+      const currentProj = projectStore.projects.find(
+        (p) => p.id === currentCanvasId || p.cloudDiagramId === currentCanvasId
+      );
+
+      if (!targetDiagramId && currentProj?.cloudDiagramId) {
+        targetDiagramId = currentProj.cloudDiagramId;
+      }
+
+      // If the canvas is not yet published to the cloud, automatically publish it now!
+      if (!targetDiagramId) {
+        const pubResult = await useCollaborationStore.getState().publishCurrentCanvas(wsId);
+        if (pubResult.success && pubResult.diagramId) {
+          targetDiagramId = pubResult.diagramId;
+        }
+      }
+
+      // Ensure activeDiagramId and isLive are set on owner so WebSocket connects immediately
+      if (targetDiagramId) {
+        useCollaborationStore.setState({
+          activeDiagramId: targetDiagramId,
+          activeWorkspaceId: wsId,
+          isLive: true,
+        });
+      }
+
+      // 3. Resolve exact canvas URL
+      const currentCanvasUrl = targetDiagramId
+        ? `/canvas?id=${encodeURIComponent(targetDiagramId)}`
+        : (typeof window !== 'undefined' && window.location.pathname.includes('/canvas')
+            ? window.location.pathname + window.location.search
+            : '/app');
+
+      // 4. Send invitation via backend API for each email
+      let invitedCount = 0;
+      let existingMemberCount = 0;
+
+      for (const r of validEmails) {
+        const inviteRole: 'editor' | 'viewer' = r.role === 'viewer' ? 'viewer' : 'editor';
+        try {
+          const invRes = await authClient.sendWorkspaceInvitation(
+            wsId,
+            r.email,
+            inviteRole,
+            currentCanvasUrl,
+            currentCanvasUrl,
+            targetDiagramId || undefined
+          );
+          if (invRes.status === 'accepted') {
+            existingMemberCount++;
+          } else {
+            invitedCount++;
+          }
+        } catch (singleErr) {
+          const errText = singleErr instanceof Error ? singleErr.message : '';
+          if (errText.toLowerCase().includes('already a member')) {
+            existingMemberCount++;
+            continue;
+          }
+
+          useCollaborationStore.setState({
+            invitationError: errText || 'Failed to send invitation email. Please try again.',
+            lastFailedInvitationParams: {
+              wsId,
+              email: r.email,
+              role: inviteRole,
+              canvasUrl: currentCanvasUrl,
+              diagramId: targetDiagramId || undefined,
+            },
+          });
+          throw singleErr;
+        }
+      }
+
+      useCollaborationStore.setState({
+        invitationError: null,
+        lastFailedInvitationParams: null,
       });
-      toast({
-        message: `Sent ${validEmails.length} invitation${validEmails.length > 1 ? 's' : ''}!`,
-        tone: 'ok',
-      });
+
+      if (existingMemberCount > 0 && invitedCount === 0) {
+        toast({
+          message: `${validEmails.map((r) => r.email).join(', ')} already has workspace access. Canvas link sent!`,
+          tone: 'ok',
+        });
+      } else {
+        toast({
+          message: `Sent invitation to ${validEmails.map((r) => r.email).join(', ')}!`,
+          tone: 'ok',
+        });
+      }
       setInviteRows([{ id: '1', email: '', role: 'editor' }]);
       setOpen(false);
-    }, 500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to send invitations.';
+      toast({
+        message: msg,
+        tone: 'danger',
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleCopyLink = async () => {
     try {
-      const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/canvas?invite=demo` : 'https://drawzware.app/canvas';
+      const targetDiagramId = useCollaborationStore.getState().activeDiagramId;
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://drawzware.app';
+      const shareUrl = targetDiagramId
+        ? `${origin}/canvas?id=${encodeURIComponent(targetDiagramId)}`
+        : (typeof window !== 'undefined' ? window.location.href : 'https://drawzware.app/canvas');
       await navigator.clipboard.writeText(shareUrl);
       setCopiedLink(true);
       toast({ message: 'Collaboration link copied', tone: 'ok' });

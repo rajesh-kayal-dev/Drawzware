@@ -267,7 +267,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
   getOrLoadProject: async (id: string) => {
     // 1. Check in-memory store
-    const existing = get().projects.find((p) => p.id === id);
+    const existing = get().projects.find((p) => p.id === id || p.cloudDiagramId === id);
     if (existing) return existing;
 
     // 2. Fetch directly from active storage adapter (desktop or web)
@@ -279,8 +279,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         return { projects: [project, ...s.projects] };
       });
       return project;
-    } catch (err) {
-      console.warn(`[useProjectStore] Failed to load project ${id}:`, err);
+    } catch {
+      // Normal when an invited peer opens a cloud diagram for the first time before local caching
       return null;
     }
   },

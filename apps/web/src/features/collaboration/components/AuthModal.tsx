@@ -28,6 +28,7 @@ import { Input } from '@/shared/components/ui/input';
 import { toast } from '@/stores/useToastStore';
 import { sanitizeReturnUrl } from '@/shared/utils/routes';
 import { useCollaborationStore } from '../stores/useCollaborationStore';
+import { useProjectStore } from '@/features/projects/stores/useProjectStore';
 import { authClient } from '../services/auth.client';
 
 export type AuthMode = 'login' | 'signup' | 'forgot';
@@ -35,17 +36,30 @@ export type AuthStep = 'form' | 'verify-confirmation';
 
 function getCurrentReturnUrl(): string {
   if (typeof window === 'undefined') return '/app';
-  const url = window.location.pathname + window.location.search;
+  let url = window.location.pathname + window.location.search;
+  if (window.location.pathname === '/canvas' && !window.location.search) {
+    const lastId = useProjectStore.getState().lastOpenedProjectId || useProjectStore.getState().projects[0]?.id;
+    if (lastId) {
+      url = `/canvas?id=${encodeURIComponent(lastId)}`;
+    }
+  }
   return sanitizeReturnUrl(url, '/app');
 }
 
 export function AuthModal() {
   const open = useCollaborationStore((s) => s.authModalOpen);
   const setOpen = useCollaborationStore((s) => s.setAuthModalOpen);
+  const authModalMode = useCollaborationStore((s) => s.authModalMode);
   const signIn = useCollaborationStore((s) => s.signIn);
   const currentUser = useCollaborationStore((s) => s.currentUser);
 
   const [mode, setMode] = useState<AuthMode>('login');
+
+  useEffect(() => {
+    if (open && authModalMode) {
+      setMode(authModalMode);
+    }
+  }, [open, authModalMode]);
   const [step, setStep] = useState<AuthStep>('form');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -68,6 +82,31 @@ export function AuthModal() {
     }, 1000);
     return () => clearTimeout(timer);
   }, [resendCooldown]);
+
+  // When user completes email verification in another tab, automatically close modal
+  useEffect(() => {
+    if (currentUser?.isEmailVerified && open) {
+      setOpen(false);
+      resetForm();
+      setMode('login');
+    }
+  }, [currentUser?.isEmailVerified, open, setOpen]);
+
+  // Instant cross-tab BroadcastChannel listener
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+    const authChannel = new BroadcastChannel('drawzware_auth_channel');
+    authChannel.onmessage = (event) => {
+      if (event.data?.type === 'VERIFICATION_SUCCESS') {
+        setOpen(false);
+        resetForm();
+        setMode('login');
+      }
+    };
+    return () => {
+      authChannel.close();
+    };
+  }, [setOpen]);
 
   const resetForm = () => {
     setName('');
@@ -122,12 +161,20 @@ export function AuthModal() {
       return;
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail.endsWith('@gmai.com')) {
+      setErrorMessage('Did you mean @gmail.com? Please check the email spelling.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const returnUrl = getCurrentReturnUrl();
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('drawzware_return_url', returnUrl);
+        localStorage.setItem('drawzware_return_url', returnUrl);
+        localStorage.setItem('drawzware_last_canvas_url', returnUrl);
       }
       const result = await authClient.register({ name, email, password, returnUrl });
       signIn(result.user, undefined, { keepModalOpen: true });
@@ -172,6 +219,11 @@ export function AuthModal() {
     setSuccessMessage(null);
     try {
       const returnUrl = getCurrentReturnUrl();
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('drawzware_return_url', returnUrl);
+        localStorage.setItem('drawzware_return_url', returnUrl);
+        localStorage.setItem('drawzware_last_canvas_url', returnUrl);
+      }
       const res = await authClient.resendVerification({ email: targetEmail, returnUrl });
       setSuccessMessage(res.message);
       setResendCooldown(30);
@@ -265,9 +317,6 @@ export function AuthModal() {
                 </div>
               )}
 
-              <p className="text-[11.5px] text-ink-3 text-center">
-                Didn&apos;t receive it? Check your spam folder or resend the link below.
-              </p>
 
               <div className="space-y-2 pt-2">
                 <Button

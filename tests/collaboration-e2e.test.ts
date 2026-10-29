@@ -6,6 +6,7 @@ import * as Y from 'yjs';
 import { createApp } from '../apps/api/src/app.js';
 import * as diagramRepo from '../apps/api/src/repositories/diagram.repository.js';
 import * as memberRepo from '../apps/api/src/repositories/workspace-member.repository.js';
+import * as userRepo from '../apps/api/src/repositories/user.repository.js';
 import { attachCollaborationServer, CollabServer } from '../apps/api/src/websocket/collab.server.js';
 import {
   initYDocFromProject,
@@ -157,9 +158,9 @@ describe('DrawzWare Phase 4: End-to-End Real Multi-Client Collaboration Validati
 
   beforeAll(async () => {
     process.env.JWT_SECRET = JWT_SECRET;
-    tokenA = jwt.sign({ id: userA.id, email: userA.email }, JWT_SECRET, { expiresIn: '2h' });
-    tokenB = jwt.sign({ id: userB.id, email: userB.email }, JWT_SECRET, { expiresIn: '2h' });
-    tokenC = jwt.sign({ id: userC.id, email: userC.email }, JWT_SECRET, { expiresIn: '2h' });
+    tokenA = jwt.sign({ id: userA.id, email: userA.email, isEmailVerified: true }, JWT_SECRET, { expiresIn: '2h' });
+    tokenB = jwt.sign({ id: userB.id, email: userB.email, isEmailVerified: true }, JWT_SECRET, { expiresIn: '2h' });
+    tokenC = jwt.sign({ id: userC.id, email: userC.email, isEmailVerified: true }, JWT_SECRET, { expiresIn: '2h' });
 
     const app = createApp();
     httpServer = http.createServer(app);
@@ -206,6 +207,10 @@ describe('DrawzWare Phase 4: End-to-End Real Multi-Client Collaboration Validati
       if (uId === userC.id) return { workspaceId: wsId, userId: uId, role: 'viewer', userEmail: userC.email } as any;
       return null;
     });
+
+    vi.spyOn(userRepo, 'findUserDocById').mockImplementation((async (id: string) => {
+      return { _id: id, isEmailVerified: true, tokenVersion: 0 } as any;
+    }) as any);
 
     vi.spyOn(diagramRepo, 'findDiagramSnapshotDoc').mockImplementation(async (diagramId: string) => {
       if (persistedSnapshot && persistedSnapshot.diagramId === diagramId) {

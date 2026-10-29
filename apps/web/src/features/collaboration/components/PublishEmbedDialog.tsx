@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Globe, Copy, Check } from 'lucide-react';
 import {
   Dialog,
@@ -14,18 +14,35 @@ import {
 import { Input } from '@/shared/components/ui/input';
 import { toast } from '@/stores/useToastStore';
 import { useCollaborationStore } from '../stores/useCollaborationStore';
+import { useProjectStore } from '@/features/projects/stores/useProjectStore';
 
 export function PublishEmbedDialog() {
   const open = useCollaborationStore((s) => s.publishEmbedModalOpen);
   const setOpen = useCollaborationStore((s) => s.setPublishEmbedModalOpen);
+  const activeDiagramId = useCollaborationStore((s) => s.activeDiagramId);
+  const lastOpenedProjectId = useProjectStore((s) => s.lastOpenedProjectId);
+  const projects = useProjectStore((s) => s.projects);
 
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
 
-  // Generate clean public link format matching reference
+  // Dynamically resolve real canvas ID from active URL, cloud diagram, or last opened project
+  const canvasId = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlId = urlParams.get('id');
+      if (urlId) return urlId;
+    }
+    if (activeDiagramId) return activeDiagramId;
+    if (lastOpenedProjectId) return lastOpenedProjectId;
+    if (projects.length > 0 && projects[0].id) return projects[0].id;
+    return 'canvas';
+  }, [activeDiagramId, lastOpenedProjectId, projects]);
+
+  // Generate dynamic public link format with real canvas ID
   const publicUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/p/abc123`
-    : 'https://drawzware.app/p/abc123';
+    ? `${window.location.origin}/p/${canvasId}`
+    : `https://drawzware.app/p/${canvasId}`;
 
   const embedCode = `<iframe src="${publicUrl}" width="100%" height="500" frameborder="0"></iframe>`;
 

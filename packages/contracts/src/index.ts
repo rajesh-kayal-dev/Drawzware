@@ -78,6 +78,9 @@ export {
   RefreshTokenInputSchema,
   AuthTokensSchema,
   InvitationPreviewSchema,
+  InvitationSignupInputSchema,
+  generateUsernameFromEmail,
+  validateUsername,
 } from './collaboration';
 
 export type {
@@ -111,5 +114,6 @@ export type {
   RefreshTokenInput,
   AuthTokens,
   InvitationPreview,
+  InvitationSignupInput,
 } from './collaboration';
 

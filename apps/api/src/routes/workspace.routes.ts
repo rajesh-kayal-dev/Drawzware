@@ -12,6 +12,7 @@ import {
   revokeInvitationHandler,
   getInvitationPreviewHandler,
   acceptInvitationHandler,
+  invitationSignupHandler,
 } from "../controllers/workspace.controller.js";
 import { CreateWorkspaceInputSchema, CreateInvitationInputSchema } from "@drawzware/contracts";
 
@@ -36,4 +37,4 @@ router.post("/:workspaceId/invitations/:invitationId/revoke", requireAuth, requi
 router.delete("/:workspaceId/invitations/:invitationId", requireAuth, requireWorkspaceRole("owner"), revokeInvitationHandler);
 
 export const workspaceRoutes = router;
-export { acceptInvitationHandler, getInvitationPreviewHandler };
+export { acceptInvitationHandler, getInvitationPreviewHandler, invitationSignupHandler };

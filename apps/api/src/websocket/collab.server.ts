@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket, RawData } from 'ws';
 import { verifyToken } from '../utils/jwt.util.js';
 import { isOriginAllowed } from '../config/env.js';
 import { findDiagramDocById } from '../repositories/diagram.repository.js';
+import type { IDiagram } from '../models/diagram.model.js';
 import { findUserDocById } from '../repositories/user.repository.js';
 import { findWorkspaceMember } from '../services/workspace.service.js';
 import { CrdtManager } from './crdt.service.js';
@@ -56,7 +57,7 @@ function formatCloseReason(reason: string): string {
 export async function authenticateUpgradeRequest(
   req: http.IncomingMessage
 ): Promise<
-  | { success: true; userId: string; userEmail?: string; diagramId: string; role: WorkspaceRole }
+  | { success: true; userId: string; userEmail?: string; userName?: string; diagramId: string; role: WorkspaceRole }
   | { success: false; statusCode: number; statusText: string; message: string }
 > {
   // Cross-Site WebSocket Hijacking (CSWSH) origin validation
@@ -120,6 +121,8 @@ export async function authenticateUpgradeRequest(
 
   let userId: string;
   let userEmail: string | undefined;
+  let userName: string | undefined;
+
   try {
     const payload = verifyToken(token, secret);
     const resolvedId = payload.id || payload.sub;
@@ -135,9 +138,12 @@ export async function authenticateUpgradeRequest(
     userEmail = payload.email;
 
     // Check session validity & revocation first using fresh DB state
-    let userDoc: { isEmailVerified?: boolean; tokenVersion?: number } | null = null;
+    let userDoc: { name?: string; isEmailVerified?: boolean; tokenVersion?: number } | null = null;
     try {
       userDoc = await findUserDocById(userId);
+      if (userDoc?.name) {
+        userName = userDoc.name;
+      }
       if (userDoc && typeof userDoc.tokenVersion === 'number' && typeof payload.tokenVersion === 'number') {
         if (payload.tokenVersion < userDoc.tokenVersion) {
           return {
@@ -171,7 +177,19 @@ export async function authenticateUpgradeRequest(
     };
   }
 
-  const diagram = await findDiagramDocById(diagramId);
+  let diagram: IDiagram | null = null;
+  try {
+    diagram = await findDiagramDocById(diagramId);
+  } catch (err) {
+    console.warn(`[CollabServer] Diagram lookup error for ID ${diagramId}:`, err);
+    return {
+      success: false,
+      statusCode: 404,
+      statusText: 'Not Found',
+      message: 'Diagram not found',
+    };
+  }
+
   if (!diagram) {
     return {
       success: false,
@@ -181,7 +199,19 @@ export async function authenticateUpgradeRequest(
     };
   }
 
-  const member = await findWorkspaceMember(diagram.workspaceId, userId);
+  let member: ReturnType<typeof findWorkspaceMember> extends Promise<infer M> ? M : null = null;
+  try {
+    member = await findWorkspaceMember(diagram.workspaceId, userId);
+  } catch (err) {
+    console.warn(`[CollabServer] Workspace member lookup error for ${diagram.workspaceId}:`, err);
+    return {
+      success: false,
+      statusCode: 403,
+      statusText: 'Forbidden',
+      message: 'You do not have access to this diagram',
+    };
+  }
+
   if (!member) {
     return {
       success: false,
@@ -191,10 +221,23 @@ export async function authenticateUpgradeRequest(
     };
   }
 
+  if (member.role !== 'owner') {
+    const allowed = member.allowedDiagramIds;
+    if (allowed && allowed.length > 0 && !allowed.includes(diagramId)) {
+      return {
+        success: false,
+        statusCode: 403,
+        statusText: 'Forbidden',
+        message: 'You do not have access to this diagram',
+      };
+    }
+  }
+
   return {
     success: true,
     userId,
     userEmail,
+    userName: userName || (userEmail ? userEmail.split('@')[0] : userId),
     diagramId,
     role: member.role,
   };
@@ -270,11 +313,13 @@ export class CollabServer {
           this.handleConnection(wsClient, {
             userId: authResult.userId,
             userEmail: authResult.userEmail,
+            userName: authResult.userName,
             role: authResult.role,
             diagramId: authResult.diagramId,
           });
         });
-      } catch {
+      } catch (upgradeErr) {
+        console.error('[CollabServer] Upgrade handshake exception:', upgradeErr);
         socket.removeListener('close', onEarlyClose);
         socket.removeListener('error', onEarlyClose);
         abortUpgrade(socket, 500, 'Internal Server Error', 'Upgrade handshake failed');
@@ -284,8 +329,9 @@ export class CollabServer {
 
   handleConnection(
     socket: WebSocket,
-    meta: { userId: string; userEmail?: string; role: WorkspaceRole; diagramId: string }
+    meta: { userId: string; userEmail?: string; userName?: string; role: WorkspaceRole; diagramId: string }
   ): CollabClientConnection {
+    const resolvedName = meta.userName || (meta.userEmail ? meta.userEmail.split('@')[0] : meta.userId);
     const client: CollabClientConnection = {
       socket,
       userId: meta.userId,
@@ -295,7 +341,7 @@ export class CollabServer {
       isAlive: true,
       presence: {
         userId: meta.userId,
-        userName: meta.userEmail ? meta.userEmail.split('@')[0] : meta.userId,
+        userName: resolvedName,
         email: meta.userEmail,
         cursor: null,
         selectedNodeIds: [],
@@ -444,12 +490,12 @@ export class CollabServer {
     // Ephemeral presence / cursor tracking
     if (message.type === 'cursor_move' || message.type === 'presence_update') {
       if (message.payload) {
-        if (message.payload.cursor && typeof message.payload.cursor === 'object') {
+        if (message.payload.cursor === null) {
+          client.presence.cursor = null;
+        } else if (message.payload.cursor && typeof message.payload.cursor === 'object') {
           const c = message.payload.cursor as { x?: number; y?: number };
           if (typeof c.x === 'number' && typeof c.y === 'number') {
             client.presence.cursor = { x: c.x, y: c.y };
-          } else if (c === null) {
-            client.presence.cursor = null;
           }
         }
         if (Array.isArray(message.payload.selectedNodeIds)) {

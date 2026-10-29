@@ -17,10 +17,10 @@ describe('Diagram Canvas Snapshot API & Version Concurrency', () => {
   const userViewer = { id: 'usr-viewer-3', email: 'viewer@drawzware.com' };
   const userStranger = { id: 'usr-stranger-4', email: 'stranger@drawzware.com' };
 
-  const tokenOwner = jwt.sign({ sub: userOwner.id, email: userOwner.email }, 'test-secret', { expiresIn: '1h' });
-  const tokenEditor = jwt.sign({ sub: userEditor.id, email: userEditor.email }, 'test-secret', { expiresIn: '1h' });
-  const tokenViewer = jwt.sign({ sub: userViewer.id, email: userViewer.email }, 'test-secret', { expiresIn: '1h' });
-  const tokenStranger = jwt.sign({ sub: userStranger.id, email: userStranger.email }, 'test-secret', { expiresIn: '1h' });
+  const tokenOwner = jwt.sign({ sub: userOwner.id, email: userOwner.email, isEmailVerified: true }, 'test-secret', { expiresIn: '1h' });
+  const tokenEditor = jwt.sign({ sub: userEditor.id, email: userEditor.email, isEmailVerified: true }, 'test-secret', { expiresIn: '1h' });
+  const tokenViewer = jwt.sign({ sub: userViewer.id, email: userViewer.email, isEmailVerified: true }, 'test-secret', { expiresIn: '1h' });
+  const tokenStranger = jwt.sign({ sub: userStranger.id, email: userStranger.email, isEmailVerified: true }, 'test-secret', { expiresIn: '1h' });
 
   const sampleWorkspaceId = 'ws-test-alpha';
   const sampleDiagramId = 'diag-test-001';

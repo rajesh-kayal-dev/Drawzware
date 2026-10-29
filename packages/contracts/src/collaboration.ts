@@ -47,6 +47,7 @@ export const WorkspaceMemberSchema = z.object({
   role: WorkspaceRoleSchema,
   createdAt: z.string(),
   userEmail: z.string().email().optional(),
+  allowedDiagramIds: z.array(z.string()).optional(),
 });
 export type WorkspaceMember = z.infer<typeof WorkspaceMemberSchema>;
 
@@ -63,6 +64,9 @@ export const WorkspaceInvitationSchema = z.object({
   role: z.enum(['editor', 'viewer']), // owner cannot be assigned via invitation directly
   invitedBy: z.string().min(1),
   status: InvitationStatusSchema,
+  returnUrl: z.string().optional(),
+  canvasUrl: z.string().optional(),
+  diagramId: z.string().optional(),
   createdAt: z.string(),
   expiresAt: z.string(),
 });
@@ -71,6 +75,9 @@ export type WorkspaceInvitation = z.infer<typeof WorkspaceInvitationSchema>;
 export const CreateInvitationInputSchema = z.object({
   email: z.string().email(),
   role: z.enum(['editor', 'viewer']).default('editor'),
+  returnUrl: z.string().optional(),
+  canvasUrl: z.string().optional(),
+  diagramId: z.string().optional(),
 });
 export type CreateInvitationInput = z.infer<typeof CreateInvitationInputSchema>;
 
@@ -290,6 +297,59 @@ export const InvitationPreviewSchema = z.object({
   expiresAt: z.string(),
   isExpired: z.boolean(),
   status: InvitationStatusSchema,
+  returnUrl: z.string().optional(),
+  canvasUrl: z.string().optional(),
+  diagramId: z.string().optional(),
+  accountExists: z.boolean().optional(),
 });
 export type InvitationPreview = z.infer<typeof InvitationPreviewSchema>;
+
+export const InvitationSignupInputSchema = z.object({
+  invitationId: z.string().min(1, 'Invitation ID is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+export type InvitationSignupInput = z.infer<typeof InvitationSignupInputSchema>;
+
+/**
+ * Generates a valid camelCase username from an email address:
+ * - Extracts prefix before '@'
+ * - Strips all numbers, underscores, and special characters
+ * - Converts multi-word tokens to camelCase (e.g. rajeshkayal33@gmail.com -> rajeshkayal, john.doe44@domain.com -> johnDoe)
+ * - Returns only letters [a-zA-Z]
+ */
+export function generateUsernameFromEmail(email: string): string {
+  if (!email || typeof email !== 'string') return 'user';
+
+  // 1. Skip everything after '@'
+  const prefix = email.split('@')[0] || '';
+
+  // 2. Remove numbers, underscores, and special characters; split into words
+  const words = prefix
+    .split(/[^a-zA-Z]+/)
+    .filter((word) => word.length > 0)
+    .map((word) => word.toLowerCase());
+
+  if (words.length === 0) {
+    return 'user';
+  }
+
+  // 3. Convert to camelCase
+  const camelCase = words[0] + words.slice(1).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+
+  // 4. Sanitize to strictly ensure letters only
+  const sanitized = camelCase.replace(/[^a-zA-Z]/g, '');
+
+  if (sanitized.length < 2) {
+    return sanitized.length === 1 ? `${sanitized}User` : 'user';
+  }
+
+  return sanitized.slice(0, 50);
+}
+
+/**
+ * Validates that a generated username consists only of alphabetic characters and has a valid length.
+ */
+export function validateUsername(username: string): boolean {
+  return /^[a-zA-Z]{2,50}$/.test(username);
+}
 

@@ -37,6 +37,7 @@ export interface LiveCursor {
   y: number;
   targetNodeLabel?: string;
   activeAction?: string;
+  lastActiveAt?: number;
 }
 
 export interface InvitationData {

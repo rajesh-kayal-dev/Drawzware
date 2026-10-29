@@ -18,10 +18,8 @@ export function loadAppData(): AppData {
     if (result.success) {
       return migrate(result.data);
     }
-    console.warn('Invalid storage data, resetting');
     return { version: CURRENT_VERSION, projects: [], lastOpenedProjectId: null };
   } catch {
-    console.warn('Failed to load storage, resetting');
     return { version: CURRENT_VERSION, projects: [], lastOpenedProjectId: null };
   }
 }

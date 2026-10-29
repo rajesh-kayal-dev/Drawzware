@@ -1,23 +1,23 @@
-# Graph Report - drawzware-system-design-canvas  (2026-10-25)
+# Graph Report - drawzware-system-design-canvas  (2026-10-30)
 
 ## Corpus Check
-- 330 files · ~221,341 words
+- 339 files · ~235,911 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: .example 2, (none) 2, .ico 2)
 
 ## Summary
-- 2422 nodes · 6824 edges · 130 communities (123 shown, 7 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 112 edges (avg confidence: 0.86)
+- 2470 nodes · 7229 edges · 133 communities (118 shown, 15 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 115 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `b7dc733d`
+- Built from commit: `18d1134c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- dialog.tsx
-- LandingNavbar.tsx
+- lucide-react
+- ExportDialog.tsx
 - real-infrastructure-persistence.test.ts
 - json-import.ts
 - NodePalette.tsx
@@ -25,49 +25,49 @@
 - desktop/types/ipc.ts
 - electron-builder.json
 - vitest
-- CommandMenu.tsx
-- global-search-registry.ts
-- shortcuts.ts
+- react
+- serverError
+- useCollaborationStore
 - workspace.service.ts
-- Agent Rules: Architecture & Process Boundaries
+- crdt.service.ts
 - package.json
-- security-remediations.test.ts
+- CanvasContextMenu.tsx
 - contracts/src/index.ts
 - desktop/types/document.ts
 - api/package.json
 - package.json
 - StorageService
-- canvas.types.ts
+- Canvas.tsx
 - diagram.controller.ts
-- real-infrastructure-persistence.test.ts
+- server.ts
 - DrawzWare MVP Plan
 - src/app/page.tsx
-- Canvas.tsx
-- next
+- useCanvasStore
+- Button
 - ShapeDrawingOverlay.tsx
 - dependencies
-- LandingHeroSection.tsx
+- CLAUDE.md — Drawzware
 - DashboardIntroProvider.tsx
-- BaseSystemNode.tsx
+- StepNode.tsx
 - components.json
 - steps
-- NodeEditor.tsx
-- compilerOptions
-- react
-- SystemEdge.tsx
-- scripts
 - cn
 - compilerOptions
+- useToastStore.ts
+- LandingNavbar.tsx
+- scripts
+- LandingHeroSection.tsx
+- compilerOptions
 - manifest.json
-- ExportDialog.tsx
+- BaseSystemNode.tsx
 - compilerOptions
 - compilerOptions
 - WindowCloseManager
 - compilerOptions
 - DrawzWare — Authentication & Collaboration MVP
-- CanvasToolbar.tsx
+- LandingDesktopAppModal.tsx
 - web/package.json
-- Project
+- phase1-backend-api.test.ts
 - with
 - domain/package.json
 - @drawzware/contracts
@@ -77,20 +77,20 @@
 - ./tsconfig.base.json
 - compilerOptions
 - WebSocket
-- toast
+- app/app/layout.tsx
 - build-and-test
 - contracts/package.json
 - storage/package.json
-- utils.ts
+- ProjectList.tsx
 - env
 - sync-out.mjs
 - eslint.config.mjs
 - steps
 - domain/tsconfig.json
 - storage/tsconfig.json
-- CanvasHeader.tsx
+- useTheme.ts
 - Coding Style
-- canvas-helpers.ts
+- CanvasInner
 - CanvasToolbar.tsx
 - eslint.config.js
 - useCollaborationStore.ts
@@ -101,8 +101,8 @@
 - sw.js
 - DrawzWare System Design
 - CanvasTextNode.tsx
-- PencilOverlay.tsx
-- serverError
+- security-remediations.test.ts
+- canvas/layout.tsx
 - README.md
 - TypeScript/JavaScript Patterns
 - Code Review Standards
@@ -120,7 +120,7 @@
 - Agent Orchestration
 - Performance Optimization
 - Security Policy
-- serverError
+- vitest
 - common-testing.md
 - Agent Rules: Desktop Security & Electron IPC Constraints
 - monorepo.md — Drawzware Monorepo Rules & Invariants
@@ -137,140 +137,139 @@
 - 14. Test Strategy and Release Gates
 - 7. Authorization Model
 - Quick Start
-- settings/page.tsx
+- shared/layout.tsx
 - providers.tsx
-- ProjectModal.tsx
-- crdt-collaboration.test.ts
-- auth-contracts-models.test.ts
-- LandingDesktopAppModal.tsx
+- import/layout.tsx
+- collab.server.ts
+- emailService
+- robots.ts
+- settings/layout.tsx
+- Header.tsx
+- sitemap.ts
 - OnboardingOverlay.tsx
-- useIsDesktop.ts
-- zod@^4.3.6
+- electron-builder@^26.15.3
+- Agent Rules: Architecture & Process Boundaries
 
 ## God Nodes (most connected - your core abstractions)
-1. `cn()` - 157 edges
-2. `useCanvasStore` - 105 edges
-3. `react` - 91 edges
-4. `Button()` - 82 edges
-5. `Project` - 71 edges
-6. `lucide-react` - 67 edges
-7. `SystemNode` - 50 edges
-8. `CanvasInner()` - 46 edges
-9. `toast` - 41 edges
-10. `vitest` - 41 edges
+1. `cn()` - 163 edges
+2. `useCanvasStore` - 109 edges
+3. `react` - 97 edges
+4. `Button()` - 84 edges
+5. `Project` - 75 edges
+6. `lucide-react` - 73 edges
+7. `useCollaborationStore` - 51 edges
+8. `SystemNode` - 50 edges
+9. `CanvasInner()` - 47 edges
+10. `toast` - 47 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `1. Dedicated Diagram Modes & Component Library` --references--> `WebSocket`  [INFERRED]
   README.md → apps/api/src/types/ws.d.ts
+- `Data Flow` --references--> `Providers()`  [INFERRED]
+  CLAUDE.md → apps/web/src/providers/providers.tsx
+- `Design System ("Studio")` --references--> `useApplyTheme()`  [INFERRED]
+  CLAUDE.md → apps/web/src/shared/hooks/useTheme.ts
 - `1. Process Separation & Boundaries` --references--> `StorageAdapter`  [INFERRED]
   .agents/rules/architecture.md → packages/storage/src/storage-adapter.interface.ts
 - `Phase 2: Implement Cloud Canvas Snapshot Saving` --references--> `saveDiagramSnapshotDoc()`  [INFERRED]
   AUDIT_REPORT.md → apps/api/src/repositories/diagram.repository.ts
-- `Key Architecture Decisions` --references--> `MigrationBanner()`  [INFERRED]
-  CLAUDE.md → apps/web/src/features/projects/components/MigrationBanner.tsx
-- `Phase 2: Implement Cloud Canvas Snapshot Saving` --references--> `useAutoSave()`  [INFERRED]
-  AUDIT_REPORT.md → apps/web/src/features/projects/hooks/useAutoSave.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (130 total, 7 thin omitted)
+## Communities (133 total, 15 thin omitted)
 
-### Community 0 - "dialog.tsx"
-Cohesion: 0.27
-Nodes (23): ClearCanvasDialog(), CommandMenu(), ShortcutsBody(), ShortcutsDialog(), AccessControlDialog(), AuthModal(), CollaborationController(), InvitationAcceptDialog() (+15 more)
-
-### Community 1 - "LandingNavbar.tsx"
-Cohesion: 0.39
-Nodes (5): DrawzwareLogo(), DrawzwareLogoProps, LandingFooter(), LandingNavbar(), NavbarProps
-
-### Community 2 - "real-infrastructure-persistence.test.ts"
+### Community 0 - "lucide-react"
 Cohesion: 0.15
-Nodes (5): CollabServer, formatCloseReason(), CrdtManager, initYDocFromProject(), yDocToProject()
+Nodes (41): ClearCanvasDialog(), ShortcutsBody(), ShortcutsDialog(), AccessControlDialog(), AuthModal(), AuthMode, AuthStep, getCurrentReturnUrl() (+33 more)
+
+### Community 1 - "ExportDialog.tsx"
+Cohesion: 0.12
+Nodes (31): CHECKERBOARD, ExportBody(), ExportDialog(), ExportFormat, FORMAT_OPTIONS, Scale, SCALE_OPTIONS, CHROME_CLASSES (+23 more)
 
 ### Community 3 - "json-import.ts"
-Cohesion: 0.06
-Nodes (60): MinimapThumbComponent(), ASYNC_EDGES, Direction, facingSides(), getLayoutedElements(), isLayoutNode(), orientEdgeHandles(), Side (+52 more)
+Cohesion: 0.08
+Nodes (48): MinimapThumbComponent(), ASYNC_EDGES, Direction, facingSides(), getLayoutedElements(), isLayoutNode(), orientEdgeHandles(), Side (+40 more)
 
 ### Community 4 - "NodePalette.tsx"
-Cohesion: 0.08
-Nodes (43): ALL_CATEGORIES, CategoryGroup, CategoryKey, DiagramType, EmptySearch(), EXPANDED_CATEGORY_ICONS, filterCategories(), filterExpandedComponents() (+35 more)
+Cohesion: 0.05
+Nodes (71): ALL_CATEGORIES, CategoryGroup, CategoryKey, DiagramType, EmptySearch(), EXPANDED_CATEGORY_ICONS, filterCategories(), filterExpandedComponents() (+63 more)
 
 ### Community 5 - "LibraryProjectMetadata"
-Cohesion: 0.09
-Nodes (22): persistCanvasSnapshot(), LibraryProjectMetadata, IpcErrorCode, DesktopStorageAdapter, DesktopStorageApiLike, getStorageAdapter(), setStorageAdapterForTesting(), StorageAdapter (+14 more)
+Cohesion: 0.12
+Nodes (19): IDiagramSnapshot, SaveSnapshotDocResult, DiagramSnapshotMeta, SaveSnapshotServiceResult, DeleteProjectDialogProps, ProjectCardProps, ProjectStore, LibraryProjectMetadata (+11 more)
 
 ### Community 6 - "desktop/types/ipc.ts"
-Cohesion: 0.08
-Nodes (25): DesktopApi, IPC_CHANNELS, WindowCloseManagerOptions, DesktopApi, DesktopFileApi, DesktopStorageApi, DesktopWindowApi, Window (+17 more)
+Cohesion: 0.07
+Nodes (26): DesktopApi, IPC_CHANNELS, WindowCloseManagerOptions, DesktopApi, DesktopFileApi, DesktopStorageApi, DesktopWindowApi, Window (+18 more)
 
 ### Community 7 - "electron-builder.json"
 Cohesion: 0.05
 Nodes (43): appId, asar, copyright, entry, directories, buildResources, output, dmg (+35 more)
 
 ### Community 8 - "vitest"
-Cohesion: 0.12
-Nodes (25): defaultWriteFileAtomic(), FileHandlerDeps, handleImportBackupFile(), handleOpenDrawzFile(), handleSaveDrawzFile(), registerFileIpcHandlers(), sanitizeFilename(), handleDeleteProject() (+17 more)
+Cohesion: 0.16
+Nodes (21): defaultWriteFileAtomic(), FileHandlerDeps, handleImportBackupFile(), handleOpenDrawzFile(), handleSaveDrawzFile(), importDrawzFileFromDisk(), registerFileIpcHandlers(), sanitizeFilename() (+13 more)
 
-### Community 9 - "CommandMenu.tsx"
-Cohesion: 0.29
-Nodes (11): ActionIcon(), CommandItem, CommandMenuBody(), GROUP_ORDER, GroupName, Highlight(), includes(), formatKey() (+3 more)
+### Community 9 - "react"
+Cohesion: 0.11
+Nodes (25): ActionIcon(), CommandItem, CommandMenu(), CommandMenuBody(), GROUP_ORDER, GroupName, Highlight(), includes() (+17 more)
 
-### Community 10 - "global-search-registry.ts"
-Cohesion: 0.09
-Nodes (40): GlobalInsertPanel(), GlobalInsertPanelProps, GROUP_COLORS, GROUP_ICONS, GROUP_ORDER, ALL_SEARCHABLE_ITEMS, CLOUD_ITEMS, COMPONENT_ITEMS (+32 more)
+### Community 10 - "serverError"
+Cohesion: 0.13
+Nodes (36): createApp(), forgotPasswordHandler(), getMeHandler(), loginHandler(), logoutAllHandler(), logoutHandler(), refreshHandler(), registerHandler() (+28 more)
 
-### Community 11 - "shortcuts.ts"
-Cohesion: 0.33
-Nodes (5): BY_ID, Shortcut, SHORTCUT_GROUPS, ShortcutGroup, ShortcutId
+### Community 11 - "useCollaborationStore"
+Cohesion: 0.28
+Nodes (18): CanvasHeader(), useDisplayedSaveStatus(), CanvasMoreMenu(), CanvasMoreMenuProps, CollaboratorsAvatarStack(), CollaboratorsPopover(), EditProfileModal(), EditProfileModalProps (+10 more)
 
 ### Community 12 - "workspace.service.ts"
-Cohesion: 0.12
-Nodes (30): IWorkspaceInvitation, WorkspaceInvitationModel, workspaceInvitationSchema, IWorkspaceMember, IWorkspace, WorkspaceModel, workspaceSchema, createInvitationDoc() (+22 more)
+Cohesion: 0.11
+Nodes (36): IWorkspaceInvitation, IWorkspaceMember, WorkspaceMemberModel, workspaceMemberSchema, findDiagramDocById(), findDiagramDocsByWorkspace(), findUserDocById(), createInvitationDoc() (+28 more)
 
-### Community 13 - "Agent Rules: Architecture & Process Boundaries"
-Cohesion: 0.40
-Nodes (4): 1. Process Separation & Boundaries, 2. Desktop Route & Navigation Boundaries, 3. Technology Selection Guardrails, Agent Rules: Architecture & Process Boundaries
+### Community 13 - "crdt.service.ts"
+Cohesion: 0.19
+Nodes (7): base64ToUint8Array(), CrdtManager, CrdtManagerOptions, CrdtSession, initYDocFromProject(), uint8ArrayToBase64(), yDocToProject()
 
 ### Community 14 - "package.json"
 Cohesion: 0.10
-Nodes (21): devDependencies, electron@^44.7.2, tailwindcss@^4, @tailwindcss/postcss@^4, tw-animate-css@^1.4.0, @types/lz-string@^1.3.34, @types/node@^20, @types/react@^19 (+13 more)
+Nodes (21): devDependencies, electron@^44.7.2, shadcn@^3.8.5, tailwindcss@^4, @tailwindcss/postcss@^4, tw-animate-css@^1.4.0, @types/js-yaml@^4.0.9, @types/node@^20 (+13 more)
 
-### Community 15 - "security-remediations.test.ts"
-Cohesion: 0.10
-Nodes (24): authRateLimiter, ClientRecord, createRateLimiter(), RateLimiterMiddleware, RateLimiterOptions, ValidationWarningsContext, decodeCanvasFromUrl(), isValidEdge() (+16 more)
+### Community 15 - "CanvasContextMenu.tsx"
+Cohesion: 0.23
+Nodes (14): AddComponentSubmenus(), CATEGORIES, CanvasContextMenu(), ContextMenuState, CATEGORY_ICONS, getNodesByCategory(), NODE_CATEGORIES, NodeCategory (+6 more)
 
 ### Community 16 - "contracts/src/index.ts"
 Cohesion: 0.05
-Nodes (78): Express, Request, ForgotPasswordInputDto, LoginInputDto, RefreshTokenInputDto, RegisterInputDto, ResendVerificationInputDto, ResetPasswordInputDto (+70 more)
+Nodes (80): Express, Request, ForgotPasswordInputDto, LoginInputDto, RefreshTokenInputDto, RegisterInputDto, ResendVerificationInputDto, ResetPasswordInputDto (+72 more)
 
 ### Community 17 - "desktop/types/document.ts"
-Cohesion: 0.29
-Nodes (19): BackupParseResult, CURRENT_BACKUP_SCHEMA_VERSION, CURRENT_DOCUMENT_SCHEMA_VERSION, DocumentParseResult, DRAWZ_BACKUP_TYPE, DRAWZ_FILE_TYPE, DrawzBackupDocument, DrawzBackupDocumentSchema (+11 more)
+Cohesion: 0.23
+Nodes (22): StorageErrorCode, StorageServiceOptions, BackupParseResult, CURRENT_BACKUP_SCHEMA_VERSION, CURRENT_DOCUMENT_SCHEMA_VERSION, DocumentParseResult, DRAWZ_BACKUP_TYPE, DRAWZ_FILE_TYPE (+14 more)
 
 ### Community 18 - "api/package.json"
 Cohesion: 0.05
-Nodes (48): dependencies, cors@^2.8.5, dotenv@^16.4.7, @drawzware/contracts@*, @drawzware/domain@*, express@^4.21.2, jsonwebtoken@^9.0.2, mongoose@^8.24.7 (+40 more)
+Nodes (49): dependencies, bcryptjs@^3.0.3, cors@^2.8.5, dotenv@^16.4.7, @drawzware/contracts@*, @drawzware/domain@*, express@^4.21.2, jsonwebtoken@^9.0.2 (+41 more)
 
 ### Community 19 - "package.json"
 Cohesion: 0.12
-Nodes (15): author, react-dom@19.2.3, description, electron-builder@^26.15.3, shadcn@^3.8.5, @types/js-yaml@^4.0.9, main, name (+7 more)
+Nodes (15): author, simple-icons@^16.35.0, tailwind-merge@^3.5.0, description, @types/lz-string@^1.3.34, @types/react@^19, main, name (+7 more)
 
 ### Community 20 - "StorageService"
-Cohesion: 0.20
-Nodes (6): importDrawzFileFromDisk(), handleOpenFile(), StorageError, StorageService, isValidProjectId(), LibraryIndex
+Cohesion: 0.24
+Nodes (3): StorageError, StorageService, LibraryIndex
 
-### Community 21 - "canvas.types.ts"
+### Community 21 - "Canvas.tsx"
 Cohesion: 0.10
-Nodes (31): PRESET_COLORS, STROKE_WIDTH_PRESETS, MinimapThumbProps, CanvasStore, HistoryEntry, Template, BrushColorOption, DEFAULT_VIEWPORT (+23 more)
+Nodes (30): CanvasBackgroundLayer(), edgeTypes, nodeTypes, checkPointHitsEdge(), checkPointHitsNonDrawingNode(), distanceToSegment(), eraseDrawingStroke(), getSegmentCircleIntersections() (+22 more)
 
 ### Community 22 - "diagram.controller.ts"
-Cohesion: 0.16
-Nodes (28): createDiagramHandler(), getDiagramHandler(), getDiagramSnapshotHandler(), importDiagramHandler(), listDiagramsHandler(), saveDiagramSnapshotHandler(), updateDiagramHandler(), requireWorkspaceRole() (+20 more)
-
-### Community 23 - "real-infrastructure-persistence.test.ts"
 Cohesion: 0.14
-Nodes (22): app, connectDB(), disconnectDB(), sanitizeError(), sanitizeMongoUri(), config, isOriginAllowed(), validateEnvironment() (+14 more)
+Nodes (32): createDiagramHandler(), getDiagramHandler(), getDiagramSnapshotHandler(), importDiagramHandler(), listDiagramsHandler(), saveDiagramSnapshotHandler(), updateDiagramHandler(), requireWorkspaceRole() (+24 more)
+
+### Community 23 - "server.ts"
+Cohesion: 0.17
+Nodes (19): app, connectDB(), disconnectDB(), sanitizeError(), sanitizeMongoUri(), config, isOriginAllowed(), validateEnvironment() (+11 more)
 
 ### Community 24 - "DrawzWare MVP Plan"
 Cohesion: 0.04
@@ -278,35 +277,35 @@ Nodes (44): 10. Import, Export, and File Safety, 11. Storage Quota and Abuse Pre
 
 ### Community 25 - "src/app/page.tsx"
 Cohesion: 0.20
-Nodes (10): LandingPage(), websiteStructuredData, LandingDarkValueSection(), ExportFormat, LandingExportSection(), LandingFeatureHighlights(), LandingFinalCTA(), LandingHowItWorks() (+2 more)
+Nodes (11): LandingPage(), websiteStructuredData, LandingDarkValueSection(), ExportFormat, LandingExportSection(), LandingFeatureHighlights(), LandingFinalCTA(), LandingHowItWorks() (+3 more)
 
-### Community 26 - "Canvas.tsx"
-Cohesion: 0.11
-Nodes (29): edgeTypes, nodeTypes, ValidationPanel(), clamp(), ConnectionTypePicker(), DEFAULT_COLUMNS, ERTableComponent(), ERTableNode (+21 more)
+### Community 26 - "useCanvasStore"
+Cohesion: 0.07
+Nodes (52): MinimapThumbProps, DEFAULT_COLUMNS, ERTableComponent(), ERTableNode, GroupNode, GroupNodeComponent(), SequenceFragmentComponent(), SequenceFragmentNode (+44 more)
 
-### Community 27 - "next"
-Cohesion: 0.08
-Nodes (9): nextConfig, metadata, metadata, metadata, metadata, dynamic, metadata, dynamic (+1 more)
+### Community 27 - "Button"
+Cohesion: 0.16
+Nodes (18): nextConfig, CanvasPage(), CanvasRoute(), InvitationContent(), InvitationsPage(), ResetPasswordContent(), ResetPasswordPage(), VerifyEmailContent() (+10 more)
 
 ### Community 28 - "ShapeDrawingOverlay.tsx"
-Cohesion: 0.22
-Nodes (20): DRAWING_TOOLS, ShapeDrawingOverlay(), getCaretOffsetFromPoint(), getStrokeDasharray(), ShapeNode, ShapeNodeComponent(), ShapeSvg(), ShapeSvgProps (+12 more)
+Cohesion: 0.26
+Nodes (17): DRAWING_TOOLS, ShapeDrawingOverlay(), getCaretOffsetFromPoint(), getStrokeDasharray(), ShapeNodeComponent(), ShapeSvg(), ShapeSvgProps, ShapeType (+9 more)
 
 ### Community 29 - "dependencies"
 Cohesion: 0.09
-Nodes (23): dependencies, class-variance-authority@^0.7.1, clsx@^2.1.1, @dagrejs/dagre@^2.0.4, html-to-image@^1.11.13, js-yaml@^4.1.1, lucide-react@^0.575.0, lz-string@^1.5.0 (+15 more)
+Nodes (22): dependencies, class-variance-authority@^0.7.1, clsx@^2.1.1, @dagrejs/dagre@^2.0.4, html-to-image@^1.11.13, js-yaml@^4.1.1, lucide-react@^0.575.0, lz-string@^1.5.0 (+14 more)
 
-### Community 30 - "LandingHeroSection.tsx"
-Cohesion: 0.50
-Nodes (4): ArchitecturePreview(), ArchNode, HeroSectionProps, LandingHeroSection()
+### Community 30 - "CLAUDE.md — Drawzware"
+Cohesion: 0.14
+Nodes (13): Architecture, CLAUDE.md — Drawzware, Commands, Data Flow, Data Model, Design System ("Studio"), Edge Registry, Node Registry (+5 more)
 
 ### Community 31 - "DashboardIntroProvider.tsx"
-Cohesion: 0.14
-Nodes (17): BrandedLoadingTransition(), BrandedLoadingTransitionProps, Window, DashboardIntroContext, DashboardIntroContextValue, DashboardIntroProvider(), useDashboardIntro(), DASHBOARD_INTRO_STORAGE_KEY (+9 more)
+Cohesion: 0.15
+Nodes (16): BrandedLoadingTransition(), BrandedLoadingTransitionProps, Window, DashboardIntroContext, DashboardIntroContextValue, DashboardIntroProvider(), DASHBOARD_INTRO_STORAGE_KEY, getStorage() (+8 more)
 
-### Community 32 - "BaseSystemNode.tsx"
-Cohesion: 0.12
-Nodes (19): EmptyCanvas(), QUICK_ADD, PresentationOverlay(), BaseSystemNode, BaseSystemNodeComponent(), NODE_ENV_META, NODE_STATUS_META, CATEGORY_ICONS (+11 more)
+### Community 32 - "StepNode.tsx"
+Cohesion: 0.27
+Nodes (11): cleanRawMarkdownSymbols(), domToMarkdown(), htmlToMarkdown(), markdownToHtml(), renderInlineMarkdown(), renderMarkdown(), StepNode, StepNodeComponent() (+3 more)
 
 ### Community 33 - "components.json"
 Cohesion: 0.10
@@ -316,29 +315,29 @@ Nodes (19): aliases, components, hooks, lib, ui, utils, iconLibrary, registries 
 Cohesion: 0.10
 Nodes (19): runs-on, steps, strategy, jobs, build, node-version, name, branches (+11 more)
 
-### Community 35 - "NodeEditor.tsx"
-Cohesion: 0.20
-Nodes (28): ArchitectureEdgeEditorContent(), DETAILS, EdgeEditorContent(), ERRelationshipEditorContent(), SectionLabel(), SequenceMessageEditorContent(), ENV_OPTIONS, ERTableEditorContent() (+20 more)
+### Community 35 - "cn"
+Cohesion: 0.09
+Nodes (51): LibraryRail(), ArchitectureEdgeEditorContent(), DETAILS, EdgeEditor(), EdgeEditorContent(), ERRelationshipEditorContent(), SectionLabel(), SequenceMessageEditorContent() (+43 more)
 
 ### Community 36 - "compilerOptions"
 Cohesion: 0.11
 Nodes (18): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, lib, module, moduleResolution (+10 more)
 
-### Community 37 - "react"
-Cohesion: 0.17
-Nodes (21): CanvasPage(), CanvasRoute(), InvitationContent(), InvitationsPage(), ResetPasswordContent(), ResetPasswordPage(), VerifyEmailContent(), VerifyEmailPage() (+13 more)
+### Community 37 - "useToastStore.ts"
+Cohesion: 0.22
+Nodes (7): TONE_COLOR, TONE_ICON, recentToasts, ToastAction, ToastInput, ToastStore, ToastTone
 
-### Community 38 - "SystemEdge.tsx"
-Cohesion: 0.24
-Nodes (13): EDGE_REGISTRY, edgeAnimationClass(), EdgeTypeConfig, moveFocus(), ProtocolMenu(), ProtocolMenuItem(), ProtocolMenuProps, ProtocolMenuSeparator() (+5 more)
+### Community 38 - "LandingNavbar.tsx"
+Cohesion: 0.39
+Nodes (5): DrawzwareLogo(), DrawzwareLogoProps, LandingFooter(), LandingNavbar(), NavbarProps
 
 ### Community 39 - "scripts"
 Cohesion: 0.12
 Nodes (17): scripts, build, build:electron, deploy:cloudflare, desktop, dev, dist, dist:dir (+9 more)
 
-### Community 40 - "cn"
-Cohesion: 0.10
-Nodes (19): GroupNodeComponent(), JunctionNodeComponent(), SequenceFragmentComponent(), SequenceParticipantComponent(), StickyNoteComponent(), ContextMenuCheckboxItem(), ContextMenuContent(), ContextMenuItem() (+11 more)
+### Community 40 - "LandingHeroSection.tsx"
+Cohesion: 0.50
+Nodes (4): ArchitecturePreview(), ArchNode, HeroSectionProps, LandingHeroSection()
 
 ### Community 41 - "compilerOptions"
 Cohesion: 0.13
@@ -348,9 +347,9 @@ Nodes (14): compilerOptions, esModuleInterop, lib, module, moduleResolution, noE
 Cohesion: 0.13
 Nodes (14): background_color, categories, description, display, icons, id, name, orientation (+6 more)
 
-### Community 43 - "ExportDialog.tsx"
-Cohesion: 0.14
-Nodes (17): CHECKERBOARD, ExportBody(), ExportFormat, FORMAT_OPTIONS, Scale, SCALE_OPTIONS, copyPngToClipboard(), getJsonExport() (+9 more)
+### Community 43 - "BaseSystemNode.tsx"
+Cohesion: 0.17
+Nodes (14): BaseSystemNode, BaseSystemNodeComponent(), NODE_ENV_META, NODE_STATUS_META, NodeEnvironment, NodeStatus, useHasValidationWarning(), getTechIconDef() (+6 more)
 
 ### Community 44 - "compilerOptions"
 Cohesion: 0.08
@@ -368,17 +367,17 @@ Nodes (12): compilerOptions, esModuleInterop, lib, module, moduleResolution, noE
 Cohesion: 0.12
 Nodes (15): 1. MVP Overview, 2. Locked Decisions, 3. Trade-offs and Compatibility Checks, 4. Implementation Plan, 5. Definition of Done, 6. Explicitly Out of Scope, DrawzWare — Authentication & Collaboration MVP, Goal (+7 more)
 
-### Community 49 - "CanvasToolbar.tsx"
-Cohesion: 0.12
-Nodes (29): Divider(), ERASER_SIZE_PRESETS, PENCIL_SIZE_PRESETS, ToolbarIconButton(), useToolbarActions(), ContextualDrawingToolbar(), SelectionActions(), cleanRawMarkdownSymbols() (+21 more)
+### Community 49 - "LandingDesktopAppModal.tsx"
+Cohesion: 0.50
+Nodes (4): AppleIcon(), DesktopAppModalProps, LandingDesktopAppModal(), OS
 
 ### Community 50 - "web/package.json"
 Cohesion: 0.13
 Nodes (19): dependencies, @drawzware/canvas-core@*, @drawzware/contracts@*, @drawzware/domain@*, @drawzware/storage@*, yjs@^13.6.33, description, @drawzware/contracts (+11 more)
 
-### Community 51 - "Project"
-Cohesion: 0.18
-Nodes (15): DiagramModel, diagramSchema, IDiagram, DiagramSnapshotModel, diagramSnapshotSchema, IDiagramSnapshot, saveDiagramSnapshotDoc(), SaveSnapshotDocResult (+7 more)
+### Community 51 - "phase1-backend-api.test.ts"
+Cohesion: 0.13
+Nodes (14): DiagramSnapshotModel, diagramSnapshotSchema, ISession, SessionModel, sessionSchema, UserModel, userSchema, WorkspaceInvitationModel (+6 more)
 
 ### Community 52 - "with"
 Cohesion: 0.17
@@ -398,7 +397,7 @@ Nodes (10): dependencies, @drawzware/contracts@*, @drawzware/storage@*, descript
 
 ### Community 56 - "useCollaborationStore.ts"
 Cohesion: 0.24
-Nodes (15): CollabClientConnection, InviteRow, UseCollaborationSyncOptions, CollabClientOptions, CollabConnectionStatus, CollaborationState, DEFAULT_COLLABORATORS, AccessControlState (+7 more)
+Nodes (16): CollabClientConnection, InviteRow, UseCollaborationSyncOptions, CollabClientOptions, CollabConnectionStatus, getDefaultWsUrl(), CollaborationState, DEFAULT_COLLABORATORS (+8 more)
 
 ### Community 57 - "publish-release"
 Cohesion: 0.20
@@ -412,10 +411,6 @@ Nodes (6): compilerOptions, outDir, rootDir, extends, include, ../../tsconfig.ba
 Cohesion: 0.17
 Nodes (11): compilerOptions, declaration, module, moduleResolution, noEmit, outDir, rootDir, target (+3 more)
 
-### Community 61 - "toast"
-Cohesion: 0.13
-Nodes (30): AppDashboardPage(), ImportPage(), State, hasFiles(), ImportDropZone(), pickFile(), BannerState, MigrationBanner() (+22 more)
-
 ### Community 62 - "build-and-test"
 Cohesion: 0.20
 Nodes (10): name, runs-on, strategy, build-cmd, os, platform, build-and-test, include (+2 more)
@@ -428,9 +423,9 @@ Nodes (9): dependencies, zod@^4.3.6, description, zod, main, name, private, type
 Cohesion: 0.22
 Nodes (9): dependencies, @drawzware/contracts@*, description, @drawzware/contracts, main, name, private, types (+1 more)
 
-### Community 65 - "utils.ts"
-Cohesion: 0.15
-Nodes (22): SharedCanvasInner(), SharedCanvasPage(), MinimapThumb, ProjectCard, CreateNewProjectDashedCard(), isTypingTarget(), latest(), ModalState (+14 more)
+### Community 65 - "ProjectList.tsx"
+Cohesion: 0.07
+Nodes (55): AppDashboardPage(), SharedCanvasInner(), SharedCanvasPage(), ImportPage(), State, ProjectName(), MinimapThumb, TEMPLATES (+47 more)
 
 ### Community 66 - "env"
 Cohesion: 0.29
@@ -456,25 +451,25 @@ Nodes (6): compilerOptions, outDir, rootDir, extends, include, ../../tsconfig.ba
 Cohesion: 0.29
 Nodes (6): compilerOptions, outDir, rootDir, extends, include, ../../tsconfig.base.json
 
-### Community 72 - "CanvasHeader.tsx"
-Cohesion: 0.14
-Nodes (22): CanvasBackgroundLayer(), CanvasInner(), BACKGROUND_OPTIONS, CanvasHeader(), ProjectName(), STATUS, useDisplayedSaveStatus(), SaveStatus (+14 more)
+### Community 72 - "useTheme.ts"
+Cohesion: 0.13
+Nodes (22): BACKGROUND_OPTIONS, Row(), Section(), SectionId, SECTIONS, SettingsPage(), THEME_OPTIONS, CanvasBackground (+14 more)
 
 ### Community 73 - "Coding Style"
 Cohesion: 0.07
 Nodes (26): Code Quality Checklist, Code Smells to Avoid, Coding Style, Core Principles, Deep Nesting, DRY (Don't Repeat Yourself), Error Handling, File Organization (+18 more)
 
-### Community 74 - "canvas-helpers.ts"
-Cohesion: 0.10
-Nodes (28): UtilityItem, EXPANDED_COMPONENT_CATEGORIES, EXPANDED_COMPONENTS, ExpandedComponentCategory, ExpandedComponentItem, POPULAR_SERVICE_CATEGORIES, POPULAR_SERVICES, PopularServiceCategory (+20 more)
+### Community 74 - "CanvasInner"
+Cohesion: 0.18
+Nodes (24): CanvasInner(), GlobalInsertPanel(), GlobalInsertPanelProps, GROUP_COLORS, GROUP_ICONS, GROUP_ORDER, findMatchingCanvasNode(), getItemGroup() (+16 more)
 
 ### Community 75 - "CanvasToolbar.tsx"
-Cohesion: 0.16
-Nodes (35): AddComponentSubmenus(), CATEGORIES, CanvasContextMenu(), ContextMenuState, CanvasToolbar(), DrawingToolbar(), MoreMenu(), SidebarDrawingToolsMenu() (+27 more)
+Cohesion: 0.11
+Nodes (50): BACKGROUND_OPTIONS, STATUS, CanvasToolbar(), Divider(), DrawingToolbar(), ERASER_SIZE_PRESETS, MoreMenu(), PENCIL_SIZE_PRESETS (+42 more)
 
 ### Community 77 - "useCollaborationStore.ts"
-Cohesion: 0.18
-Nodes (14): base64ToUint8Array(), uint8ArrayToBase64(), useCollaborationSync(), CollabClient, getDefaultWsUrl(), applyCanvasDiffToYDoc(), base64ToUint8Array(), createCollabUndoManager() (+6 more)
+Cohesion: 0.19
+Nodes (13): useCollaborationSync(), getStoredAccessToken(), CollabClient, applyCanvasDiffToYDoc(), base64ToUint8Array(), createCollabUndoManager(), extractCanvasFromYDoc(), initYDocFromCanvas() (+5 more)
 
 ### Community 78 - "DrawzWare Codebase Architecture & MVP Audit Report"
 Cohesion: 0.10
@@ -492,13 +487,9 @@ Nodes (14): 10. Storage Quota, 11. Security and Privacy Requirements, 12. Error 
 Cohesion: 0.32
 Nodes (11): ALLOWED_TAGS, CanvasTextNode, CanvasTextNodeComponent(), DANGEROUS_TAGS, domNodeToReact(), extractSafeColor(), getFontFamilyClass(), hasHtml() (+3 more)
 
-### Community 85 - "PencilOverlay.tsx"
-Cohesion: 0.28
-Nodes (11): checkPointHitsEdge(), checkPointHitsNonDrawingNode(), distanceToSegment(), eraseDrawingStroke(), getSegmentCircleIntersections(), PencilOverlay(), Point, FreehandDrawingNode (+3 more)
-
-### Community 86 - "serverError"
-Cohesion: 0.27
-Nodes (16): acceptInvitationHandler(), createInvitationHandler(), createWorkspaceHandler(), getInvitationPreviewHandler(), getWorkspaceHandler(), listInvitationsHandler(), listMembersHandler(), listWorkspacesHandler() (+8 more)
+### Community 85 - "security-remediations.test.ts"
+Cohesion: 0.11
+Nodes (21): authRateLimiter, ClientRecord, createRateLimiter(), RateLimiterMiddleware, RateLimiterOptions, decodeCanvasFromUrl(), isValidEdge(), isValidNode() (+13 more)
 
 ### Community 87 - "README.md"
 Cohesion: 0.17
@@ -568,9 +559,9 @@ Nodes (5): Build Troubleshooting, Context Window Management, Extended Thinking +
 Cohesion: 0.33
 Nodes (5): Reporting a Vulnerability, Response Process & Handling, Security Policy, Supported Versions, What to Include in Your Report
 
-### Community 104 - "serverError"
-Cohesion: 0.16
-Nodes (14): bcryptjs@^3.0.3, createApp(), errorHandler(), notFoundHandler(), authRoutes, workspaceRoutes, auditLog, AuditResult (+6 more)
+### Community 104 - "vitest"
+Cohesion: 0.14
+Nodes (12): setStorageAdapterForTesting(), vitest, setupDesktopApi(), sampleArchitectureProject, sampleCanonicalDocument, sampleLegacyBackupBundle, mockLocalStorage, mockLocalStorageStore (+4 more)
 
 ### Community 105 - "common-testing.md"
 Cohesion: 0.40
@@ -617,11 +608,11 @@ Cohesion: 0.50
 Nodes (4): Mandatory Security Checks, Secret Management, Security Guidelines, Security Response Protocol
 
 ### Community 116 - "auth.service.ts"
-Cohesion: 0.07
-Nodes (60): forgotPasswordHandler(), getMeHandler(), loginHandler(), logoutAllHandler(), logoutHandler(), refreshHandler(), registerHandler(), resendVerificationHandler() (+52 more)
+Cohesion: 0.10
+Nodes (46): IUser, createSessionDoc(), findSessionByCurrentTokenHash(), findSessionByPreviousTokenHash(), revokeAllUserSessions(), revokeSessionById(), revokeSessionFamily(), rotateSessionToken() (+38 more)
 
 ### Community 117 - "ws.d.ts"
-Cohesion: 0.15
+Cohesion: 0.17
 Nodes (4): RawData, ServerOptions, WebSocketServer, ws
 
 ### Community 118 - "14. Test Strategy and Release Gates"
@@ -636,57 +627,49 @@ Nodes (3): 7. Authorization Model, Required authorization checks, Role matrix
 Cohesion: 0.67
 Nodes (3): Installation, Prerequisites, Quick Start
 
-### Community 121 - "settings/page.tsx"
-Cohesion: 0.22
-Nodes (11): BACKGROUND_OPTIONS, Row(), Section(), SectionId, SECTIONS, SettingsPage(), THEME_OPTIONS, ConfirmDialog() (+3 more)
-
 ### Community 122 - "providers.tsx"
-Cohesion: 0.05
-Nodes (47): geistMono, geistSans, metadata, newsreader, plusJakartaSans, RootLayout(), viewport, getDismissedSnapshot() (+39 more)
+Cohesion: 0.16
+Nodes (14): geistMono, geistSans, metadata, newsreader, plusJakartaSans, RootLayout(), viewport, PwaRegister() (+6 more)
 
-### Community 123 - "ProjectModal.tsx"
-Cohesion: 0.24
-Nodes (10): TEMPLATES, ProjectModal(), ProjectModalContent(), ProjectModalProps, Tab, TemplateGrid(), TemplateGridProps, DialogFooter() (+2 more)
-
-### Community 124 - "crdt-collaboration.test.ts"
-Cohesion: 0.33
+### Community 124 - "collab.server.ts"
+Cohesion: 0.29
 Nodes (4): TestWsClient, TestWsClient, CollabClientMessage, CollabServerMessage
 
-### Community 125 - "auth-contracts-models.test.ts"
+### Community 125 - "emailService"
+Cohesion: 0.12
+Nodes (11): EmailDeliveryResult, EmailMessagePayload, emailService, EmailServiceOptions, auditLog, AuditResult, recordCase(), redact() (+3 more)
+
+### Community 128 - "Header.tsx"
+Cohesion: 0.27
+Nodes (9): getDismissedSnapshot(), getServerSnapshot(), InstallPromptBanner(), subscribeToStorage(), BeforeInstallPromptEvent, getIsStandalone(), subscribeDisplayMode(), usePwaInstall() (+1 more)
+
+### Community 130 - "OnboardingOverlay.tsx"
 Cohesion: 0.14
-Nodes (11): ISession, SessionModel, sessionSchema, EmailMessagePayload, emailService, EmailServiceOptions, ACCESS_TOKEN_TTL_SEC, constantTimeCompare() (+3 more)
+Nodes (24): getOnboarded(), getServerOnboarded(), Illustration(), LIBRARY_TYPES, MiniNode(), OnboardingOverlay(), STEPS, subscribe() (+16 more)
 
-### Community 126 - "LandingDesktopAppModal.tsx"
-Cohesion: 0.50
-Nodes (4): AppleIcon(), DesktopAppModalProps, LandingDesktopAppModal(), OS
-
-### Community 127 - "OnboardingOverlay.tsx"
-Cohesion: 0.33
-Nodes (9): getOnboarded(), getServerOnboarded(), Illustration(), LIBRARY_TYPES, MiniNode(), OnboardingOverlay(), STEPS, subscribe() (+1 more)
-
-### Community 128 - "useIsDesktop.ts"
-Cohesion: 0.83
-Nodes (3): emptySubscribe(), isDesktopEnvironment(), useIsDesktop()
+### Community 135 - "Agent Rules: Architecture & Process Boundaries"
+Cohesion: 0.40
+Nodes (4): 1. Process Separation & Boundaries, 2. Desktop Route & Navigation Boundaries, 3. Technology Selection Guardrails, Agent Rules: Architecture & Process Boundaries
 
 ## Knowledge Gaps
 - **6 isolated node(s):** `../../tsconfig.base.json`, `../../tsconfig.base.json`, `../../tsconfig.base.json`, `../../tsconfig.base.json`, `../../tsconfig.base.json` (+1 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 859 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 868 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **15 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `vitest` connect `vitest` to `LibraryProjectMetadata`, `desktop/types/ipc.ts`, `global-search-registry.ts`, `workspace.service.ts`, `package.json`, `security-remediations.test.ts`, `contracts/src/index.ts`, `desktop/types/document.ts`, `package.json`, `canvas.types.ts`, `real-infrastructure-persistence.test.ts`, `ShapeDrawingOverlay.tsx`, `DashboardIntroProvider.tsx`, `useCollaborationStore.ts`, `CanvasHeader.tsx`, `canvas-helpers.ts`, `useCollaborationStore.ts`, `serverError`, `auth.service.ts`, `crdt-collaboration.test.ts`, `auth-contracts-models.test.ts`?**
+- **Why does `Project` connect `LibraryProjectMetadata` to `desktop/types/ipc.ts`, `vitest`, `useCollaborationStore`, `crdt.service.ts`, `contracts/src/index.ts`, `desktop/types/document.ts`, `StorageService`, `Canvas.tsx`, `diagram.controller.ts`, `server.ts`, `useCanvasStore`, `phase1-backend-api.test.ts`, `useCollaborationStore.ts`, `ProjectList.tsx`, `CanvasToolbar.tsx`, `useCollaborationStore.ts`, `security-remediations.test.ts`, `vitest`, `collab.server.ts`?**
   _High betweenness centrality (0.064) - this node is a cross-community bridge._
 - **What connects `../../tsconfig.base.json`, `../../tsconfig.base.json`, `../../tsconfig.base.json` to the rest of the system?**
   _6 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `real-infrastructure-persistence.test.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.1455026455026455 - nodes in this community are weakly interconnected._
-- **Why does `Project` connect `Project` to `utils.ts`, `LibraryProjectMetadata`, `desktop/types/ipc.ts`, `vitest`, `CanvasHeader.tsx`, `CanvasToolbar.tsx`, `useCollaborationStore.ts`, `security-remediations.test.ts`, `contracts/src/index.ts`, `desktop/types/document.ts`, `StorageService`, `canvas.types.ts`, `diagram.controller.ts`, `real-infrastructure-persistence.test.ts`, `settings/page.tsx`, `crdt-collaboration.test.ts`, `toast`?**
-  _High betweenness centrality (0.061) - this node is a cross-community bridge._
+- **Should `lucide-react` be split into smaller, more focused modules?**
+  _Cohesion score 0.14579552329098608 - nodes in this community are weakly interconnected._
+- **Why does `vitest` connect `vitest` to `NodePalette.tsx`, `desktop/types/ipc.ts`, `vitest`, `workspace.service.ts`, `package.json`, `contracts/src/index.ts`, `desktop/types/document.ts`, `package.json`, `server.ts`, `useCanvasStore`, `Button`, `ShapeDrawingOverlay.tsx`, `DashboardIntroProvider.tsx`, `phase1-backend-api.test.ts`, `useTheme.ts`, `CanvasInner`, `useCollaborationStore.ts`, `security-remediations.test.ts`, `auth.service.ts`, `collab.server.ts`, `emailService`?**
+  _High betweenness centrality (0.059) - this node is a cross-community bridge._
+- **Should `ExportDialog.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.12436974789915967 - nodes in this community are weakly interconnected._
+- **Why does `react` connect `lucide-react` to `Header.tsx`, `ExportDialog.tsx`, `OnboardingOverlay.tsx`, `json-import.ts`, `NodePalette.tsx`, `react`, `useCollaborationStore`, `package.json`, `Canvas.tsx`, `src/app/page.tsx`, `useCanvasStore`, `Button`, `ShapeDrawingOverlay.tsx`, `dependencies`, `DashboardIntroProvider.tsx`, `StepNode.tsx`, `cn`, `useToastStore.ts`, `LandingNavbar.tsx`, `LandingHeroSection.tsx`, `BaseSystemNode.tsx`, `LandingDesktopAppModal.tsx`, `ProjectList.tsx`, `useTheme.ts`, `CanvasInner`, `CanvasToolbar.tsx`, `useCollaborationStore.ts`, `CanvasTextNode.tsx`, `providers.tsx`?**
+  _High betweenness centrality (0.050) - this node is a cross-community bridge._
 - **Should `json-import.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.06060606060606061 - nodes in this community are weakly interconnected._
-- **Why does `react` connect `react` to `dialog.tsx`, `LandingNavbar.tsx`, `useIsDesktop.ts`, `json-import.ts`, `NodePalette.tsx`, `CommandMenu.tsx`, `global-search-registry.ts`, `security-remediations.test.ts`, `package.json`, `canvas.types.ts`, `src/app/page.tsx`, `Canvas.tsx`, `ShapeDrawingOverlay.tsx`, `dependencies`, `LandingHeroSection.tsx`, `DashboardIntroProvider.tsx`, `BaseSystemNode.tsx`, `NodeEditor.tsx`, `SystemEdge.tsx`, `cn`, `ExportDialog.tsx`, `CanvasToolbar.tsx`, `toast`, `utils.ts`, `CanvasHeader.tsx`, `canvas-helpers.ts`, `CanvasToolbar.tsx`, `useCollaborationStore.ts`, `CanvasTextNode.tsx`, `PencilOverlay.tsx`, `settings/page.tsx`, `providers.tsx`, `ProjectModal.tsx`, `LandingDesktopAppModal.tsx`, `OnboardingOverlay.tsx`?**
-  _High betweenness centrality (0.045) - this node is a cross-community bridge._
-- **Should `NodePalette.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.07529411764705882 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07756813417190776 - nodes in this community are weakly interconnected._

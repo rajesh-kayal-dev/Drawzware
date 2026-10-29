@@ -8,6 +8,8 @@ import * as workspaceRepo from '../src/repositories/workspace.repository.js';
 import * as memberRepo from '../src/repositories/workspace-member.repository.js';
 import * as invitationRepo from '../src/repositories/workspace-invitation.repository.js';
 import * as diagramRepo from '../src/repositories/diagram.repository.js';
+import * as sessionRepo from '../src/repositories/session.repository.js';
+import { emailService } from '../src/services/email.service.js';
 import { WorkspaceRole } from '@drawzware/contracts';
 
 interface AuditResult {
@@ -50,10 +52,10 @@ describe('Comprehensive Drawzware Phase 1 API Audit', () => {
   const viewerUser = { id: 'usr-viewer-103', name: 'Charlie Viewer', email: 'viewer@drawzware.com' };
   const strangerUser = { id: 'usr-stranger-104', name: 'Eve Stranger', email: 'stranger@drawzware.com' };
 
-  const ownerToken = jwt.sign({ id: ownerUser.id, email: ownerUser.email }, process.env.JWT_SECRET || 'test-secret');
-  const editorToken = jwt.sign({ id: editorUser.id, email: editorUser.email }, process.env.JWT_SECRET || 'test-secret');
-  const viewerToken = jwt.sign({ id: viewerUser.id, email: viewerUser.email }, process.env.JWT_SECRET || 'test-secret');
-  const strangerToken = jwt.sign({ id: strangerUser.id, email: strangerUser.email }, process.env.JWT_SECRET || 'test-secret');
+  const ownerToken = jwt.sign({ id: ownerUser.id, email: ownerUser.email, isEmailVerified: true }, process.env.JWT_SECRET || 'test-secret');
+  const editorToken = jwt.sign({ id: editorUser.id, email: editorUser.email, isEmailVerified: true }, process.env.JWT_SECRET || 'test-secret');
+  const viewerToken = jwt.sign({ id: viewerUser.id, email: viewerUser.email, isEmailVerified: true }, process.env.JWT_SECRET || 'test-secret');
+  const strangerToken = jwt.sign({ id: strangerUser.id, email: strangerUser.email, isEmailVerified: true }, process.env.JWT_SECRET || 'test-secret');
 
   const users = new Map<string, any>();
   const workspaces = new Map<string, any>();
@@ -73,6 +75,18 @@ describe('Comprehensive Drawzware Phase 1 API Audit', () => {
       name: ownerUser.name,
       email: ownerUser.email,
       password: hashedPassword,
+      isEmailVerified: true,
+      tokenVersion: 0,
+    });
+
+    vi.spyOn(sessionRepo, 'createSessionDoc').mockResolvedValue({} as any);
+    vi.spyOn(emailService, 'sendVerificationEmail').mockResolvedValue(true);
+    vi.spyOn(emailService, 'sendInvitationEmail').mockResolvedValue(true);
+
+    vi.spyOn(userRepo, 'findUserDocById').mockImplementation(async (id: string) => {
+      const u = Array.from(users.values()).find(user => user._id === id);
+      if (u) return u;
+      return { _id: id, isEmailVerified: true, tokenVersion: 0 } as any;
     });
 
     vi.spyOn(userRepo, 'findUserDocByEmail').mockImplementation(async (email: string, includePassword = false) => {
@@ -85,7 +99,7 @@ describe('Comprehensive Drawzware Phase 1 API Audit', () => {
 
     vi.spyOn(userRepo, 'createUserDoc').mockImplementation(async (data: any) => {
       const _id = `usr-${Date.now()}`;
-      const user = { _id, ...data };
+      const user = { _id, ...data, isEmailVerified: true };
       users.set(data.email.toLowerCase().trim(), user);
       return user;
     });
@@ -129,6 +143,10 @@ describe('Comprehensive Drawzware Phase 1 API Audit', () => {
       const m = { workspaceId: wsId, userId: uId, role, userEmail, createdAt: existing?.createdAt || now, updatedAt: now };
       members.set(key, m);
       return m as any;
+    });
+
+    vi.spyOn(memberRepo, 'findWorkspaceMemberByEmailDoc').mockImplementation(async (wsId: string, email: string) => {
+      return Array.from(members.values()).find(m => m.workspaceId === wsId && m.userEmail?.toLowerCase() === email.toLowerCase()) || null;
     });
 
     vi.spyOn(invitationRepo, 'createInvitationDoc').mockImplementation(async (data: any) => {

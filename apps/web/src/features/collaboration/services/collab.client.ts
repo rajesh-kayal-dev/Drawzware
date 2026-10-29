@@ -60,6 +60,7 @@ export class CollabClient {
   private cursorThrottleTimer: NodeJS.Timeout | null = null;
   private pendingCursor: { x: number; y: number } | null = null;
   private pendingSelectedNodeIds: string[] = [];
+  private queuedMessages: CollabClientMessage[] = [];
 
   constructor(options: CollabClientOptions) {
     this.options = options;
@@ -113,6 +114,7 @@ export class CollabClient {
     this.ws.onopen = () => {
       this.reconnectAttempts = 0;
       this.setStatus('connected');
+      this.flushQueue();
     };
 
     this.ws.onmessage = (event: MessageEvent) => {
@@ -125,11 +127,11 @@ export class CollabClient {
 
     this.ws.onclose = (event: CloseEvent) => {
       this.ws = null;
-      if (event.code === 4403 || event.code === 4401) {
-        // Access revoked or authentication expired - do not reconnect
+      if (event.code === 4403 || event.code === 4401 || event.code === 4404 || event.code === 1008) {
+        // Access revoked, diagram not found, or authentication expired - do not reconnect
         this.shouldReconnect = false;
         this.setStatus('disconnected');
-        this.options.onPermissionRevoked?.(event.reason || 'Authentication or access revoked');
+        this.options.onPermissionRevoked?.(event.reason || 'Diagram not found or authentication revoked');
         return;
       }
 
@@ -143,6 +145,11 @@ export class CollabClient {
 
   private scheduleReconnect(): void {
     if (!this.shouldReconnect) return;
+    if (this.reconnectAttempts >= 5) {
+      this.shouldReconnect = false;
+      this.setStatus('error');
+      return;
+    }
     this.setStatus('reconnecting');
 
     if (this.reconnectTimer) {
@@ -264,8 +271,32 @@ export class CollabClient {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
         this.ws.send(JSON.stringify(message));
+        return;
       } catch {
         // Safe ignore
+      }
+    }
+
+    // Queue CRDT mutation and sync messages to be flushed immediately upon connection
+    if (
+      message.type === 'sync_update' ||
+      message.type === 'sync_step_2' ||
+      message.type === 'sync_step_1'
+    ) {
+      this.queuedMessages.push(message);
+    }
+  }
+
+  private flushQueue(): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    while (this.queuedMessages.length > 0) {
+      const msg = this.queuedMessages.shift();
+      if (msg) {
+        try {
+          this.ws.send(JSON.stringify(msg));
+        } catch {
+          break;
+        }
       }
     }
   }
@@ -290,6 +321,22 @@ export class CollabClient {
     this.pendingCursor = pos;
     this.pendingSelectedNodeIds = selectedNodeIds;
 
+    if (pos === null) {
+      if (this.cursorThrottleTimer) {
+        clearTimeout(this.cursorThrottleTimer);
+        this.cursorThrottleTimer = null;
+      }
+      this.send({
+        type: 'cursor_move',
+        diagramId: this.options.diagramId,
+        payload: {
+          cursor: null,
+          selectedNodeIds: [],
+        },
+      });
+      return;
+    }
+
     if (this.cursorThrottleTimer) return;
 
     this.cursorThrottleTimer = setTimeout(() => {
@@ -302,7 +349,7 @@ export class CollabClient {
           selectedNodeIds: this.pendingSelectedNodeIds,
         },
       });
-    }, 50);
+    }, 40);
   }
 
   disconnect(): void {

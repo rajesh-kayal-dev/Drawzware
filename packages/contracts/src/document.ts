@@ -52,6 +52,8 @@ export const ProjectSchema = z.object({
     .default({ x: 0, y: 0, zoom: 1 }),
   diagramType: z.enum(['architecture', 'sequence', 'er']).optional(),
   diagramData: z.record(z.string(), z.unknown()).optional(),
+  cloudDiagramId: z.string().optional(),
+  cloudWorkspaceId: z.string().optional(),
 });
 
 export type Project = z.infer<typeof ProjectSchema>;

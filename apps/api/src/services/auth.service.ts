@@ -10,6 +10,7 @@ import {
   findUserByPasswordResetTokenHash,
   resetUserPassword,
   incrementUserTokenVersion,
+  updateUserDoc,
 } from '../repositories/user.repository.js';
 import {
   createSessionDoc,
@@ -37,7 +38,7 @@ import { emailService } from './email.service.js';
 export type { UserSummary, AuthResult, AuthTokens };
 export { generateToken };
 
-function mapUser(user: IUser): UserSummary {
+export function mapUser(user: IUser): UserSummary {
   return {
     id: user._id,
     name: user.name,
@@ -46,7 +47,7 @@ function mapUser(user: IUser): UserSummary {
   };
 }
 
-async function issueSessionAndTokens(
+export async function issueSessionAndTokens(
   user: IUser,
   clientMeta?: { userAgent?: string; ipAddress?: string }
 ): Promise<AuthTokens> {
@@ -150,10 +151,14 @@ export async function loginUser(
   return { user, tokens };
 }
 
-export async function verifyEmail(rawToken: string): Promise<{
+export async function verifyEmail(
+  rawToken: string,
+  clientMeta?: { userAgent?: string; ipAddress?: string }
+): Promise<{
   success: boolean;
   message: string;
   user?: UserSummary;
+  tokens?: AuthTokens;
   alreadyVerified?: boolean;
 }> {
   const tokenHash = hashToken(rawToken.trim());
@@ -164,20 +169,24 @@ export async function verifyEmail(rawToken: string): Promise<{
   }
 
   if (user.isEmailVerified) {
+    const tokens = await issueSessionAndTokens(user, clientMeta);
     return {
       success: true,
       alreadyVerified: true,
       message: 'Email is already verified.',
       user: mapUser(user),
+      tokens,
     };
   }
 
   await markEmailAsVerified(user._id);
+  user.isEmailVerified = true;
   const updatedUser: UserSummary = {
     ...mapUser(user),
     isEmailVerified: true,
   };
-  return { success: true, message: 'Email verified successfully.', user: updatedUser };
+  const tokens = await issueSessionAndTokens(user, clientMeta);
+  return { success: true, message: 'Email verified successfully.', user: updatedUser, tokens };
 }
 
 export async function resendVerification(
@@ -351,4 +360,16 @@ export async function getUserProfile(userId: string): Promise<UserSummary> {
     throw new Error('USER_NOT_FOUND');
   }
   return mapUser(user);
+}
+
+export async function updateUserProfile(userId: string, data: { name: string }): Promise<UserSummary> {
+  const cleanName = data.name ? data.name.trim() : '';
+  if (!cleanName || cleanName.length < 2) {
+    throw new Error('Name must be at least 2 characters long.');
+  }
+  const updated = await updateUserDoc(userId, { name: cleanName });
+  if (!updated) {
+    throw new Error('USER_NOT_FOUND');
+  }
+  return mapUser(updated);
 }

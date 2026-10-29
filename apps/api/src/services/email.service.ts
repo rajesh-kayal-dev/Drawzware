@@ -71,8 +71,12 @@ export class EmailService {
     const transporter = this.getTransporter();
     if (transporter) {
       try {
+        const senderEmail = process.env.SMTP_USER || config.smtp.user || 'noreply@drawzware.com';
+        const formattedFrom = `"DrawzWare" <${senderEmail}>`;
+
         const info = await transporter.sendMail({
-          from: process.env.SMTP_FROM || config.smtp.from,
+          from: formattedFrom,
+          replyTo: senderEmail,
           to: payload.to,
           subject: payload.subject,
           text: payload.text,
@@ -126,19 +130,20 @@ export class EmailService {
       params.set('returnUrl', returnUrl);
     }
     const verificationUrl = `${baseUrl}/verify-email?${params.toString()}`;
+    console.log(`[EmailService] 🔗 Verification link for ${email}: ${verificationUrl}`);
 
     const text = [
-      'Drawzware — Verify your email',
+      'DrawzWare — Verify your account',
       '==============================',
       '',
-      'Welcome to Drawzware System Design Canvas!',
+      'Welcome to DrawzWare System Design Canvas!',
       'Please verify your email address to enable real-time cloud collaboration and workspace sharing:',
       '',
       verificationUrl,
       '',
       'Note: This link expires in 24 hours.',
       'Personal diagramming is 100% offline and always free.',
-      'If you did not sign up for Drawzware, you can safely ignore this email.',
+      'If you did not sign up for DrawzWare, you can safely ignore this email.',
     ].join('\n');
 
     const html = `
@@ -147,14 +152,13 @@ export class EmailService {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Verify your Drawzware email</title>
+          <title>Verify your DrawzWare account</title>
         </head>
         <body style="margin: 0; padding: 32px 16px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a;">
           <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);">
             <!-- Brand Header -->
             <div style="padding: 24px 28px; background: #0f172a; border-bottom: 1px solid #1e293b; display: flex; align-items: center;">
-              <span style="font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -0.02em;">Drawzware</span>
-              <span style="font-size: 12px; color: #94a3b8; margin-left: 8px;">Studio</span>
+              <span style="font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -0.02em;">DrawzWare</span>
             </div>
 
             <!-- Content -->
@@ -163,11 +167,11 @@ export class EmailService {
                 Verify your email address
               </h1>
               <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 24px;">
-                Welcome to Drawzware! Click the button below to verify your email and activate cloud collaboration, real-time sync, and workspace invitations.
+                Welcome to DrawzWare! Click the button below to verify your email and activate cloud collaboration, real-time sync, and workspace invitations.
               </p>
 
               <div style="margin: 28px 0;">
-                <a href="${verificationUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #6366f1; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 28px; border-radius: 8px; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.35);">
+                <a href="${verificationUrl}" rel="noopener noreferrer" style="display: inline-block; background-color: #6366f1; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 28px; border-radius: 8px; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.35);">
                   Verify Email Address
                 </a>
               </div>
@@ -181,7 +185,7 @@ export class EmailService {
 
               <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; margin-top: 28px;">
                 <p style="font-size: 12px; color: #94a3b8; margin: 0; line-height: 1.5;">
-                  This link expires in 24 hours. If you did not create an account on Drawzware, you can safely ignore this email.
+                  This link expires in 24 hours. If you did not create an account on DrawzWare, you can safely ignore this email.
                 </p>
               </div>
             </div>
@@ -192,7 +196,7 @@ export class EmailService {
 
     return this.deliver({
       to: email,
-      subject: 'Verify your Drawzware email',
+      subject: 'Verify your DrawzWare account',
       text,
       html,
     });
@@ -449,6 +453,94 @@ export class EmailService {
       role,
       returnUrl
     );
+  }
+
+  /**
+   * Internal delivery for welcome email after invitation signup.
+   */
+  public async deliverWelcomeEmail(
+    email: string,
+    name: string,
+    workspaceName: string,
+    canvasUrl?: string
+  ): Promise<EmailDeliveryResult> {
+    const baseUrl = config.appUrl.replace(/\/+$/, '');
+    const destination = canvasUrl
+      ? (canvasUrl.startsWith('http') ? canvasUrl : `${baseUrl}${canvasUrl.startsWith('/') ? '' : '/'}${canvasUrl}`)
+      : `${baseUrl}/app`;
+
+    const text = [
+      `Welcome to DrawzWare, ${name}!`,
+      '==============================',
+      '',
+      `Your account has been set up successfully and you have joined the workspace "${workspaceName}".`,
+      'You can now start collaborating in real-time, design system architectures, and export diagrams.',
+      '',
+      'Open your canvas directly here:',
+      destination,
+      '',
+      'Enjoy diagramming!',
+      'The DrawzWare Team',
+    ].join('\n');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Welcome to DrawzWare</title>
+        </head>
+        <body style="margin: 0; padding: 32px 16px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a;">
+          <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);">
+            <!-- Brand Header -->
+            <div style="padding: 24px 28px; background: #0f172a; border-bottom: 1px solid #1e293b;">
+              <span style="font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -0.02em;">DrawzWare</span>
+              <span style="font-size: 12px; color: #94a3b8; margin-left: 8px;">Studio</span>
+            </div>
+
+            <!-- Content -->
+            <div style="padding: 32px 28px;">
+              <h1 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 12px; letter-spacing: -0.02em;">
+                Welcome to DrawzWare, ${name}!
+              </h1>
+              <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 20px;">
+                Your account is ready and you have joined <strong>"${workspaceName}"</strong>. You can now build, model, and collaborate on system architecture diagrams with your team in real time.
+              </p>
+
+              <div style="margin: 28px 0;">
+                <a href="${destination}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #6366f1; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 28px; border-radius: 8px; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.35);">
+                  Open Workspace Canvas
+                </a>
+              </div>
+
+              <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; margin-top: 28px;">
+                <p style="font-size: 12px; color: #94a3b8; margin: 0; line-height: 1.5;">
+                  This email was sent to ${email} for your DrawzWare account.
+                </p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return this.deliver({
+      to: email,
+      subject: 'Welcome to DrawzWare!',
+      text,
+      html,
+    });
+  }
+
+  async sendWelcomeEmail(
+    email: string,
+    name: string,
+    workspaceName: string,
+    canvasUrl?: string
+  ): Promise<boolean> {
+    const res = await this.deliverWelcomeEmail(email, name, workspaceName, canvasUrl);
+    return res.accepted;
   }
 }
 

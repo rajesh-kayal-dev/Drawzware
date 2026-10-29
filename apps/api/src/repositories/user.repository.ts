@@ -117,3 +117,10 @@ export async function incrementUserTokenVersion(userId: string): Promise<number>
   return updated?.tokenVersion ?? 0;
 }
 
+export async function updateUserDoc(
+  userId: string,
+  update: Partial<{ name: string }>
+): Promise<IUser | null> {
+  return UserModel.findByIdAndUpdate(userId, { $set: update }, { new: true }).exec();
+}
+

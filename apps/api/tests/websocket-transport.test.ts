@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { createApp } from '../src/app.js';
 import * as diagramRepo from '../src/repositories/diagram.repository.js';
 import * as memberRepo from '../src/repositories/workspace-member.repository.js';
+import * as userRepo from '../src/repositories/user.repository.js';
 import { attachCollaborationServer, CollabServer } from '../src/websocket/collab.server.js';
 import {
   CollabServerMessage,
@@ -35,11 +36,11 @@ describe('Real-Time Collaboration WebSocket Transport & RBAC Guard', () => {
   const userViewer = { id: 'usr-viewer-103', email: 'viewer@drawzware.com' };
   const userStranger = { id: 'usr-stranger-104', email: 'stranger@drawzware.com' };
 
-  const tokenOwner = jwt.sign({ id: userOwner.id, email: userOwner.email }, jwtSecret, { expiresIn: '1h' });
-  const tokenEditor = jwt.sign({ id: userEditor.id, email: userEditor.email }, jwtSecret, { expiresIn: '1h' });
-  const tokenViewer = jwt.sign({ id: userViewer.id, email: userViewer.email }, jwtSecret, { expiresIn: '1h' });
-  const tokenStranger = jwt.sign({ id: userStranger.id, email: userStranger.email }, jwtSecret, { expiresIn: '1h' });
-  const tokenExpired = jwt.sign({ id: userOwner.id, email: userOwner.email }, jwtSecret, { expiresIn: '-10s' });
+  const tokenOwner = jwt.sign({ id: userOwner.id, email: userOwner.email, isEmailVerified: true }, jwtSecret, { expiresIn: '1h' });
+  const tokenEditor = jwt.sign({ id: userEditor.id, email: userEditor.email, isEmailVerified: true }, jwtSecret, { expiresIn: '1h' });
+  const tokenViewer = jwt.sign({ id: userViewer.id, email: userViewer.email, isEmailVerified: true }, jwtSecret, { expiresIn: '1h' });
+  const tokenStranger = jwt.sign({ id: userStranger.id, email: userStranger.email, isEmailVerified: true }, jwtSecret, { expiresIn: '1h' });
+  const tokenExpired = jwt.sign({ id: userOwner.id, email: userOwner.email, isEmailVerified: true }, jwtSecret, { expiresIn: '-10s' });
 
   const sampleWorkspaceId = 'ws-collab-alpha';
   const sampleDiagramId = 'diag-collab-001';
@@ -97,14 +98,20 @@ describe('Real-Time Collaboration WebSocket Transport & RBAC Guard', () => {
       }
       return null;
     });
+
+    vi.spyOn(userRepo, 'findUserDocById').mockImplementation((async (id: string) => {
+      return { _id: id, isEmailVerified: true, tokenVersion: 0 } as any;
+    }) as any);
   });
 
   afterEach(async () => {
     for (const ws of activeClients) {
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+      if (ws.readyState === WebSocket.OPEN) {
         try {
           ws.close();
         } catch {}
+      } else if (ws.readyState === WebSocket.CONNECTING) {
+        ws.on('error', () => {});
       }
     }
     activeClients.length = 0;
@@ -115,6 +122,7 @@ describe('Real-Time Collaboration WebSocket Transport & RBAC Guard', () => {
 
   function createClientWs(query: string): TestWsClient {
     const ws = new WebSocket(`ws://127.0.0.1:${port}/collab?${query}`);
+    ws.on('error', () => {});
     activeClients.push(ws);
     const messages: CollabServerMessage[] = [];
     const waiters: Array<{

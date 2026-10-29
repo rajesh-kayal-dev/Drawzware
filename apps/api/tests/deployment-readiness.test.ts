@@ -4,6 +4,7 @@ import { isOriginAllowed, validateEnvironment } from '../src/config/env.js';
 import { sanitizeMongoUri, sanitizeError } from '../src/config/db.js';
 import { authenticateUpgradeRequest } from '../src/websocket/collab.server.js';
 import { serverError } from '../src/middleware/error-handler.js';
+import { EmailService } from '../src/services/email.service.js';
 
 describe('DrawzWare Deployment Readiness & Security Verification', () => {
   const originalEnv = { ...process.env };
@@ -157,6 +158,43 @@ describe('DrawzWare Deployment Readiness & Security Verification', () => {
         message: 'Internal server error',
         details: 'Debug error details',
       });
+    });
+  });
+
+  describe('4. Email Branding & Sender Formatting (B1)', () => {
+    it('sends verification email with correct DrawzWare subject, sender formatting, and template branding', async () => {
+      let capturedPayload: any = null;
+      const emailService = new EmailService({
+        onSendFallback: (payload) => {
+          capturedPayload = payload;
+        },
+      });
+
+      const res = await emailService.deliverVerificationEmail('user@example.com', 'tok-123', '/canvas');
+      expect(res.accepted).toBe(true);
+      expect(capturedPayload).not.toBeNull();
+      expect(capturedPayload.subject).toBe('Verify your DrawzWare account');
+      expect(capturedPayload.html).toContain('DrawzWare');
+      expect(capturedPayload.html).not.toContain('Studio');
+      expect(capturedPayload.html).not.toContain('target="_blank"');
+    });
+
+    it('formats sender with "DrawzWare" display name when raw email is provided', async () => {
+      const sendMailMock = vi.fn().mockResolvedValue({ messageId: 'msg-456' });
+      const mockTransporter = {
+        sendMail: sendMailMock,
+      } as any;
+
+      const emailService = new EmailService({ transporter: mockTransporter });
+      process.env.SMTP_FROM = 'noreply@drawzware.com';
+
+      await emailService.deliverVerificationEmail('user@example.com', 'tok-789');
+      expect(sendMailMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: '"DrawzWare" <noreply@drawzware.com>',
+          subject: 'Verify your DrawzWare account',
+        })
+      );
     });
   });
 });

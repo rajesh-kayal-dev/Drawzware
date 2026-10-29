@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle2, AlertCircle, Loader2, Mail, ArrowRight } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, Mail, ArrowRight, Sparkles, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { authClient } from '@/features/collaboration/services/auth.client';
@@ -21,11 +21,16 @@ function VerifyEmailContent() {
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState<string | null>(null);
   const [destinationUrl, setDestinationUrl] = useState<string>('/app');
+  const [existingTabFound, setExistingTabFound] = useState(false);
+  const [autoRedirectCountdown, setAutoRedirectCountdown] = useState<number | null>(null);
 
   useEffect(() => {
     let savedReturnUrl: string | null = null;
     if (typeof window !== 'undefined') {
-      savedReturnUrl = sessionStorage.getItem('drawzware_return_url');
+      savedReturnUrl =
+        localStorage.getItem('drawzware_return_url') ||
+        localStorage.getItem('drawzware_last_canvas_url') ||
+        sessionStorage.getItem('drawzware_return_url');
     }
     const safeTarget = sanitizeReturnUrl(returnUrlParam || savedReturnUrl, '/app');
     setDestinationUrl(safeTarget);
@@ -36,17 +41,51 @@ function VerifyEmailContent() {
     setErrorMessage(null);
     try {
       const res = await authClient.verifyEmail({ token: tokenToVerify });
-      if ((res as { alreadyVerified?: boolean }).alreadyVerified) {
-        setStatus('already-verified');
-      } else {
-        setStatus('success');
-      }
+      const isAlready = Boolean((res as { alreadyVerified?: boolean }).alreadyVerified);
+      setStatus(isAlready ? 'already-verified' : 'success');
 
       // Refresh store from trusted server endpoint and notify other tabs
       await useCollaborationStore.getState().refreshCurrentUser();
+
       if (typeof window !== 'undefined') {
         localStorage.setItem('drawzware_auth_event', String(Date.now()));
         sessionStorage.removeItem('drawzware_return_url');
+        localStorage.removeItem('drawzware_return_url');
+
+        if ('BroadcastChannel' in window) {
+          const authChannel = new BroadcastChannel('drawzware_auth_channel');
+
+          authChannel.onmessage = (event) => {
+            if (event.data?.type === 'VERIFICATION_ACK') {
+              setExistingTabFound(true);
+              if (event.data.canvasUrl) {
+                setDestinationUrl(sanitizeReturnUrl(event.data.canvasUrl, destinationUrl));
+              }
+              // If the original canvas tab acknowledged, attempt closing this verification tab cleanly
+              try {
+                window.close();
+              } catch {
+                // Browser might prevent closing external tabs
+              }
+            }
+          };
+
+          // Notify open canvas tab (Tab A)
+          authChannel.postMessage({
+            type: 'VERIFICATION_SUCCESS',
+            user: res.user,
+            returnUrl: destinationUrl,
+          });
+
+          // Wait a brief tick then attempt close if permitted
+          setTimeout(() => {
+            try {
+              window.close();
+            } catch {
+              // Safe ignore
+            }
+          }, 800);
+        }
       }
     } catch (err: unknown) {
       setStatus('error');
@@ -65,7 +104,26 @@ function VerifyEmailContent() {
       setStatus('error');
       setErrorMessage('Missing verification token in the URL. Please check your email link.');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // Auto-redirect if user opened this page independently and no canvas tab was found
+  useEffect(() => {
+    if ((status === 'success' || status === 'already-verified') && !existingTabFound) {
+      setAutoRedirectCountdown(3);
+      const interval = setInterval(() => {
+        setAutoRedirectCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            clearInterval(interval);
+            window.location.href = destinationUrl;
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [status, existingTabFound, destinationUrl]);
 
   const handleResend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,8 +142,6 @@ function VerifyEmailContent() {
       setResending(false);
     }
   };
-
-  const isCanvasTarget = destinationUrl.startsWith('/canvas');
 
   return (
     <div className="w-full max-w-md p-8 rounded-2xl border border-line bg-card/90 backdrop-blur-md shadow-2xl">
@@ -114,22 +170,69 @@ function VerifyEmailContent() {
           <div className="size-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
             <CheckCircle2 className="size-8" />
           </div>
-          <div className="space-y-1.5">
+
+          <div className="space-y-2">
             <h2 className="text-lg font-semibold text-ink">
-              {status === 'already-verified' ? 'Email Already Verified' : 'Email Verified Successfully!'}
+              {status === 'already-verified' ? 'Email Already Verified' : '🎉 Email Verified Successfully!'}
             </h2>
-            <p className="text-sm text-ink-2 leading-relaxed">
-              {status === 'already-verified'
-                ? 'Your email address is already confirmed. You have full access to cloud collaboration and workspace sync.'
-                : 'Your email address has been confirmed. You now have full access to real-time cloud collaboration, workspace invites, and diagram synchronization.'}
-            </p>
+
+            {existingTabFound ? (
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[13px] leading-relaxed text-left flex items-start gap-3 mt-3">
+                <Sparkles className="size-5 shrink-0 text-emerald-400 mt-0.5" />
+                <div>
+                  <span className="font-semibold block text-emerald-200 mb-1">Your existing canvas is unlocked!</span>
+                  <span>We&apos;ve automatically verified your account and closed the login dialog in your open canvas tab. You can safely switch back to that tab now.</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-ink-2 leading-relaxed">
+                {status === 'already-verified'
+                  ? 'Your email address is already confirmed. You have full access to cloud collaboration and workspace sync.'
+                  : 'Your email address has been confirmed. You now have full access to real-time cloud collaboration, workspace invites, and diagram synchronization.'}
+              </p>
+            )}
           </div>
-          <Link href={destinationUrl} className="block w-full">
-            <Button className="w-full h-11 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-medium text-[14px] rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
-              <span>{isCanvasTarget ? 'Return to Canvas Studio' : 'Open Workspace Dashboard'}</span>
-              <ArrowRight className="size-4" />
-            </Button>
-          </Link>
+
+          <div className="pt-2 space-y-2.5">
+            {existingTabFound ? (
+              <>
+                <Button
+                  onClick={() => {
+                    try {
+                      window.close();
+                    } catch {
+                      // Browser blocked close
+                    }
+                  }}
+                  className="w-full h-11 bg-paper border border-line hover:bg-line-2 text-ink font-medium text-[13.5px] rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <X className="size-4 text-ink-3" />
+                  <span>Close this verification tab</span>
+                </Button>
+
+                <Link href={destinationUrl} className="block w-full">
+                  <Button className="w-full h-11 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-medium text-[13.5px] rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <span>Continue to canvas in this tab</span>
+                    <ArrowRight className="size-4" />
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href={destinationUrl} className="block w-full">
+                  <Button className="w-full h-11 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-medium text-[14px] rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <span>Continue to Canvas</span>
+                    <ArrowRight className="size-4" />
+                  </Button>
+                </Link>
+                {autoRedirectCountdown !== null && autoRedirectCountdown > 0 && (
+                  <p className="text-xs text-ink-3 pt-1">
+                    Redirecting to your canvas in {autoRedirectCountdown}s…
+                  </p>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
 

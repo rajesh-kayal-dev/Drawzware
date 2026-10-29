@@ -14,9 +14,11 @@ import {
   base64ToUint8Array,
 } from '../utils/yjs-sync';
 import type { WorkspaceRole } from '@drawzware/contracts';
+import { getStoredAccessToken } from '../services/auth.client';
 
 export interface UseCollaborationSyncOptions {
   projectId: string;
+  cloudDiagramId?: string | null;
   enabled?: boolean;
   token?: string | null;
   wsUrl?: string;
@@ -25,6 +27,7 @@ export interface UseCollaborationSyncOptions {
 
 export function useCollaborationSync({
   projectId,
+  cloudDiagramId,
   enabled,
   token,
   wsUrl,
@@ -33,6 +36,8 @@ export function useCollaborationSync({
   const isLive = useCollaborationStore((s) => s.isLive);
   const myRole = useCollaborationStore((s) => s.myRole);
   const isReadOnly = useCollaborationStore((s) => s.isReadOnly);
+  const activeDiagramId = useCollaborationStore((s) => s.activeDiagramId);
+  const currentUser = useCollaborationStore((s) => s.currentUser);
   const setMyRole = useCollaborationStore((s) => s.setMyRole);
   const setConnectionStatus = useCollaborationStore((s) => s.setConnectionStatus);
   const setUndoManager = useCollaborationStore((s) => s.setUndoManager);
@@ -43,6 +48,9 @@ export function useCollaborationSync({
   const docRef = useRef<Y.Doc | null>(null);
   const isApplyingRemoteRef = useRef(false);
 
+  // Target cloud diagram identity: only connect when an explicit cloudDiagramId is present, or in test harness with enabled: true
+  const targetDiagramId = cloudDiagramId || (enabled ? projectId : null);
+
   // Set initial role if passed
   useEffect(() => {
     if (initialRole) {
@@ -52,14 +60,22 @@ export function useCollaborationSync({
 
   // Connect & Sync lifecycle
   useEffect(() => {
-    const shouldConnect = enabled ?? isLive;
-    if (!shouldConnect || !projectId) {
+    // Connect if explicitly enabled (tests) or if verified auth user has targetDiagramId
+    const storedToken = token || getStoredAccessToken();
+    const hasVerifiedAuth = currentUser ? currentUser.isEmailVerified : Boolean(storedToken);
+    const shouldConnect = enabled ?? (Boolean(targetDiagramId) && (hasVerifiedAuth || Boolean(storedToken)));
+    if (!shouldConnect || !targetDiagramId) {
       if (clientRef.current) {
         clientRef.current.disconnect();
         clientRef.current = null;
       }
       setUndoManager(null);
+      useCollaborationStore.setState({ isLive: false, connectionStatus: 'disconnected' });
       return;
+    }
+
+    if (!isLive) {
+      useCollaborationStore.getState().setLive(true);
     }
 
     const currentCanvasState = useCanvasStore.getState();
@@ -69,17 +85,58 @@ export function useCollaborationSync({
     const undoManager = createCollabUndoManager(doc);
     setUndoManager(undoManager);
 
-    // Helper to merge remote nodes while preserving local user's current selection
+    // Helper to merge remote nodes while preserving local user's current selection and dragging nodes
     const applyRemoteCanvasState = () => {
       const { nodes, edges } = extractCanvasFromYDoc(doc);
+      const currentCanvas = useCanvasStore.getState();
+      const currentNodes = currentCanvas.nodes;
+      const currentEdges = currentCanvas.edges;
+
+      // 1. Maintain local dragging node positions so ongoing user drags are never snapped back by remote events
+      const draggingNodeMap = new Map(
+        currentNodes.filter((n) => n.dragging).map((n) => [n.id, n])
+      );
       const currentSelectedIds = new Set(
-        useCanvasStore.getState().nodes.filter((n) => n.selected).map((n) => n.id)
+        currentNodes.filter((n) => n.selected).map((n) => n.id)
       );
-      const mergedNodes = nodes.map((n) =>
-        currentSelectedIds.has(n.id) ? { ...n, selected: true } : n
-      );
-      useCanvasStore.getState().setNodes(mergedNodes);
-      useCanvasStore.getState().setEdges(edges);
+
+      const mergedNodes = nodes.map((n) => {
+        const localDragging = draggingNodeMap.get(n.id);
+        if (localDragging) {
+          return {
+            ...n,
+            position: localDragging.position,
+            dragging: true,
+            selected: localDragging.selected,
+          };
+        }
+        return currentSelectedIds.has(n.id) ? { ...n, selected: true } : n;
+      });
+
+      // 2. Only dispatch updates to Zustand if there are meaningful position/data changes
+      const hasNodesChanged =
+        mergedNodes.length !== currentNodes.length ||
+        mergedNodes.some((mn, i) => {
+          const cn = currentNodes[i];
+          if (!cn || cn.id !== mn.id) return true;
+          if (cn.position.x !== mn.position.x || cn.position.y !== mn.position.y) return true;
+          return JSON.stringify(cn.data) !== JSON.stringify(mn.data);
+        });
+
+      const hasEdgesChanged =
+        edges.length !== currentEdges.length ||
+        edges.some((me, i) => {
+          const ce = currentEdges[i];
+          if (!ce || ce.id !== me.id) return true;
+          return ce.source !== me.source || ce.target !== me.target || JSON.stringify(ce.data) !== JSON.stringify(me.data);
+        });
+
+      if (hasNodesChanged) {
+        useCanvasStore.getState().setNodes(mergedNodes);
+      }
+      if (hasEdgesChanged) {
+        useCanvasStore.getState().setEdges(edges);
+      }
     };
 
     // Document update listener: sends binary diffs to server and updates canvas store on local undo/redo
@@ -104,26 +161,48 @@ export function useCollaborationSync({
     doc.on('update', handleDocUpdate);
 
     // Canvas store subscriber: bridges React Flow node/edge changes into Yjs maps
+    let dragSyncTimer: ReturnType<typeof setTimeout> | null = null;
     const unsubscribeCanvas = useCanvasStore.subscribe((state, prevState) => {
       if (isApplyingRemoteRef.current) return;
       if (useCollaborationStore.getState().isReadOnly) return;
       if (state.nodes === prevState.nodes && state.edges === prevState.edges) return;
 
-      applyCanvasDiffToYDoc(doc, state.nodes, state.edges, 'local');
+      const isAnyNodeDragging = state.nodes.some((n) => n.dragging);
+      if (isAnyNodeDragging) {
+        // While actively dragging, throttle synchronization to 30ms to maintain 60fps local rendering
+        // while broadcasting smooth real-time movement to remote peers
+        if (!dragSyncTimer) {
+          dragSyncTimer = setTimeout(() => {
+            dragSyncTimer = null;
+            applyCanvasDiffToYDoc(doc, useCanvasStore.getState().nodes, useCanvasStore.getState().edges, 'local');
+          }, 30);
+        }
+      } else {
+        if (dragSyncTimer) {
+          clearTimeout(dragSyncTimer);
+          dragSyncTimer = null;
+        }
+        applyCanvasDiffToYDoc(doc, state.nodes, state.edges, 'local');
+      }
     });
 
     // Create and connect CollabClient with dynamic token resolver
     const client = new CollabClient({
-      diagramId: projectId,
-      token: () => token || (typeof window !== 'undefined' ? localStorage.getItem('drawzware_token') || 'demo-token' : 'demo-token'),
+      diagramId: targetDiagramId,
+      token: () => token || getStoredAccessToken() || null,
       wsUrl,
       role: myRole,
       onStatusChange: (status) => {
         setConnectionStatus(status);
         if (status === 'connected') {
+          useCollaborationStore.setState({ savedToCloudConnectionFailed: false });
           // Handshake: exchange state vector to receive server snapshot diff
           const vectorBase64 = uint8ArrayToBase64(Y.encodeStateVector(doc));
           client.sendSyncStep1(vectorBase64);
+        } else if (status === 'error') {
+          if (useCollaborationStore.getState().activeDiagramId) {
+            useCollaborationStore.setState({ savedToCloudConnectionFailed: true });
+          }
         }
       },
       onSyncStep1: (serverVectorBase64) => {
@@ -175,6 +254,10 @@ export function useCollaborationSync({
     client.connect();
 
     return () => {
+      if (dragSyncTimer) {
+        clearTimeout(dragSyncTimer);
+        dragSyncTimer = null;
+      }
       unsubscribeCanvas();
       doc.off('update', handleDocUpdate);
       doc.destroy();
@@ -185,11 +268,12 @@ export function useCollaborationSync({
     };
   }, [
     projectId,
+    targetDiagramId,
     enabled,
-    isLive,
     token,
     wsUrl,
-    myRole,
+    currentUser?.id,
+    currentUser?.isEmailVerified,
     setConnectionStatus,
     setUndoManager,
     updateFromPresence,

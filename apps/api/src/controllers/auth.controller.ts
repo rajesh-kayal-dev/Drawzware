@@ -10,6 +10,7 @@ import {
   logoutSession,
   logoutAllSessions,
   getUserProfile,
+  updateUserProfile,
 } from '../services/auth.service.js';
 import { serverError } from '../middleware/error-handler.js';
 
@@ -60,8 +61,15 @@ export const loginHandler = async (req: Request, res: Response) => {
 export const verifyEmailHandler = async (req: Request, res: Response) => {
   try {
     const { token } = req.body;
-    const result = await verifyEmail(token);
-    return res.json(result);
+    const result = await verifyEmail(token, {
+      userAgent: req.headers['user-agent'],
+      ipAddress: req.ip,
+    });
+    return res.json({
+      ...result,
+      tokens: result.tokens,
+      token: result.tokens?.accessToken,
+    });
   } catch (err: unknown) {
     if (err instanceof Error && err.message === 'INVALID_OR_EXPIRED_VERIFICATION_TOKEN') {
       return res.status(400).json({
@@ -182,5 +190,22 @@ export const getMeHandler = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'NOT_FOUND', message: 'User not found.' });
     }
     return serverError(res, 'Failed to fetch user profile.', err);
+  }
+};
+
+export const updateProfileHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'UNAUTHORIZED', message: 'Authentication required.' });
+    }
+    const { name } = req.body || {};
+    const user = await updateUserProfile(userId, { name });
+    return res.json({ user, message: 'Profile updated successfully.' });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'USER_NOT_FOUND') {
+      return res.status(404).json({ error: 'NOT_FOUND', message: 'User not found.' });
+    }
+    return serverError(res, err instanceof Error ? err.message : 'Failed to update profile.', err);
   }
 };

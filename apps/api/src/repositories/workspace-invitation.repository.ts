@@ -1,6 +1,15 @@
 import { WorkspaceInvitationModel, IWorkspaceInvitation } from '../models/workspace-invitation.model.js';
 
-export const createInvitationDoc = async (data: { workspaceId: string; email: string; role: 'editor' | 'viewer'; invitedBy: string }): Promise<IWorkspaceInvitation> => {
+export const createInvitationDoc = async (data: {
+  workspaceId: string;
+  email: string;
+  role: 'editor' | 'viewer';
+  invitedBy: string;
+  returnUrl?: string;
+  canvasUrl?: string;
+  diagramId?: string;
+  expiresAt?: Date;
+}): Promise<IWorkspaceInvitation> => {
   return await WorkspaceInvitationModel.create({ ...data, status: 'pending' });
 };
 

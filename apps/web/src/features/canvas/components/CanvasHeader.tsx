@@ -54,6 +54,7 @@ import { cn } from '@/shared/utils/utils';
 
 import { useCollaborationStore } from '@/features/collaboration/stores/useCollaborationStore';
 import { CollaborationHeaderActions } from '@/features/collaboration/components/CollaborationHeaderActions';
+import { CanvasMoreMenu } from './CanvasMoreMenu';
 
 const STATUS: Record<SaveStatus, { label: string; dot: string }> = {
   saved: { label: 'Saved', dot: 'bg-ok' },
@@ -172,6 +173,8 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
   const setCanvasBackground = useSettingsStore((s) => s.setCanvasBackground);
   const isLive = useCollaborationStore((s) => s.isLive);
   const isReadOnly = useCollaborationStore((s) => s.isReadOnly);
+  const currentUser = useCollaborationStore((s) => s.currentUser);
+  const setAuthModalOpen = useCollaborationStore((s) => s.setAuthModalOpen);
 
   useEffect(() => {
     if (projectName) {
@@ -311,7 +314,7 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
       {isLive ? (
         <span
           className={cn(
-            'ml-2 inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11.5px] font-medium shadow-2xs',
+            'ml-2 inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-medium shadow-2xs select-none',
             isReadOnly
               ? 'bg-amber-500/10 border border-amber-500/30 text-amber-500'
               : 'bg-ok/10 border border-ok/30 text-ok'
@@ -319,10 +322,18 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
           role="status"
           aria-live="polite"
         >
-          <span
-            className={cn('size-1.5 rounded-full', isReadOnly ? 'bg-amber-500' : 'bg-ok animate-pulse')}
-          />
-          {isReadOnly ? 'View Only' : 'Live'}
+          <span className="relative flex size-2">
+            {!isReadOnly && (
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-ok opacity-75" />
+            )}
+            <span
+              className={cn(
+                'relative inline-flex size-2 rounded-full',
+                isReadOnly ? 'bg-amber-500' : 'bg-ok'
+              )}
+            />
+          </span>
+          <span>{isReadOnly ? 'View Only' : 'Live'}</span>
         </span>
       ) : (
         <span
@@ -336,127 +347,13 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
         </span>
       )}
 
-      {/* ── TOP-RIGHT ACTION BUTTONS: PRESENT, EXPORT, SHARE, THEME ── */}
-      <div className="ml-auto flex shrink-0 items-center gap-1.5">
-        {/* 1. Present (Play Icon) */}
-        <SimpleTooltip label="Present" keys={getShortcutKeys('present')}>
-          <button
-            type="button"
-            onClick={startPresentation}
-            disabled={!hasComponents}
-            aria-label="Present"
-            className={cn(
-              'group relative flex size-8 items-center justify-center rounded-[8px] border border-line/70 bg-card/60 backdrop-blur-xs text-ink-2 shadow-2xs transition-all duration-150',
-              'hover:-translate-y-0.5 hover:border-line-hover hover:bg-surface-2 hover:text-ink hover:shadow-xs active:translate-y-0 active:scale-95 cursor-pointer',
-              'disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none'
-            )}
-          >
-            <Play className="size-3.5 fill-current/20 stroke-[2.2] translate-x-[0.5px] transition-transform duration-150 group-hover:scale-110" />
-          </button>
-        </SimpleTooltip>
-
-        {/* 2. Download / Export (Submenu for export formats) */}
-        <DropdownMenu>
-          <SimpleTooltip label="Export">
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="Export options"
-                className={cn(
-                  'group relative flex size-8 items-center justify-center rounded-[8px] border border-line/70 bg-card/60 backdrop-blur-xs text-ink-2 shadow-2xs transition-all duration-150',
-                  'hover:-translate-y-0.5 hover:border-line-hover hover:bg-surface-2 hover:text-ink hover:shadow-xs active:translate-y-0 active:scale-95 cursor-pointer',
-                  'data-[state=open]:border-accent/40 data-[state=open]:bg-surface-2 data-[state=open]:text-ink data-[state=open]:shadow-xs'
-                )}
-              >
-                <Download className="size-3.5 stroke-[2] transition-transform duration-150 group-hover:scale-110" />
-              </button>
-            </DropdownMenuTrigger>
-          </SimpleTooltip>
-          <DropdownMenuContent align="end" className="w-[195px]">
-            <DropdownMenuLabel>Export Formats</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={handleSaveAsDrawz} disabled={isExportingDrawz} className="cursor-pointer font-medium text-accent">
-              <FileText className="size-3.5 mr-2" />
-              Save As .drawz…
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleExportPng} className="cursor-pointer">
-              <ImageIcon className="size-3.5 mr-2 text-ink-2" />
-              PNG image
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleExportSvg} className="cursor-pointer">
-              <FileCode className="size-3.5 mr-2 text-ink-2" />
-              SVG vector
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleExportJson} className="cursor-pointer">
-              <FileJson className="size-3.5 mr-2 text-ink-2" />
-              JSON data
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleExportMermaid} className="cursor-pointer">
-              <Workflow className="size-3.5 mr-2 text-ink-2" />
-              Mermaid diagram
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setExportOpen(true)} className="cursor-pointer">
-              <Settings2 className="size-3.5 mr-2 text-ink-2" />
-              Customize & export…
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* 3. Share & Collaboration Actions (Live Avatar Stack, Invite, Share Dropdown) */}
+      {/* ── TOP-RIGHT ACTION BUTTONS: COLLABORATION ACTIONS & MORE MENU ── */}
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        {/* Share & Collaboration Actions (Live Avatar Stack, Invite, Share Dropdown) */}
         <CollaborationHeaderActions onExportPng={handleExportPng} />
 
-        {/* 4. Canvas Background Selector */}
-        <DropdownMenu>
-          <SimpleTooltip label="Canvas background">
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="Canvas background"
-                className={cn(
-                  'group relative flex size-8 items-center justify-center rounded-[8px] border border-line/70 bg-card/60 backdrop-blur-xs text-ink-2 shadow-2xs transition-all duration-150',
-                  'hover:-translate-y-0.5 hover:border-line-hover hover:bg-surface-2 hover:text-ink hover:shadow-xs active:translate-y-0 active:scale-95 cursor-pointer',
-                  'data-[state=open]:border-accent data-[state=open]:bg-surface-2 data-[state=open]:text-ink'
-                )}
-              >
-                <Grid className="size-3.5 stroke-[2] transition-transform duration-150 group-hover:scale-110" />
-              </button>
-            </DropdownMenuTrigger>
-          </SimpleTooltip>
-          <DropdownMenuContent align="end" className="w-[190px]">
-            <DropdownMenuLabel>Canvas Background</DropdownMenuLabel>
-            {BACKGROUND_OPTIONS.map((opt) => (
-              <DropdownMenuItem
-                key={opt.id}
-                onSelect={() => setCanvasBackground(opt.id)}
-                className="cursor-pointer flex items-center justify-between"
-              >
-                <div className="flex flex-col">
-                  <span className="text-xs font-medium text-ink">{opt.label}</span>
-                  <span className="text-[10px] text-ink-3">{opt.desc}</span>
-                </div>
-                {canvasBackground === opt.id && (
-                  <Check className="size-3.5 text-accent shrink-0 ml-2" />
-                )}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* 5. Theme Toggle */}
-        <SimpleTooltip label={themeLabel}>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={themeLabel}
-            className={cn(
-              'group relative flex size-8 items-center justify-center rounded-[8px] border border-line/70 bg-card/60 backdrop-blur-xs text-ink-2 shadow-2xs transition-all duration-150 ml-0.5',
-              'hover:-translate-y-0.5 hover:border-line-hover hover:bg-surface-2 hover:text-ink hover:shadow-xs active:translate-y-0 active:scale-95 cursor-pointer'
-            )}
-          >
-            <ThemeIcon className="size-3.5 stroke-[2] transition-transform duration-200 group-hover:rotate-45 group-hover:scale-110" />
-          </button>
-        </SimpleTooltip>
+        {/* Excalidraw-Style 3-Dots / Main Menu (Preferences, Theme, Background, Save/Export, Profile/Sign in) */}
+        <CanvasMoreMenu projectId={projectId} projectName={projectName} />
       </div>
     </header>
   );

@@ -113,11 +113,11 @@ describe('DrawzWare Final Production-Readiness: Real Infrastructure Verification
     testDiagramId = diagram._id;
 
     // Tokens
-    ownerToken = jwt.sign({ id: ownerUser.id, email: ownerUser.email }, JWT_SECRET, { expiresIn: '1h' });
-    editorToken = jwt.sign({ id: editorUser.id, email: editorUser.email }, JWT_SECRET, { expiresIn: '1h' });
-    viewerToken = jwt.sign({ id: viewerUser.id, email: viewerUser.email }, JWT_SECRET, { expiresIn: '1h' });
-    strangerToken = jwt.sign({ id: strangerUser.id, email: strangerUser.email }, JWT_SECRET, { expiresIn: '1h' });
-    expiredToken = jwt.sign({ id: ownerUser.id, email: ownerUser.email }, JWT_SECRET, { expiresIn: '-1s' });
+    ownerToken = jwt.sign({ id: ownerUser.id, email: ownerUser.email, isEmailVerified: true }, JWT_SECRET, { expiresIn: '1h' });
+    editorToken = jwt.sign({ id: editorUser.id, email: editorUser.email, isEmailVerified: true }, JWT_SECRET, { expiresIn: '1h' });
+    viewerToken = jwt.sign({ id: viewerUser.id, email: viewerUser.email, isEmailVerified: true }, JWT_SECRET, { expiresIn: '1h' });
+    strangerToken = jwt.sign({ id: strangerUser.id, email: strangerUser.email, isEmailVerified: true }, JWT_SECRET, { expiresIn: '1h' });
+    expiredToken = jwt.sign({ id: ownerUser.id, email: ownerUser.email, isEmailVerified: true }, JWT_SECRET, { expiresIn: '-1s' });
   });
 
   afterAll(async () => {

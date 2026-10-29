@@ -1,6 +1,6 @@
 'use client';
 
-import { Users, Mail, Globe, ImageIcon, Share2, UserPlus, ShieldAlert, Sparkles } from 'lucide-react';
+import { Users, Mail, Globe, Share2, UserPlus } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,7 @@ import { SimpleTooltip } from '@/shared/components/ui/tooltip';
 import { useCollaborationStore } from '../stores/useCollaborationStore';
 import { CollaboratorsPopover } from './CollaboratorsPopover';
 import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
+import { useProjectStore } from '@/features/projects/stores/useProjectStore';
 import { cn } from '@/shared/utils/utils';
 import { toast } from '@/stores/useToastStore';
 
@@ -20,16 +21,15 @@ interface CollaborationHeaderActionsProps {
   onExportPng?: () => void;
 }
 
-export function CollaborationHeaderActions({ onExportPng }: CollaborationHeaderActionsProps) {
+export function CollaborationHeaderActions({}: CollaborationHeaderActionsProps = {}) {
   const isLive = useCollaborationStore((s) => s.isLive);
   const currentUser = useCollaborationStore((s) => s.currentUser);
+  const activeDiagramId = useCollaborationStore((s) => s.activeDiagramId);
   const setAuthModalOpen = useCollaborationStore((s) => s.setAuthModalOpen);
   const setInviteModalOpen = useCollaborationStore((s) => s.setInviteModalOpen);
+  const setPublishModalOpen = useCollaborationStore((s) => s.setPublishModalOpen);
   const setPublishEmbedModalOpen = useCollaborationStore((s) => s.setPublishEmbedModalOpen);
-  const setAccessControlModalOpen = useCollaborationStore((s) => s.setAccessControlModalOpen);
-  const setInvitationAcceptModalOpen = useCollaborationStore((s) => s.setInvitationAcceptModalOpen);
   const setShareOpen = useCanvasStore((s) => s.setShareOpen);
-  const setExportOpen = useCanvasStore((s) => s.setExportOpen);
 
   const handleCollaborateLiveClick = () => {
     if (!currentUser) {
@@ -41,7 +41,18 @@ export function CollaborationHeaderActions({ onExportPng }: CollaborationHeaderA
       });
       setAuthModalOpen(true);
     } else {
-      toast({ message: 'Live collaboration session is active', tone: 'ok' });
+      const projectStore = useProjectStore.getState();
+      const currentProj =
+        projectStore.projects.find((p) => p.id === projectStore.lastOpenedProjectId) ||
+        projectStore.projects[0];
+
+      if (currentProj?.cloudDiagramId || activeDiagramId) {
+        useCollaborationStore.getState().setLive(true);
+        toast({ message: 'Live collaboration session is active', tone: 'ok' });
+      } else {
+        // First-time publish: open Publish to Cloud modal (Target Step 8)
+        setPublishModalOpen(true);
+      }
     }
   };
 
@@ -63,25 +74,20 @@ export function CollaborationHeaderActions({ onExportPng }: CollaborationHeaderA
     setPublishEmbedModalOpen(true);
   };
 
-  const handleExportImageClick = () => {
-    if (onExportPng) {
-      onExportPng();
-    } else {
-      setExportOpen(true);
-    }
-  };
+  const myRole = useCollaborationStore((s) => s.myRole);
+  const isOwner = !myRole || myRole === 'owner';
 
   return (
     <div className="flex items-center gap-1.5">
       {/* 1. Collaborators Avatar Stack & Popover (Panel 3: Collaborative Canvas) */}
-      {isLive && <CollaboratorsPopover />}
+      {(isLive || currentUser) && <CollaboratorsPopover />}
 
-      {/* 2. Invite Button (Panel 3: Collaborative Canvas) */}
-      {isLive && (
+      {/* 2. Invite Button (Visible ONLY to Owner when logged in) */}
+      {currentUser && isOwner && (
         <SimpleTooltip label="Invite collaborators">
           <button
             type="button"
-            onClick={() => setInviteModalOpen(true, 'invite')}
+            onClick={handleInviteByEmailClick}
             className={cn(
               'group relative flex h-8 items-center gap-1.5 px-3 rounded-full border border-[#818cf8]/50 bg-[#818cf8]/20 text-[#a5b4fc] shadow-2xs transition-all duration-150',
               'hover:-translate-y-0.5 hover:border-[#818cf8]/70 hover:bg-[#818cf8]/35 hover:text-white hover:shadow-xs active:translate-y-0 active:scale-95 cursor-pointer font-medium text-[12.5px]'
@@ -93,8 +99,9 @@ export function CollaborationHeaderActions({ onExportPng }: CollaborationHeaderA
         </SimpleTooltip>
       )}
 
-      {/* 3. Share Button with Dropdown (Panel 1 & Panel 3) */}
-      <DropdownMenu>
+      {/* 3. Share Button with Dropdown (Visible only before login) */}
+      {!currentUser && (
+        <DropdownMenu>
         <SimpleTooltip label="Share options">
           <DropdownMenuTrigger asChild>
             <button
@@ -111,95 +118,68 @@ export function CollaborationHeaderActions({ onExportPng }: CollaborationHeaderA
             </button>
           </DropdownMenuTrigger>
         </SimpleTooltip>
-        <DropdownMenuContent align="end" className="w-[230px] p-1.5">
-          <DropdownMenuLabel className="px-2 py-1 text-[11px] font-medium text-ink-3">
+        <DropdownMenuContent align="end" className="w-[260px] p-1.5 bg-card/95 border border-line rounded-2xl shadow-2xl backdrop-blur-md">
+          <DropdownMenuLabel className="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-3">
             Collaboration & Share
           </DropdownMenuLabel>
 
-          {/* Option 1: Collaborate live */}
-          <DropdownMenuItem
-            onSelect={handleCollaborateLiveClick}
-            className="flex items-start gap-2.5 p-2 rounded-[8px] cursor-pointer hover:bg-surface-2"
-          >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-[6px] bg-accent-soft text-accent mt-0.5">
-              <Users className="size-4" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[12.5px] font-semibold text-ink">Collaborate live</span>
-              <span className="text-[11px] text-ink-3">Work together in real time</span>
-            </div>
-          </DropdownMenuItem>
+          <div className="space-y-0.5">
+            {/* Option 1: Collaborate live */}
+            <DropdownMenuItem
+              onSelect={handleCollaborateLiveClick}
+              className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-surface-2 transition-colors min-h-[52px]"
+            >
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                <Users className="size-4" />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-[13px] font-semibold text-ink leading-tight">Collaborate live</span>
+                <span className="text-[11.5px] text-ink-3 mt-0.5 leading-tight">Work together in real time</span>
+              </div>
+            </DropdownMenuItem>
 
-          {/* Option 2: Invite by email */}
-          <DropdownMenuItem
-            onSelect={handleInviteByEmailClick}
-            className="flex items-start gap-2.5 p-2 rounded-[8px] cursor-pointer hover:bg-surface-2"
-          >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-[6px] bg-line-2 text-ink mt-0.5">
-              <Mail className="size-4" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[12.5px] font-semibold text-ink">Invite by email</span>
-              <span className="text-[11px] text-ink-3">Add specific people</span>
-            </div>
-          </DropdownMenuItem>
+            {/* Option 2: Invite by email */}
+            <DropdownMenuItem
+              onSelect={handleInviteByEmailClick}
+              className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-surface-2 transition-colors min-h-[52px]"
+            >
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 border border-line text-ink">
+                <Mail className="size-4" />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-[13px] font-semibold text-ink leading-tight">Invite by email</span>
+                <span className="text-[11.5px] text-ink-3 mt-0.5 leading-tight">Add specific people</span>
+              </div>
+            </DropdownMenuItem>
 
-          {/* Option 3: Publish & embed */}
-          <DropdownMenuItem
-            onSelect={handlePublishEmbedClick}
-            className="flex items-start gap-2.5 p-2 rounded-[8px] cursor-pointer hover:bg-surface-2"
-          >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-[6px] bg-line-2 text-ink mt-0.5">
-              <Globe className="size-4" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[12.5px] font-semibold text-ink">Publish & embed</span>
-              <span className="text-[11px] text-ink-3">Share read-only diagram</span>
-            </div>
-          </DropdownMenuItem>
+            {/* Option 3: Publish & embed */}
+            <DropdownMenuItem
+              onSelect={handlePublishEmbedClick}
+              className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-surface-2 transition-colors min-h-[52px]"
+            >
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 border border-line text-ink">
+                <Globe className="size-4" />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-[13px] font-semibold text-ink leading-tight">Publish & embed</span>
+                <span className="text-[11.5px] text-ink-3 mt-0.5 leading-tight">Share read-only diagram</span>
+              </div>
+            </DropdownMenuItem>
+          </div>
 
-          {/* Option 4: Export image */}
-          <DropdownMenuItem
-            onSelect={handleExportImageClick}
-            className="flex items-start gap-2.5 p-2 rounded-[8px] cursor-pointer hover:bg-surface-2"
-          >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-[6px] bg-line-2 text-ink mt-0.5">
-              <ImageIcon className="size-4" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[12.5px] font-semibold text-ink">Export image</span>
-              <span className="text-[11px] text-ink-3">Download as PNG, SVG</span>
-            </div>
-          </DropdownMenuItem>
+          <DropdownMenuSeparator className="my-1.5" />
 
-          <DropdownMenuSeparator className="my-1" />
-
-          {/* Existing Share Snapshot */}
+          {/* Share Snapshot */}
           <DropdownMenuItem
             onSelect={() => setShareOpen(true)}
-            className="px-2 py-1.5 text-[12px] text-ink-2 hover:text-ink cursor-pointer"
+            className="flex items-center gap-2.5 px-2.5 py-2 text-[12.5px] text-ink-2 hover:text-ink cursor-pointer rounded-lg hover:bg-surface-2"
           >
-            Share snapshot link…
-          </DropdownMenuItem>
-
-          {/* Prototype Quick Tests */}
-          <DropdownMenuItem
-            onSelect={() => setInvitationAcceptModalOpen(true)}
-            className="px-2 py-1.5 text-[12px] text-ink-2 hover:text-ink cursor-pointer"
-          >
-            <Sparkles className="size-3.5 mr-1.5 text-accent" />
-            Preview invitation email
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            onSelect={() => setAccessControlModalOpen(true)}
-            className="px-2 py-1.5 text-[12px] text-ink-2 hover:text-ink cursor-pointer"
-          >
-            <ShieldAlert className="size-3.5 mr-1.5 text-warn" />
-            Preview access control states
+            <Share2 className="size-3.5 text-ink-3" />
+            <span>Share snapshot link…</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      )}
     </div>
   );
 }

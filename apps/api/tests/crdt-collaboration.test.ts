@@ -7,6 +7,7 @@ import * as Y from 'yjs';
 import { createApp } from '../src/app.js';
 import * as diagramRepo from '../src/repositories/diagram.repository.js';
 import * as memberRepo from '../src/repositories/workspace-member.repository.js';
+import * as userRepo from '../src/repositories/user.repository.js';
 import { attachCollaborationServer, CollabServer } from '../src/websocket/collab.server.js';
 import {
   initYDocFromProject,
@@ -268,9 +269,9 @@ describe('Phase 3: Yjs CRDT Collaboration & Safe MongoDB Snapshot Persistence', 
     const userEditor = { id: 'usr-crdt-editor', email: 'editor@drawzware.com' };
     const userViewer = { id: 'usr-crdt-viewer', email: 'viewer@drawzware.com' };
 
-    const tokenOwner = jwt.sign({ id: userOwner.id, email: userOwner.email }, jwtSecret, { expiresIn: '1h' });
-    const tokenEditor = jwt.sign({ id: userEditor.id, email: userEditor.email }, jwtSecret, { expiresIn: '1h' });
-    const tokenViewer = jwt.sign({ id: userViewer.id, email: userViewer.email }, jwtSecret, { expiresIn: '1h' });
+    const tokenOwner = jwt.sign({ id: userOwner.id, email: userOwner.email, isEmailVerified: true }, jwtSecret, { expiresIn: '1h' });
+    const tokenEditor = jwt.sign({ id: userEditor.id, email: userEditor.email, isEmailVerified: true }, jwtSecret, { expiresIn: '1h' });
+    const tokenViewer = jwt.sign({ id: userViewer.id, email: userViewer.email, isEmailVerified: true }, jwtSecret, { expiresIn: '1h' });
 
     const sampleWorkspaceId = 'ws-crdt-workspace';
     const sampleDiagramId = 'diag-crdt-001';
@@ -335,6 +336,10 @@ describe('Phase 3: Yjs CRDT Collaboration & Safe MongoDB Snapshot Persistence', 
         return null;
       });
 
+      vi.spyOn(userRepo, 'findUserDocById').mockImplementation((async (id: string) => {
+        return { _id: id, isEmailVerified: true, tokenVersion: 0 } as any;
+      }) as any);
+
       vi.spyOn(diagramRepo, 'findDiagramSnapshotDoc').mockImplementation(async (diagramId: string) => {
         if (persistedSnapshot && persistedSnapshot.diagramId === diagramId) {
           return persistedSnapshot;
@@ -367,10 +372,12 @@ describe('Phase 3: Yjs CRDT Collaboration & Safe MongoDB Snapshot Persistence', 
 
     afterEach(async () => {
       for (const ws of activeClients) {
-        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        if (ws.readyState === WebSocket.OPEN) {
           try {
             ws.close();
           } catch {}
+        } else if (ws.readyState === WebSocket.CONNECTING) {
+          ws.on('error', () => {});
         }
       }
       activeClients.length = 0;
@@ -380,6 +387,7 @@ describe('Phase 3: Yjs CRDT Collaboration & Safe MongoDB Snapshot Persistence', 
 
     function createClientWs(query: string): TestWsClient {
       const ws = new WebSocket(`ws://127.0.0.1:${port}/collab?${query}`);
+      ws.on('error', () => {});
       activeClients.push(ws);
       const messages: CollabServerMessage[] = [];
       const waiters: Array<{

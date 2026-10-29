@@ -19,8 +19,16 @@ import {
 import { serverError } from '../middleware/error-handler.js';
 
 export const listDiagramsHandler = async (req: Request, res: Response) => {
+  const user = req.user!;
   try {
-    const diagrams = await listDiagramsInWorkspace(req.params.workspaceId);
+    const member = await findWorkspaceMember(req.params.workspaceId, user.id);
+    let diagrams = await listDiagramsInWorkspace(req.params.workspaceId);
+    if (member && member.role !== 'owner') {
+      const allowed = member.allowedDiagramIds;
+      if (allowed && allowed.length > 0) {
+        diagrams = diagrams.filter((d) => allowed.includes(d.id));
+      }
+    }
     return res.json(diagrams);
   } catch (err: unknown) {
     return serverError(res, 'Failed to list diagrams.', err);
@@ -31,6 +39,10 @@ export const createDiagramHandler = async (req: Request, res: Response) => {
   const user = req.user!;
   const body = req.body as CreateDiagramInput;
   try {
+    const member = await findWorkspaceMember(req.params.workspaceId, user.id);
+    if (!member || member.role !== 'owner') {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'Only workspace owners can create diagrams in this workspace.' });
+    }
     const diagram = await createDiagram(req.params.workspaceId, body.title, body.diagramType, user.id);
     return res.status(201).json(diagram);
   } catch (err: unknown) {
@@ -42,6 +54,10 @@ export const importDiagramHandler = async (req: Request, res: Response) => {
   const user = req.user!;
   const body = req.body as ImportDiagramInput;
   try {
+    const member = await findWorkspaceMember(req.params.workspaceId, user.id);
+    if (!member || member.role !== 'owner') {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'Only workspace owners can import diagrams in this workspace.' });
+    }
     const title = body.title || body.project.name || 'Imported Diagram';
     const diagramType = body.project.diagramType || 'architecture';
     const diagram = await createDiagram(req.params.workspaceId, title, diagramType, user.id, body.project);
@@ -64,8 +80,15 @@ export const getDiagramHandler = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
     }
 
+    if (member.role !== 'owner') {
+      const allowed = member.allowedDiagramIds;
+      if (allowed && allowed.length > 0 && !allowed.includes(req.params.diagramId)) {
+        return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
+      }
+    }
+
     const snapshot = await getDiagramSnapshot(req.params.diagramId);
-    return res.json({ ...diagram, snapshot: snapshot || null });
+    return res.json({ ...diagram, snapshot: snapshot || null, role: member.role });
   } catch (err: unknown) {
     return serverError(res, 'Failed to retrieve diagram.', err);
   }
@@ -83,6 +106,13 @@ export const updateDiagramHandler = async (req: Request, res: Response) => {
     const member = await findWorkspaceMember(diagram.workspaceId, user.id);
     if (!member) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this workspace.' });
+    }
+
+    if (member.role !== 'owner') {
+      const allowed = member.allowedDiagramIds;
+      if (allowed && allowed.length > 0 && !allowed.includes(req.params.diagramId)) {
+        return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
+      }
     }
 
     if (!hasMinimumRole(member.role, 'editor')) {
@@ -116,6 +146,13 @@ export const getDiagramSnapshotHandler = async (req: Request, res: Response) => 
       return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
     }
 
+    if (member.role !== 'owner') {
+      const allowed = member.allowedDiagramIds;
+      if (allowed && allowed.length > 0 && !allowed.includes(req.params.diagramId)) {
+        return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
+      }
+    }
+
     const snapshot = await getDiagramSnapshotWithMeta(req.params.diagramId);
     if (!snapshot) {
       return res.status(404).json({ error: 'NOT_FOUND', message: 'No snapshot found for this diagram.' });
@@ -139,6 +176,13 @@ export const saveDiagramSnapshotHandler = async (req: Request, res: Response) =>
     const member = await findWorkspaceMember(diagram.workspaceId, user.id);
     if (!member) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
+    }
+
+    if (member.role !== 'owner') {
+      const allowed = member.allowedDiagramIds;
+      if (allowed && allowed.length > 0 && !allowed.includes(req.params.diagramId)) {
+        return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
+      }
     }
 
     if (!hasMinimumRole(member.role, 'editor')) {

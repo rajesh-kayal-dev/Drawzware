@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import Link from 'next/link';
+import { Lock } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import {
   ReactFlow,
@@ -59,6 +60,10 @@ import { ExportDialog } from '@/features/import-export/components/ExportDialog';
 import { LiveCollaboratorsOverlay } from '@/features/collaboration/components/LiveCollaboratorsOverlay';
 import { CollaborationController } from '@/features/collaboration/components/CollaborationController';
 import { useCollaborationSync } from '@/features/collaboration/hooks/useCollaborationSync';
+import { useCollaborationStore } from '@/features/collaboration/stores/useCollaborationStore';
+import { authClient, ApiError } from '@/features/collaboration/services/auth.client';
+import type { CollaboratorRole } from '@/features/collaboration/types/collaboration.types';
+import type { Project } from '@drawzware/contracts';
 import { FreehandDrawingNode } from '@/features/canvas/nodes/FreehandDrawingNode';
 import { CanvasTextNode } from '@/features/canvas/nodes/CanvasTextNode';
 import { ShapeNode } from '@/features/canvas/nodes/ShapeNode';
@@ -191,12 +196,37 @@ function CanvasInner({ projectId }: { projectId: string }) {
   useAutoSave();
   useKeyboardShortcuts();
 
+  const projects = useProjectStore((s) => s.projects);
+  const loadProjects = useProjectStore((s) => s.loadProjects);
+  const loaded = useProjectStore((s) => s.loaded);
+  const currentProject = projects.find((p) => p.id === projectId || p.cloudDiagramId === projectId);
+  const activeDiagramId = useCollaborationStore((s) => s.activeDiagramId);
+
+  // Only link to cloud collaboration if project is explicitly linked to a cloud diagram
+  const resolvedCloudDiagramId =
+    currentProject?.cloudDiagramId ||
+    (activeDiagramId && (activeDiagramId === projectId || currentProject?.cloudDiagramId === activeDiagramId)
+      ? activeDiagramId
+      : null);
+
   const { isReadOnly, broadcastCursor } = useCollaborationSync({
     projectId,
+    cloudDiagramId: resolvedCloudDiagramId,
   });
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      // Do not broadcast cursor when pointer is over floating UI chrome (toolbars, palettes, dialogs, menus, headers)
+      if (
+        target &&
+        target.closest(
+          '[data-palette], [data-toolbar], [data-panel], header, aside, [role="dialog"], [role="menu"], [data-radix-popper-content-wrapper]'
+        )
+      ) {
+        broadcastCursor(null, []);
+        return;
+      }
       const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
       const selectedIds = selectedNodeId ? [selectedNodeId] : [];
       broadcastCursor(flowPos, selectedIds);
@@ -210,18 +240,28 @@ function CanvasInner({ projectId }: { projectId: string }) {
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
-  const projects = useProjectStore((s) => s.projects);
-  const loadProjects = useProjectStore((s) => s.loadProjects);
-  const loaded = useProjectStore((s) => s.loaded);
-  const currentProject = projects.find((p) => p.id === projectId);
-
   useDocumentTitle(currentProject ? (currentProject.name || 'Untitled Design') : undefined);
 
   useEffect(() => {
-    requestAnimationFrame(() => {
-      fitView(getFitViewOptions(200));
-    });
-  }, [fitView]);
+    if (typeof window !== 'undefined' && projectId) {
+      localStorage.setItem('drawzware_last_canvas_url', `/canvas?id=${encodeURIComponent(projectId)}`);
+      useProjectStore.getState().setLastOpened(projectId);
+    }
+  }, [projectId]);
+
+  const hasFittedInitialViewRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Only fit view once per projectId when opening a canvas that has nodes, never on subsequent shape drawing
+    if (hasFittedInitialViewRef.current !== projectId) {
+      hasFittedInitialViewRef.current = projectId;
+      if (nodes.length > 0) {
+        requestAnimationFrame(() => {
+          fitView(getFitViewOptions(200));
+        });
+      }
+    }
+  }, [projectId, nodes.length, fitView]);
 
   useEffect(() => {
     if (!loaded) loadProjects();
@@ -953,8 +993,6 @@ function CanvasInner({ projectId }: { projectId: string }) {
             edgeTypes={edgeTypes}
             defaultViewport={viewport}
             defaultEdgeOptions={{ type: 'system' }}
-            fitView
-            fitViewOptions={getFitViewOptions()}
             connectionMode={ConnectionMode.Loose}
             selectionMode={SelectionMode.Partial}
             minZoom={0.1}
@@ -1047,6 +1085,8 @@ export function Canvas({ projectId }: { projectId: string }) {
   const [hydrationStatus, setHydrationStatus] = useState<'loading' | 'ready' | 'not-found' | 'error'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState<number>(0);
+  const currentUser = useCollaborationStore((s) => s.currentUser);
+  const setAuthModalOpen = useCollaborationStore((s) => s.setAuthModalOpen);
 
   useEffect(() => {
     let cancelled = false;
@@ -1057,9 +1097,54 @@ export function Canvas({ projectId }: { projectId: string }) {
     const hydrate = async () => {
       try {
         const store = useProjectStore.getState();
-        let project = store.projects.find((p) => p.id === projectId);
+        let project = store.projects.find((p) => p.id === projectId || p.cloudDiagramId === projectId);
         if (!project) {
           project = (await store.getOrLoadProject(projectId)) ?? undefined;
+        }
+
+        // If not found in local IndexedDB storage, check if this is a cloud diagram on the API server!
+        if (!project) {
+          try {
+            const cloudDiagram = await authClient.getDiagram(projectId);
+            if (cloudDiagram) {
+              const loadedProject: Project = {
+                id: cloudDiagram.id,
+                name: cloudDiagram.title || cloudDiagram.snapshot?.name || 'Shared Architecture',
+                description: cloudDiagram.snapshot?.description,
+                createdAt: cloudDiagram.createdAt ? new Date(cloudDiagram.createdAt).toISOString() : new Date().toISOString(),
+                updatedAt: cloudDiagram.updatedAt ? new Date(cloudDiagram.updatedAt).toISOString() : new Date().toISOString(),
+                nodes: (cloudDiagram.snapshot?.nodes || []) as any,
+                edges: (cloudDiagram.snapshot?.edges || []) as any,
+                viewport: cloudDiagram.snapshot?.viewport || { x: 0, y: 0, zoom: 1 },
+                diagramType: cloudDiagram.diagramType || cloudDiagram.snapshot?.diagramType || 'architecture',
+                diagramData: cloudDiagram.snapshot?.diagramData,
+                cloudDiagramId: cloudDiagram.id,
+                cloudWorkspaceId: cloudDiagram.workspaceId,
+              };
+
+              await store.saveProjectAsync(loadedProject);
+              project = loadedProject;
+
+              // Configure collaboration store with diagram role & identity
+              const diagramRole = (cloudDiagram as { role?: CollaboratorRole }).role;
+              if (diagramRole) {
+                useCollaborationStore.getState().setMyRole(diagramRole);
+              }
+              useCollaborationStore.getState().setActiveDiagram(cloudDiagram.id, cloudDiagram.workspaceId);
+              useCollaborationStore.getState().setLive(true);
+            }
+          } catch (cloudErr: unknown) {
+            if (cloudErr instanceof ApiError && cloudErr.status === 401) {
+              setLoadError('AUTH_REQUIRED');
+              setHydrationStatus('error');
+              return;
+            }
+            if (cloudErr instanceof ApiError && cloudErr.status === 403) {
+              setLoadError('You do not have permission to access this shared canvas.');
+              setHydrationStatus('error');
+              return;
+            }
+          }
         }
 
         if (cancelled) return;
@@ -1067,6 +1152,12 @@ export function Canvas({ projectId }: { projectId: string }) {
         if (!project) {
           setHydrationStatus('not-found');
           return;
+        }
+
+        // Set active diagram and live mode if cloud diagram
+        if (project.cloudDiagramId) {
+          useCollaborationStore.getState().setActiveDiagram(project.cloudDiagramId, project.cloudWorkspaceId);
+          useCollaborationStore.getState().setLive(true);
         }
 
         // Initialize canvas store state with the loaded project document BEFORE mounting ReactFlow
@@ -1093,7 +1184,7 @@ export function Canvas({ projectId }: { projectId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [projectId, retryKey]);
+  }, [projectId, retryKey, currentUser?.id]);
 
   if (hydrationStatus === 'loading') {
     return (
@@ -1107,20 +1198,58 @@ export function Canvas({ projectId }: { projectId: string }) {
   }
 
   if (hydrationStatus === 'not-found') {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('drawzware_last_canvas_url');
+      if (useCollaborationStore.getState().activeDiagramId === projectId) {
+        useCollaborationStore.setState({ activeDiagramId: null, isLive: false, connectionStatus: 'disconnected' });
+      }
+    }
     return (
       <div className="dot-grid flex min-h-screen items-center justify-center p-6 bg-bg">
         <div className="grid max-w-[340px] justify-items-center gap-2 text-center">
-          <div className="text-[15px] font-semibold text-ink">Project not found</div>
-          <p className="text-[12.5px] text-ink-2">The requested project could not be found in storage.</p>
-          <Button variant="secondary" asChild className="mt-2">
-            <Link href="/app">Go to dashboard</Link>
-          </Button>
+          <div className="text-[15px] font-semibold text-ink">Canvas not found</div>
+          <p className="text-[12.5px] text-ink-2">This canvas was removed or does not exist.</p>
+          <div className="flex items-center gap-2 mt-2">
+            <Button variant="secondary" asChild>
+              <Link href="/app">Go to dashboard</Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link href="/canvas">New canvas</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   if (hydrationStatus === 'error') {
+    if (loadError === 'AUTH_REQUIRED') {
+      return (
+        <div className="dot-grid flex min-h-screen items-center justify-center p-6 bg-bg">
+          <div className="grid max-w-[380px] justify-items-center gap-3 p-6 rounded-2xl border border-line bg-card/90 shadow-2xl backdrop-blur-md text-center">
+            <div className="flex size-12 items-center justify-center rounded-full bg-accent-soft text-accent">
+              <Lock className="size-6" />
+            </div>
+            <div className="text-[17px] font-bold text-ink">Sign In to Open Canvas</div>
+            <p className="text-[13px] text-ink-2">
+              This is a shared cloud architecture canvas. Please sign in with your email account to view and collaborate.
+            </p>
+            <div className="flex flex-col w-full gap-2 mt-2">
+              <Button
+                className="w-full bg-accent hover:bg-accent/90 text-white font-semibold text-[13px] h-10 rounded-xl cursor-pointer shadow-xs"
+                onClick={() => setAuthModalOpen(true)}
+              >
+                Sign In to Access Canvas
+              </Button>
+              <Button variant="ghost" asChild className="w-full text-ink-3 hover:text-ink text-[12.5px]">
+                <Link href="/app">Go to dashboard</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="dot-grid flex min-h-screen items-center justify-center p-6 bg-bg">
         <div className="grid max-w-[340px] justify-items-center gap-3 text-center">

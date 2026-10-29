@@ -14,6 +14,8 @@ import { SimpleTooltip } from '@/shared/components/ui/tooltip';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { usePwaInstall } from '@/features/pwa/hooks/usePwaInstall';
 import { useIsDesktop } from '@/shared/hooks/useIsDesktop';
+import { UserAccountMenu } from '@/features/collaboration/components/UserAccountMenu';
+import { useCollaborationStore } from '@/features/collaboration/stores/useCollaborationStore';
 import { cn } from '@/shared/utils/utils';
 
 interface HeaderProps {
@@ -42,6 +44,8 @@ export function Header({
   const { theme, toggleTheme } = useTheme();
   const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
   const isDesktop = useIsDesktop();
+  const currentUser = useCollaborationStore((s) => s.currentUser);
+  const setAuthModalOpen = useCollaborationStore((s) => s.setAuthModalOpen);
   const showImport = !!(onImportJson || onImportDockerCompose || onOpenDrawz || onImportBackup);
 
   return (
@@ -182,6 +186,23 @@ export function Header({
               </a>
             </Button>
           </SimpleTooltip>
+
+          {/* User Account Menu (when authenticated) or Sign In button */}
+          {currentUser ? (
+            <div className="ml-1 pl-1.5 border-l border-line/60">
+              <UserAccountMenu />
+            </div>
+          ) : (
+            <div className="ml-1 pl-1.5 border-l border-line/60">
+              <Button
+                variant="ghost"
+                onClick={() => setAuthModalOpen(true, 'login')}
+                className="h-8 px-2.5 text-xs font-medium text-ink-2 hover:text-ink hover:bg-line-2 rounded-lg cursor-pointer"
+              >
+                Sign In
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </header>

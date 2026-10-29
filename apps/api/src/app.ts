@@ -6,7 +6,12 @@ import { requireAuth } from "./middleware/auth.js";
 import { notFoundHandler } from "./middleware/not-found.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { authRoutes } from "./routes/auth.routes.js";
-import { workspaceRoutes, acceptInvitationHandler, getInvitationPreviewHandler } from "./routes/workspace.routes.js";
+import {
+  workspaceRoutes,
+  acceptInvitationHandler,
+  getInvitationPreviewHandler,
+  invitationSignupHandler,
+} from "./routes/workspace.routes.js";
 import { diagramRoutes } from "./routes/diagram.routes.js";
 
 export function createApp(): Express {
@@ -37,9 +42,10 @@ export function createApp(): Express {
     res.json({ user: req.user });
   });
 
-  // Invitation preview and accept routes
+  // Invitation preview, accept, and direct signup routes
   app.get("/api/invitations/:invitationId", getInvitationPreviewHandler);
   app.post("/api/invitations/:invitationId/accept", requireAuth, acceptInvitationHandler);
+  app.post("/api/invitations/:invitationId/signup", invitationSignupHandler);
 
 
   // Auth routes

@@ -1,10 +1,11 @@
 'use client';
 
-import { AuthModal } from './AuthModal';
 import { InvitePeopleDialog } from './InvitePeopleDialog';
 import { PublishEmbedDialog } from './PublishEmbedDialog';
 import { InvitationAcceptDialog } from './InvitationAcceptDialog';
 import { AccessControlDialog } from './AccessControlDialog';
+import { PublishToCloudModal } from './PublishToCloudModal';
+import { CollaborationStatusBanner } from './CollaborationStatusBanner';
 
 /**
  * Controller container mounting all collaboration modal dialogs and overlays.
@@ -12,11 +13,12 @@ import { AccessControlDialog } from './AccessControlDialog';
 export function CollaborationController() {
   return (
     <>
-      <AuthModal />
       <InvitePeopleDialog />
       <PublishEmbedDialog />
       <InvitationAcceptDialog />
       <AccessControlDialog />
+      <PublishToCloudModal />
+      <CollaborationStatusBanner />
     </>
   );
 }

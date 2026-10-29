@@ -13,6 +13,7 @@ import {
   logoutHandler,
   logoutAllHandler,
   getMeHandler,
+  updateProfileHandler,
 } from '../controllers/auth.controller.js';
 import {
   RegisterInputSchema,
@@ -36,9 +37,13 @@ export {
 
 const router = Router();
 
+import { InvitationSignupInputSchema } from '@drawzware/contracts';
+import { invitationSignupHandler } from '../controllers/workspace.controller.js';
+
 // Account creation and login (rate-limited)
 router.post('/register', authRateLimiter, validateBody(RegisterInputSchema), registerHandler);
 router.post('/signup', authRateLimiter, validateBody(RegisterInputSchema), registerHandler);
+router.post('/invitation-signup', authRateLimiter, validateBody(InvitationSignupInputSchema), invitationSignupHandler);
 router.post('/login', authRateLimiter, validateBody(LoginInputSchema), loginHandler);
 
 // Email verification and password recovery (rate-limited)
@@ -54,6 +59,7 @@ router.post('/logout-all', requireAuth, logoutAllHandler);
 
 // Current user profile
 router.get('/me', requireAuth, getMeHandler);
+router.patch('/me', requireAuth, updateProfileHandler);
 
 export const authRoutes: Router = router;
 export default router;

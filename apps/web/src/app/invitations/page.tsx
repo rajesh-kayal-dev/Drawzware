@@ -14,6 +14,9 @@ import {
   LogOut,
   UserCheck,
   AlertTriangle,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { authClient } from '@/features/collaboration/services/auth.client';
@@ -47,6 +50,13 @@ function InvitationContent() {
 
   const [resending, setResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
+
+  // Seamless inline signup/signin state
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   // Load preview data and sync authentication on mount
@@ -70,6 +80,11 @@ function InvitationContent() {
       .then((data) => {
         if (isMounted) {
           setPreview(data);
+          if (data.accountExists) {
+            setAuthMode('signin');
+          } else {
+            setAuthMode('signup');
+          }
           setLoading(false);
         }
       })
@@ -101,16 +116,92 @@ function InvitationContent() {
       if (typeof window !== 'undefined') {
         savedReturnUrl = sessionStorage.getItem('drawzware_return_url');
       }
-      const target = sanitizeReturnUrl(returnUrlParam || savedReturnUrl, '/app');
+      const target = sanitizeReturnUrl(
+        res.canvasUrl || preview?.canvasUrl || returnUrlParam || savedReturnUrl || preview?.returnUrl,
+        '/app'
+      );
       setTimeout(() => {
         startTransition(() => {
           router.push(target);
         });
-      }, 1500);
+      }, 1200);
     } catch (err: unknown) {
       setAcceptError(err instanceof Error ? err.message : 'Failed to accept invitation.');
     } finally {
       setAccepting(false);
+    }
+  };
+
+  const handleInvitationAuth = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!password.trim() || !invitationId || !preview) return;
+
+    setIsSubmitting(true);
+    setAuthError(null);
+
+    if (authMode === 'signup') {
+      try {
+        const res = await authClient.invitationSignup(invitationId, password);
+        setAcceptSuccess(`Welcome to Drawzware! You joined as ${res.role}.`);
+
+        await useCollaborationStore.getState().refreshCurrentUser();
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('drawzware_auth_event', String(Date.now()));
+        }
+
+        const returnUrlParam = searchParams.get('returnUrl');
+        const target = sanitizeReturnUrl(
+          res.canvasUrl || preview.canvasUrl || preview.returnUrl || returnUrlParam,
+          '/app'
+        );
+
+        setTimeout(() => {
+          startTransition(() => {
+            router.push(target);
+          });
+        }, 1200);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to complete signup.';
+        if (msg.includes('Account already exists')) {
+          setAuthMode('signin');
+          setAuthError('An account already exists with this email. Please enter your existing password to sign in.');
+        } else {
+          setAuthError(msg);
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // Sign in mode
+      try {
+        await authClient.login({ email: preview.email, password });
+        await useCollaborationStore.getState().refreshCurrentUser();
+
+        const acceptRes = await authClient.acceptInvitation(invitationId);
+        setAcceptSuccess(`Signed in successfully! You joined as ${acceptRes.role}.`);
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('drawzware_auth_event', String(Date.now()));
+        }
+
+        const returnUrlParam = searchParams.get('returnUrl');
+        const target = sanitizeReturnUrl(
+          acceptRes.canvasUrl || preview.canvasUrl || preview.returnUrl || returnUrlParam,
+          '/app'
+        );
+
+        setTimeout(() => {
+          startTransition(() => {
+            router.push(target);
+          });
+        }, 1200);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Invalid password or sign in failed.';
+        setAuthError(msg);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -138,6 +229,16 @@ function InvitationContent() {
     currentUser && preview
       ? currentUser.email.toLowerCase() === preview.email.toLowerCase()
       : false;
+
+  useEffect(() => {
+    if (isAlreadyAccepted && currentUser && isEmailMatch && preview && !loading) {
+      const target = sanitizeReturnUrl(preview.canvasUrl || preview.returnUrl, '/app');
+      const timer = setTimeout(() => {
+        router.push(target);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isAlreadyAccepted, currentUser, isEmailMatch, preview, loading, router]);
 
   return (
     <>
@@ -269,32 +370,126 @@ function InvitationContent() {
 
             {/* Invalidation Status: Already Accepted */}
             {isAlreadyAccepted && (
-              <div className="p-4 rounded-xl bg-accent-soft border border-accent/25 text-accent text-[13px] flex items-start gap-3">
-                <CheckCircle2 className="size-5 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold block mb-0.5">Already Accepted</span>
-                  <span>This invitation has already been accepted and joined.</span>
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-accent-soft border border-accent/25 text-accent text-[13px] flex items-start gap-3">
+                  <CheckCircle2 className="size-5 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block mb-0.5">Already Joined Workspace</span>
+                    <span>
+                      {currentUser
+                        ? 'You have already joined this workspace and have access to this diagram canvas. Redirecting to canvas…'
+                        : 'This invitation has already been accepted. Sign in with your account to access your canvas.'}
+                    </span>
+                  </div>
                 </div>
+
+                {currentUser ? (
+                  <Button
+                    onClick={() => {
+                      const target = sanitizeReturnUrl(preview.canvasUrl || preview.returnUrl, '/app');
+                      router.push(target);
+                    }}
+                    className="w-full h-11 bg-accent hover:bg-accent/90 text-white font-semibold text-[13.5px] rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Open Canvas Now</span>
+                    <ArrowRight className="size-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        const target = sanitizeReturnUrl(preview.canvasUrl || preview.returnUrl, '/app');
+                        sessionStorage.setItem('drawzware_return_url', target);
+                        localStorage.setItem('drawzware_return_url', target);
+                      }
+                      setAuthModalOpen(true);
+                    }}
+                    className="w-full h-11 bg-accent hover:bg-accent/90 text-white font-semibold text-[13.5px] rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Sign In & Open Canvas</span>
+                    <ArrowRight className="size-4" />
+                  </Button>
+                )}
               </div>
             )}
 
             {/* Active Pending Invitation User Flow */}
             {!isRevoked && !isExpired && !isAlreadyAccepted && !acceptSuccess && (
               <div className="space-y-4">
-                {/* 1. Case: Not logged in */}
+                {/* 1. Case: Not logged in — Seamless Inline Setup */}
                 {!currentUser && (
-                  <div className="space-y-3 p-4 rounded-xl border border-line bg-paper/60">
-                    <p className="text-[13px] text-ink-2 leading-relaxed">
-                      To accept this invitation, please sign in or create an account with{' '}
-                      <strong className="text-ink">{preview.email}</strong>.
-                    </p>
+                  <form onSubmit={handleInvitationAuth} className="space-y-4 p-5 rounded-xl border border-line bg-paper/70 shadow-xs">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] font-semibold text-ink">
+                          {authMode === 'signup' ? 'Set a password to join' : 'Sign in to join'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthMode(authMode === 'signup' ? 'signin' : 'signup');
+                            setAuthError(null);
+                          }}
+                          className="text-[11.5px] text-accent font-medium hover:underline cursor-pointer"
+                        >
+                          {authMode === 'signup' ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+                        </button>
+                      </div>
+                      <p className="text-[12px] text-ink-2 leading-relaxed">
+                        {authMode === 'signup'
+                          ? `Create your account with ${preview.email} and immediately access this canvas.`
+                          : `Enter your password for ${preview.email} to accept this invitation and access this canvas.`}
+                      </p>
+                    </div>
+
+                    {authError && (
+                      <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/25 text-destructive text-[12px] flex items-start gap-2">
+                        <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                        <span>{authError}</span>
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="invitation-password-input" className="text-[12px] font-medium text-ink-2 block">
+                        Password
+                      </label>
+                      <div className="relative">
+                        <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-3" />
+                        <input
+                          id="invitation-password-input"
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder={authMode === 'signup' ? 'Set your password (min 6 characters)' : 'Enter your password'}
+                          className="w-full h-10 rounded-lg border border-line bg-surface-2 pl-9 pr-10 text-[13px] text-ink placeholder:text-ink-3 outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/30"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink cursor-pointer"
+                          tabIndex={-1}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </button>
+                      </div>
+                    </div>
+
                     <Button
-                      onClick={() => setAuthModalOpen(true)}
-                      className="w-full h-10 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-medium text-[13px] rounded-lg shadow-sm cursor-pointer"
+                      type="submit"
+                      disabled={isSubmitting || !password.trim()}
+                      className="w-full h-10 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-medium text-[13px] rounded-lg shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                     >
-                      Sign In or Sign Up
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          <span>{authMode === 'signup' ? 'Creating account…' : 'Signing in…'}</span>
+                        </>
+                      ) : (
+                        <span>{authMode === 'signup' ? 'Create Account & Open Canvas' : 'Sign In & Open Canvas'}</span>
+                      )}
                     </Button>
-                  </div>
+                  </form>
                 )}
 
                 {/* 2. Case: Logged in, but email MISMATCH */}
@@ -325,56 +520,37 @@ function InvitationContent() {
                   </div>
                 )}
 
-                {/* 3. Case: Logged in with matching email, but NOT VERIFIED */}
-                {currentUser && isEmailMatch && !currentUser.isEmailVerified && (
-                  <div className="p-4 rounded-xl bg-warn/10 border border-warn/30 text-[13px] space-y-3">
-                    <div className="flex items-start gap-2.5 text-warn">
-                      <Shield className="size-5 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-semibold block mb-0.5">Email Verification Required</span>
-                        <span>
-                          Your email address <strong className="text-ink">{currentUser.email}</strong> must be verified before you can access cloud collaboration workspaces.
-                        </span>
-                      </div>
-                    </div>
-
-                    {resendStatus && (
-                      <p className="text-[12px] text-ink-2 font-medium">
-                        {resendStatus}
+                {/* 3. Case: Logged in with MATCHING EMAIL -> READY TO ACCEPT IMMEDIATELY */}
+                {currentUser && isEmailMatch && (
+                  <div className="space-y-4 p-5 rounded-xl border border-line bg-paper/70 shadow-xs">
+                    <div className="space-y-1">
+                      <span className="text-[13.5px] font-semibold text-ink block">
+                        Welcome back, {currentUser.name || preview.email.split('@')[0]}!
+                      </span>
+                      <p className="text-[12px] text-ink-2 leading-relaxed">
+                        You are signed in as <strong className="text-ink">{currentUser.email}</strong>. Click below to accept this invitation and immediately open the collaborative canvas.
                       </p>
-                    )}
+                    </div>
 
                     <Button
                       type="button"
-                      disabled={resending}
-                      onClick={handleResendVerification}
-                      className="h-8 px-3 bg-paper border border-line hover:bg-line-2 text-ink text-[12px] font-medium rounded-md cursor-pointer"
+                      disabled={accepting}
+                      onClick={handleAccept}
+                      className="w-full h-11 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-medium text-[14px] rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      {resending ? 'Sending verification…' : 'Resend Verification Email'}
+                      {accepting ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          <span>Joining canvas…</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Accept & Open Canvas</span>
+                          <ArrowRight className="size-4" />
+                        </>
+                      )}
                     </Button>
                   </div>
-                )}
-
-                {/* 4. Case: Logged in, MATCHING EMAIL, and VERIFIED -> READY TO ACCEPT */}
-                {currentUser && isEmailMatch && currentUser.isEmailVerified && (
-                  <Button
-                    type="button"
-                    disabled={accepting}
-                    onClick={handleAccept}
-                    className="w-full h-11 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-medium text-[14px] rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    {accepting ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" />
-                        <span>Accepting invitation…</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Accept Invitation & Join Workspace</span>
-                        <ArrowRight className="size-4" />
-                      </>
-                    )}
-                  </Button>
                 )}
               </div>
             )}

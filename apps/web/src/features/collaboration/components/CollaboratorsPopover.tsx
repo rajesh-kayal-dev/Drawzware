@@ -1,6 +1,6 @@
 'use client';
 
-import { Settings, X, LogOut, MousePointer, Activity } from 'lucide-react';
+import { Settings, X, MousePointer, UserPlus } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -8,49 +8,69 @@ import {
 } from '@/shared/components/ui/popover';
 import { useCollaborationStore } from '../stores/useCollaborationStore';
 import { CollaboratorsAvatarStack } from './CollaboratorsAvatarStack';
-import { toast } from '@/stores/useToastStore';
+import {
+  formatCollaboratorName,
+  getCollaboratorColor,
+  getCollaboratorInitial,
+} from '../utils/collaborator-helpers';
 
 export function CollaboratorsPopover() {
   const isLive = useCollaborationStore((s) => s.isLive);
+  const currentUser = useCollaborationStore((s) => s.currentUser);
   const collaborators = useCollaborationStore((s) => s.collaborators);
   const open = useCollaborationStore((s) => s.collaboratorsPopoverOpen);
   const setOpen = useCollaborationStore((s) => s.setCollaboratorsPopoverOpen);
   const setInviteModalOpen = useCollaborationStore((s) => s.setInviteModalOpen);
   const showLiveCursors = useCollaborationStore((s) => s.showLiveCursors);
   const toggleLiveCursors = useCollaborationStore((s) => s.toggleLiveCursors);
-  const activeEditorName = useCollaborationStore((s) => s.activeEditorName);
-  const setActiveEditorName = useCollaborationStore((s) => s.setActiveEditorName);
-  const signOut = useCollaborationStore((s) => s.signOut);
 
-  if (!isLive) return null;
+  const myRole = useCollaborationStore((s) => s.myRole);
+  const isOwner = !myRole || myRole === 'owner';
+
+  if (!isLive && !currentUser) return null;
+
+  const roster =
+    collaborators.length > 0
+      ? collaborators
+      : currentUser
+      ? [
+          {
+            id: currentUser.id,
+            name: `${formatCollaboratorName(currentUser.name, currentUser.email)} (You)`,
+            email: currentUser.email,
+            role: myRole || 'owner',
+            initials: getCollaboratorInitial(currentUser.name, currentUser.email),
+            color: getCollaboratorColor(currentUser.id || currentUser.email),
+            avatarBg: '',
+            isCurrentUser: true,
+            status: 'active' as const,
+            lastActive: 'Just now',
+          },
+        ]
+      : [];
 
   const handleManageAccess = () => {
     setOpen(false);
     setInviteModalOpen(true, 'manage');
   };
 
-  const handleToggleActiveEditor = () => {
-    if (activeEditorName) {
-      setActiveEditorName(null);
-      toast({ message: 'Live editing indicator hidden', tone: 'neutral' });
-    } else {
-      setActiveEditorName('Aman');
-      toast({ message: 'Live editing indicator active (Aman)', tone: 'ok' });
-    }
-  };
-
-  const handleSignOut = () => {
-    signOut();
-    toast({ message: 'Exited collaboration. Canvas is in personal offline mode.', tone: 'neutral' });
+  const handleInviteNew = () => {
+    setOpen(false);
+    setInviteModalOpen(true, 'invite');
   };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <div>
+        <button
+          type="button"
+          aria-label="View collaborators"
+          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full"
+        >
           <CollaboratorsAvatarStack />
-        </div>
+        </button>
       </PopoverTrigger>
+
       <PopoverContent
         align="end"
         sideOffset={8}
@@ -59,7 +79,7 @@ export function CollaboratorsPopover() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-line px-3.5 py-2.5">
           <span className="text-[13px] font-semibold text-ink">
-            Collaborators ({collaborators.length})
+            Collaborators ({roster.length})
           </span>
           <button
             type="button"
@@ -73,7 +93,7 @@ export function CollaboratorsPopover() {
 
         {/* Collaborators List */}
         <div className="divide-y divide-line/40 max-h-[260px] overflow-y-auto px-1">
-          {collaborators.map((collab) => (
+          {roster.map((collab) => (
             <div
               key={collab.id}
               className="flex items-center justify-between gap-2.5 px-2.5 py-2 hover:bg-surface-2/60 rounded-[8px] transition-colors"
@@ -90,8 +110,13 @@ export function CollaboratorsPopover() {
                     <span className="truncate text-[12.5px] font-medium text-ink">
                       {collab.name}
                     </span>
-                    {collab.isCurrentUser && (
-                      <span className="size-1.5 shrink-0 rounded-full bg-ok" title="Active now" />
+                    {(collab.isCurrentUser || collab.status === 'active') ? (
+                      <span className="relative flex size-2 shrink-0 items-center justify-center" title="Active now">
+                        <span className="absolute inline-flex size-full animate-ping rounded-full bg-ok opacity-75" />
+                        <span className="relative inline-flex size-2 rounded-full bg-ok animate-status-pulse" />
+                      </span>
+                    ) : (
+                      <span className="size-2 shrink-0 rounded-full bg-ink-3/40" title="Offline" />
                     )}
                   </div>
                   <span className="block truncate text-[11px] text-ink-3">
@@ -107,62 +132,50 @@ export function CollaboratorsPopover() {
           ))}
         </div>
 
-        {/* Action & Manage Access */}
-        <div className="border-t border-line bg-surface-2/40 p-2 space-y-1">
-          <button
-            type="button"
-            onClick={handleManageAccess}
-            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium text-ink hover:bg-surface-2 hover:text-accent transition-colors cursor-pointer"
-          >
-            <span className="flex items-center gap-2">
-              <Settings className="size-3.5 text-ink-2" />
-              Manage access
-            </span>
-            <span className="text-[10.5px] text-ink-3">Roles & invites</span>
-          </button>
-
-          {/* Prototype Controls */}
-          <div className="pt-1 border-t border-line/60">
-            <div className="px-2 py-1 text-[10px] uppercase tracking-wider font-semibold text-ink-3">
-              Prototype Controls
-            </div>
+        {/* Actions (Owner Only) */}
+        {isOwner && (
+          <div className="border-t border-line bg-surface-2/40 p-2 space-y-1">
             <button
               type="button"
-              onClick={toggleLiveCursors}
-              className="w-full flex items-center justify-between px-2.5 py-1 rounded-[6px] text-[11.5px] text-ink-2 hover:bg-surface-2 hover:text-ink transition-colors cursor-pointer"
+              onClick={handleInviteNew}
+              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium text-ink hover:bg-surface-2 hover:text-accent transition-colors cursor-pointer"
             >
-              <span className="flex items-center gap-1.5">
-                <MousePointer className="size-3" />
-                Live cursors
+              <span className="flex items-center gap-2">
+                <UserPlus className="size-3.5 text-accent" />
+                Invite people
               </span>
-              <span className={`text-[10.5px] font-mono ${showLiveCursors ? 'text-ok' : 'text-ink-3'}`}>
-                {showLiveCursors ? 'Visible' : 'Hidden'}
-              </span>
+              <span className="text-[10.5px] text-accent">New invite</span>
             </button>
 
             <button
               type="button"
-              onClick={handleToggleActiveEditor}
-              className="w-full flex items-center justify-between px-2.5 py-1 rounded-[6px] text-[11.5px] text-ink-2 hover:bg-surface-2 hover:text-ink transition-colors cursor-pointer"
+              onClick={handleManageAccess}
+              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-[7px] text-[12px] font-medium text-ink hover:bg-surface-2 hover:text-accent transition-colors cursor-pointer"
             >
-              <span className="flex items-center gap-1.5">
-                <Activity className="size-3" />
-                Editing indicator
+              <span className="flex items-center gap-2">
+                <Settings className="size-3.5 text-ink-2" />
+                Manage access
               </span>
-              <span className={`text-[10.5px] font-mono ${activeEditorName ? 'text-ok' : 'text-ink-3'}`}>
-                {activeEditorName ? 'Aman' : 'Off'}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="w-full flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[11.5px] text-danger hover:bg-danger/10 transition-colors cursor-pointer mt-0.5"
-            >
-              <LogOut className="size-3" />
-              Sign out (Personal canvas)
+              <span className="text-[10.5px] text-ink-3">Roles & invites</span>
             </button>
           </div>
+        )}
+
+        {/* Controls */}
+        <div className="border-t border-line bg-surface-2/20 p-2">
+          <button
+            type="button"
+            onClick={toggleLiveCursors}
+            className="w-full flex items-center justify-between px-2.5 py-1 rounded-[6px] text-[11.5px] text-ink-2 hover:bg-surface-2 hover:text-ink transition-colors cursor-pointer"
+          >
+            <span className="flex items-center gap-1.5">
+              <MousePointer className="size-3" />
+              Live cursors
+            </span>
+            <span className={showLiveCursors ? 'text-ok font-medium' : 'text-ink-3'}>
+              {showLiveCursors ? 'Visible' : 'Hidden'}
+            </span>
+          </button>
         </div>
       </PopoverContent>
     </Popover>

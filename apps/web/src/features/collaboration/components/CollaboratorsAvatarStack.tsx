@@ -2,25 +2,51 @@
 
 import { SimpleTooltip } from '@/shared/components/ui/tooltip';
 import { useCollaborationStore } from '../stores/useCollaborationStore';
+import {
+  formatCollaboratorName,
+  getCollaboratorColor,
+  getCollaboratorInitial,
+} from '../utils/collaborator-helpers';
 
 export function CollaboratorsAvatarStack() {
   const collaborators = useCollaborationStore((s) => s.collaborators);
+  const currentUser = useCollaborationStore((s) => s.currentUser);
   const isLive = useCollaborationStore((s) => s.isLive);
-  const popoverOpen = useCollaborationStore((s) => s.collaboratorsPopoverOpen);
-  const setPopoverOpen = useCollaborationStore((s) => s.setCollaboratorsPopoverOpen);
 
-  if (!isLive) return null;
+  // Show if live or logged in
+  if (!isLive && !currentUser) return null;
 
-  const visible = collaborators.slice(0, 3);
-  const overflow = collaborators.length - visible.length;
+  // Build full active roster (self + any connected peers)
+  const roster =
+    collaborators.length > 0
+      ? collaborators
+      : currentUser
+      ? [
+          {
+            id: currentUser.id,
+            name: `${formatCollaboratorName(currentUser.name, currentUser.email)} (You)`,
+            email: currentUser.email,
+            role: useCollaborationStore.getState().myRole || 'owner',
+            initials: getCollaboratorInitial(currentUser.name, currentUser.email),
+            color: getCollaboratorColor(currentUser.id || currentUser.email),
+            avatarBg: '',
+            isCurrentUser: true,
+            status: 'active' as const,
+            lastActive: 'Just now',
+          },
+        ]
+      : [];
+
+  if (roster.length === 0) return null;
+
+  const visible = roster.slice(0, 4);
+  const overflow = roster.length - visible.length;
 
   return (
-    <SimpleTooltip label="View active collaborators">
-      <button
-        type="button"
-        onClick={() => setPopoverOpen(!popoverOpen)}
-        aria-label={`Collaborators (${collaborators.length})`}
-        className="group flex items-center -space-x-1.5 p-0.5 rounded-full hover:opacity-90 transition-transform active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+    <SimpleTooltip label={`Collaborators (${roster.length})`}>
+      <div
+        aria-label={`Collaborators (${roster.length})`}
+        className="group flex items-center -space-x-1.5 p-0.5 rounded-full hover:opacity-95 transition-transform active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         {visible.map((collab) => (
           <span
@@ -30,8 +56,11 @@ export function CollaboratorsAvatarStack() {
             className="relative flex size-7 items-center justify-center rounded-full text-[11px] font-bold text-white ring-2 ring-bg select-none shadow-2xs"
           >
             {collab.initials}
-            {collab.isCurrentUser && (
-              <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-ok ring-1 ring-bg" />
+            {(collab.isCurrentUser || collab.status === 'active') && (
+              <span className="absolute -bottom-0.5 -right-0.5 flex size-2.5">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-ok opacity-75" />
+                <span className="relative inline-flex size-2.5 rounded-full bg-ok ring-1.5 ring-bg animate-status-pulse" />
+              </span>
             )}
           </span>
         ))}
@@ -40,7 +69,7 @@ export function CollaboratorsAvatarStack() {
             +{overflow}
           </span>
         )}
-      </button>
+      </div>
     </SimpleTooltip>
   );
 }

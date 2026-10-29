@@ -70,22 +70,23 @@ describe('DrawzWare Collaboration Feature & State Management', () => {
       expect(state.isLive).toBe(false);
     });
 
-    it('signs in user, enters live mode, and activates collaborator presence', () => {
+    it('signs in user while preserving personal canvas mode until collaboration starts', () => {
       useCollaborationStore.getState().signIn('sneha.custom@drawzware.app', 'Sneha User');
 
       const state = useCollaborationStore.getState();
       expect(state.currentUser).not.toBeNull();
       expect(state.currentUser?.email).toBe('sneha.custom@drawzware.app');
       expect(state.currentUser?.name).toBe('Sneha User');
-      expect(state.isLive).toBe(true);
+      expect(state.isLive).toBe(false);
       expect(state.authModalOpen).toBe(false);
     });
 
-    it('signs out and cleanly reverts to personal canvas', () => {
+    it('signs out and cleanly reverts to personal canvas', async () => {
       useCollaborationStore.getState().signIn();
+      useCollaborationStore.getState().setLive(true);
       expect(useCollaborationStore.getState().isLive).toBe(true);
 
-      useCollaborationStore.getState().signOut();
+      await useCollaborationStore.getState().signOut();
       const state = useCollaborationStore.getState();
       expect(state.currentUser).toBeNull();
       expect(state.isLive).toBe(false);
