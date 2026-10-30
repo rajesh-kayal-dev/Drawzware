@@ -168,11 +168,25 @@ app.whenReady().then(async () => {
 
   // Injected Content Security Policy
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const customApiOrigin = process.env.DRAWZWARE_API_ORIGIN?.trim() || '';
+    const connectOrigins = [
+      "'self'",
+      "app:",
+      "https://cdn.jsdelivr.net",
+      "https://*.unicorn.studio",
+      "https://api.unicorn.studio",
+      "http://localhost:*",
+      "http://127.0.0.1:*",
+      "ws://localhost:*",
+      "ws://127.0.0.1:*",
+      ...(customApiOrigin ? [customApiOrigin, customApiOrigin.replace(/^http/, 'ws')] : []),
+    ].join(' ');
+
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' app:; script-src 'self' app: 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' app: 'unsafe-inline'; img-src 'self' app: data: blob: https:; font-src 'self' app: data:; connect-src 'self' app: https://cdn.jsdelivr.net https://*.unicorn.studio https://api.unicorn.studio; worker-src 'self' blob:; object-src 'none'; base-uri 'self';",
+          `default-src 'self' app:; script-src 'self' app: 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' app: 'unsafe-inline'; img-src 'self' app: data: blob: https:; font-src 'self' app: data:; connect-src ${connectOrigins}; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none';`,
         ],
       },
     });

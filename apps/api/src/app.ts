@@ -1,11 +1,17 @@
 import "dotenv/config";
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
+import { isOriginAllowed } from "./config/env.js";
 import { requireAuth } from "./middleware/auth.js";
 import { notFoundHandler } from "./middleware/not-found.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { authRoutes } from "./routes/auth.routes.js";
-import { workspaceRoutes, acceptInvitationHandler } from "./routes/workspace.routes.js";
+import {
+  workspaceRoutes,
+  acceptInvitationHandler,
+  getInvitationPreviewHandler,
+  invitationSignupHandler,
+} from "./routes/workspace.routes.js";
 import { diagramRoutes } from "./routes/diagram.routes.js";
 
 export function createApp(): Express {
@@ -14,7 +20,13 @@ export function createApp(): Express {
   // Middleware
   app.use(
     cors({
-      origin: process.env.WEB_ORIGIN || "http://localhost:3000",
+      origin: (requestOrigin, callback) => {
+        if (!requestOrigin || isOriginAllowed(requestOrigin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('CORS origin not allowed'));
+        }
+      },
       credentials: true,
     })
   );
@@ -30,8 +42,11 @@ export function createApp(): Express {
     res.json({ user: req.user });
   });
 
-  // Accept Invitation route
+  // Invitation preview, accept, and direct signup routes
+  app.get("/api/invitations/:invitationId", getInvitationPreviewHandler);
   app.post("/api/invitations/:invitationId/accept", requireAuth, acceptInvitationHandler);
+  app.post("/api/invitations/:invitationId/signup", invitationSignupHandler);
+
 
   // Auth routes
   app.use("/api/auth", authRoutes);

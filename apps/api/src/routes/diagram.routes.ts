@@ -8,11 +8,14 @@ import {
   importDiagramHandler,
   getDiagramHandler,
   updateDiagramHandler,
+  getDiagramSnapshotHandler,
+  saveDiagramSnapshotHandler,
 } from "../controllers/diagram.controller.js";
 import {
   CreateDiagramInputSchema,
   UpdateDiagramInputSchema,
   ImportDiagramInputSchema,
+  SaveDiagramSnapshotInputSchema,
 } from "@drawzware/contracts";
 
 const router = Router();
@@ -22,5 +25,9 @@ router.post("/workspaces/:workspaceId/diagrams", requireAuth, requireWorkspaceRo
 router.post("/workspaces/:workspaceId/diagrams/import", requireAuth, requireWorkspaceRole("editor"), validateBody(ImportDiagramInputSchema), importDiagramHandler);
 router.get("/diagrams/:diagramId", requireAuth, getDiagramHandler);
 router.patch("/diagrams/:diagramId", requireAuth, validateBody(UpdateDiagramInputSchema), updateDiagramHandler);
+router.get("/diagrams/:diagramId/snapshot", requireAuth, getDiagramSnapshotHandler);
+router.put("/diagrams/:diagramId/snapshot", requireAuth, validateBody(SaveDiagramSnapshotInputSchema), saveDiagramSnapshotHandler);
+router.get("/workspaces/:workspaceId/diagrams/:diagramId/snapshot", requireAuth, getDiagramSnapshotHandler);
+router.put("/workspaces/:workspaceId/diagrams/:diagramId/snapshot", requireAuth, validateBody(SaveDiagramSnapshotInputSchema), saveDiagramSnapshotHandler);
 
 export const diagramRoutes = router;

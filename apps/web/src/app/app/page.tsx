@@ -2,24 +2,29 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Header } from '@/components/layout/Header';
-import { ImportDropZone } from '@/components/project/ImportDropZone';
-import { MigrationBanner } from '@/components/project/MigrationBanner';
-import { ProjectList } from '@/components/project/ProjectList';
-import { useProjectImport } from '@/components/project/useProjectImport';
-import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { openDrawzProject, importProjectBackup, exportAllProjectsBackup } from '@/lib/file-operations';
-import { useProjectStore } from '@/stores/useProjectStore';
-import { useDashboardIntro } from '@/components/transition/DashboardIntroProvider';
+import { Header } from '@/shared/components/layout/Header';
+import { ImportDropZone } from '@/features/import-export/components/ImportDropZone';
+import { MigrationBanner } from '@/features/projects/components/MigrationBanner';
+import { ProjectList } from '@/features/projects/components/ProjectList';
+import { useProjectImport } from '@/features/projects/hooks/useProjectImport';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
+import { openDrawzProject, importProjectBackup, exportAllProjectsBackup } from '@/features/projects/utils/file-operations';
+import { useProjectStore } from '@/features/projects/stores/useProjectStore';
+import { useDashboardIntro } from '@/shared/components/feedback/DashboardIntroProvider';
 
 /** Dashboard at /app — the existing project list and canvas entry point. */
 export default function AppDashboardPage() {
   useDocumentTitle('Drawzware');
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [isOpening, setIsOpening] = useState(false);
   const { handleFiles, importJson, importDockerCompose } = useProjectImport();
   const { signalDashboardReady, isIntroActive } = useDashboardIntro();
   const loaded = useProjectStore((s) => s.loaded);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Signal dashboard readiness once project store hydration completes
   useEffect(() => {
@@ -49,8 +54,18 @@ export default function AppDashboardPage() {
     exportAllProjectsBackup(useProjectStore.getState().projects);
   };
 
+  if (!mounted) {
+    return (
+      <div
+        suppressHydrationWarning
+        className="min-h-screen bg-bg dot-grid [background-size:20px_20px] bg-fixed text-ink"
+      />
+    );
+  }
+
   return (
     <div
+      suppressHydrationWarning
       className={`min-h-screen bg-bg dot-grid [background-size:20px_20px] bg-fixed text-ink transition-opacity duration-500 ease-in-out ${
         isIntroActive ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}

@@ -6,6 +6,7 @@ export interface IWorkspaceMember {
   userId: string;
   role: WorkspaceRole;
   userEmail?: string;
+  allowedDiagramIds?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +33,10 @@ const workspaceMemberSchema = new mongoose.Schema(
       type: String,
       trim: true,
       lowercase: true,
+    },
+    allowedDiagramIds: {
+      type: [String],
+      default: undefined,
     },
   },
   {

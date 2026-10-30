@@ -7,6 +7,8 @@ import { WorkspaceMemberModel } from '../src/models/workspace-member.model';
 import { WorkspaceInvitationModel } from '../src/models/workspace-invitation.model';
 import { DiagramModel } from '../src/models/diagram.model';
 import { DiagramSnapshotModel } from '../src/models/diagram-snapshot.model';
+import { UserModel } from '../src/models/user.model';
+import { emailService } from '../src/services/email.service';
 
 describe('Drawzware API (Refactored Mongoose + Express Architecture)', () => {
   let app: any;
@@ -23,8 +25,8 @@ describe('Drawzware API (Refactored Mongoose + Express Architecture)', () => {
   const userViewer = { id: 'usr-viewer-3', email: 'viewer@drawzware.com' };
   const userStranger = { id: 'usr-stranger-4', email: 'stranger@drawzware.com' };
 
-  const generateToken = (user: { id: string; email: string }) => {
-    return jwt.sign({ sub: user.id, email: user.email }, 'test-secret', { expiresIn: '1h' });
+  const generateToken = (user: { id: string; email: string }, isEmailVerified = true) => {
+    return jwt.sign({ sub: user.id, email: user.email, isEmailVerified }, 'test-secret', { expiresIn: '1h' });
   };
 
   const tokenOwner = generateToken(userOwner);
@@ -38,6 +40,14 @@ describe('Drawzware API (Refactored Mongoose + Express Architecture)', () => {
     invitations.clear();
     diagrams.clear();
     snapshots.clear();
+
+    vi.spyOn(emailService, 'sendInvitationEmail').mockResolvedValue(true);
+    vi.spyOn(UserModel, 'findById').mockImplementation(((id: string) => {
+      const doc = { _id: id, name: 'Test Owner', email: 'owner@drawzware.com', isEmailVerified: true };
+      const promise: any = Promise.resolve(doc);
+      promise.exec = () => Promise.resolve(doc);
+      return promise;
+    }) as any);
 
     // 1. Mock WorkspaceModel
     vi.spyOn(WorkspaceModel, 'create').mockImplementation(async (data: any) => {
@@ -86,6 +96,11 @@ describe('Drawzware API (Refactored Mongoose + Express Architecture)', () => {
     });
 
     vi.spyOn(WorkspaceMemberModel, 'findOne').mockImplementation((async (filter: any) => {
+      if (filter.userEmail) {
+        return Array.from(members.values()).find(
+          (m) => m.workspaceId === filter.workspaceId && m.userEmail?.toLowerCase() === filter.userEmail.toLowerCase()
+        ) || null;
+      }
       const key = `${filter.workspaceId}:${filter.userId}`;
       return members.get(key) || null;
     }) as any);

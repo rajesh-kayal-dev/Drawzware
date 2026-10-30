@@ -16,18 +16,18 @@ import {
   Upload,
 } from 'lucide-react';
 import packageJson from '../../../package.json';
-import { Header } from '@/components/layout/Header';
-import { ConfirmDialog } from '@/components/project/ConfirmDialog';
-import { exportAllProjectsBackup, importProjectBackup } from '@/lib/file-operations';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { useTheme } from '@/hooks/useTheme';
+import { Header } from '@/shared/components/layout/Header';
+import { ConfirmDialog } from '@/features/projects/components/ConfirmDialog';
+import { exportAllProjectsBackup, importProjectBackup } from '@/features/projects/utils/file-operations';
+import { Button } from '@/shared/components/ui/button';
+import { Switch } from '@/shared/components/ui/switch';
+import { useTheme } from '@/shared/hooks/useTheme';
 import { getStorageSize } from '@/lib/storage';
-import { cn, formatBytes, plural } from '@/lib/utils';
-import { useProjectStore } from '@/stores/useProjectStore';
-import { useSettingsStore, type ThemePreference, type CanvasBackground } from '@/stores/useSettingsStore';
+import { cn, formatBytes, plural } from '@/shared/utils/utils';
+import { useProjectStore } from '@/features/projects/stores/useProjectStore';
+import { useSettingsStore, type ThemePreference, type CanvasBackground } from '@/features/settings/stores/useSettingsStore';
 import { toast } from '@/stores/useToastStore';
-import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 
 const SECTIONS = [
   { id: 'appearance', label: 'Appearance', icon: Monitor },

@@ -73,3 +73,8 @@ apps/**/next-env.d.ts
 .agents/ecc-install-state.json
 skills-lock.json
 apps/api/authentication/
+graphify-out/*  
+docs/*
+/graphify-out/*
+/docs/*
+graphify-out

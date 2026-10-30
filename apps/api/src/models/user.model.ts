@@ -6,6 +6,12 @@ export interface IUser {
   name: string;
   email: string;
   password?: string;
+  isEmailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
+  tokenVersion: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +40,34 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false,
     },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+      required: true,
+    },
+    emailVerificationToken: {
+      type: String,
+      select: false,
+      index: true,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+    },
+    passwordResetToken: {
+      type: String,
+      select: false,
+      index: true,
+    },
+    passwordResetExpires: {
+      type: Date,
+      select: false,
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0,
+      required: true,
+    },
   },
   {
     timestamps: true,
@@ -44,6 +78,11 @@ const userSchema = new mongoose.Schema(
         delete ret._id;
         delete ret.__v;
         delete ret.password;
+        delete ret.emailVerificationToken;
+        delete ret.emailVerificationExpires;
+        delete ret.passwordResetToken;
+        delete ret.passwordResetExpires;
+        delete ret.tokenVersion;
         return ret;
       },
     },

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans, Newsreader } from "next/font/google";
-import { Providers } from "@/components/providers";
+import { Providers } from "@/providers/providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -143,6 +143,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} ${newsreader.variable} antialiased`}
       >
         <Providers>{children}</Providers>

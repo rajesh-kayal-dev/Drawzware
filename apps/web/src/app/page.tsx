@@ -2,19 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { LandingNavbar } from '@/components/landing/LandingNavbar';
-import { LandingHeroSection } from '@/components/landing/LandingHeroSection';
-import { LandingFeatureHighlights } from '@/components/landing/LandingFeatureHighlights';
-import { LandingWhyDrawzware } from '@/components/landing/LandingWhyDrawzware';
-import { LandingWorkflowIntegrations } from '@/components/landing/LandingWorkflowIntegrations';
-import { LandingExportSection } from '@/components/landing/LandingExportSection';
-import { LandingDarkValueSection } from '@/components/landing/LandingDarkValueSection';
-import { LandingHowItWorks } from '@/components/landing/LandingHowItWorks';
-import { LandingFinalCTA } from '@/components/landing/LandingFinalCTA';
-import { LandingFooter } from '@/components/landing/LandingFooter';
-import { LandingDesktopAppModal } from '@/components/landing/LandingDesktopAppModal';
-import { useDashboardIntro } from '@/components/transition/DashboardIntroProvider';
-import { hasSeenDashboardIntro } from '@/lib/intro-state';
+import { LandingNavbar } from '@/features/marketing/components/LandingNavbar';
+import { LandingHeroSection } from '@/features/marketing/components/LandingHeroSection';
+import { LandingFeatureHighlights } from '@/features/marketing/components/LandingFeatureHighlights';
+import { LandingWhyDrawzware } from '@/features/marketing/components/LandingWhyDrawzware';
+import { LandingWorkflowIntegrations } from '@/features/marketing/components/LandingWorkflowIntegrations';
+import { LandingExportSection } from '@/features/marketing/components/LandingExportSection';
+import { LandingDarkValueSection } from '@/features/marketing/components/LandingDarkValueSection';
+import { LandingHowItWorks } from '@/features/marketing/components/LandingHowItWorks';
+import { LandingFinalCTA } from '@/features/marketing/components/LandingFinalCTA';
+import { LandingFooter } from '@/features/marketing/components/LandingFooter';
+import { LandingDesktopAppModal } from '@/features/marketing/components/LandingDesktopAppModal';
+import { useDashboardIntro } from '@/shared/components/feedback/DashboardIntroProvider';
+import { hasSeenDashboardIntro } from '@/shared/utils/intro-state';
 
 const websiteStructuredData = {
   '@context': 'https://schema.org',
@@ -52,6 +52,7 @@ export default function LandingPage() {
 
   return (
     <div
+      suppressHydrationWarning
       onClickCapture={handleLandingClickCapture}
       className="lp-root min-h-screen bg-[#faf8f5] text-neutral-900 flex flex-col font-sans overflow-x-hidden w-full"
     >

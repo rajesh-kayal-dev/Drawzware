@@ -23,12 +23,26 @@ export const ProjectSchema = z.object({
   id: z.string().refine(isValidProjectId, {
     message: 'Project id must contain only alphanumeric characters, underscores, and hyphens (max 128 chars)',
   }),
-  name: z.string().min(1, 'Project name is required'),
-  description: z.string().optional(),
+  name: z.string().min(1, 'Project name is required').max(256),
+  description: z.string().max(4096).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  nodes: z.array(z.any()),
-  edges: z.array(z.any()),
+  nodes: z
+    .array(
+      z.any().refine((val) => val !== null && typeof val === 'object', {
+        message: 'Node must be an object',
+      })
+    )
+    .max(10000)
+    .default([]),
+  edges: z
+    .array(
+      z.any().refine((val) => val !== null && typeof val === 'object', {
+        message: 'Edge must be an object',
+      })
+    )
+    .max(20000)
+    .default([]),
   viewport: z
     .object({
       x: z.number(),
@@ -38,6 +52,8 @@ export const ProjectSchema = z.object({
     .default({ x: 0, y: 0, zoom: 1 }),
   diagramType: z.enum(['architecture', 'sequence', 'er']).optional(),
   diagramData: z.record(z.string(), z.unknown()).optional(),
+  cloudDiagramId: z.string().optional(),
+  cloudWorkspaceId: z.string().optional(),
 });
 
 export type Project = z.infer<typeof ProjectSchema>;

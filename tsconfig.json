@@ -35,5 +35,5 @@
     "**/*.tsx",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "dist-electron", "apps/desktop", "apps/api/authentication", "scratch", ".next", "apps/**/.next", "out", "dist"]
+  "exclude": ["node_modules", "dist-electron", "apps/desktop", "apps/api/authentication", "scratch", ".next", "apps/**/.next", "out", "dist", "graphify-out"]
 }

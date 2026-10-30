@@ -5,6 +5,7 @@ import {
   findDiagramDocsByWorkspace,
   updateDiagramDoc,
   findDiagramSnapshotDoc,
+  saveDiagramSnapshotDoc,
 } from '../repositories/diagram.repository.js';
 import { IDiagram } from '../models/diagram.model.js';
 import { DiagramMetadata, DiagramType, Project } from '@drawzware/contracts';
@@ -54,4 +55,61 @@ export const updateDiagramMetadata = async (id: string, updates: { title?: strin
 export const getDiagramSnapshot = async (diagramId: string): Promise<Project | null> => {
   const snapshot = await findDiagramSnapshotDoc(diagramId);
   return snapshot ? snapshot.state : null;
+};
+
+export interface DiagramSnapshotMeta {
+  diagramId: string;
+  version: number;
+  state: Project;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const getDiagramSnapshotWithMeta = async (
+  diagramId: string
+): Promise<DiagramSnapshotMeta | null> => {
+  const snapshot = await findDiagramSnapshotDoc(diagramId);
+  if (!snapshot) return null;
+  return {
+    diagramId: snapshot.diagramId,
+    version: snapshot.version,
+    state: snapshot.state,
+    createdAt: toIso(snapshot.createdAt),
+    updatedAt: toIso(snapshot.updatedAt),
+  };
+};
+
+export interface SaveSnapshotServiceResult {
+  success: boolean;
+  conflict?: boolean;
+  currentVersion?: number;
+  currentSnapshot?: Project;
+  snapshot?: DiagramSnapshotMeta;
+}
+
+export const saveDiagramSnapshot = async (
+  diagramId: string,
+  state: Project,
+  clientVersion?: number
+): Promise<SaveSnapshotServiceResult> => {
+  const result = await saveDiagramSnapshotDoc(diagramId, state, clientVersion);
+  if (!result.success || !result.snapshot) {
+    return {
+      success: false,
+      conflict: result.conflict,
+      currentVersion: result.currentVersion,
+      currentSnapshot: result.currentSnapshot,
+    };
+  }
+
+  return {
+    success: true,
+    snapshot: {
+      diagramId: result.snapshot.diagramId,
+      version: result.snapshot.version,
+      state: result.snapshot.state,
+      createdAt: toIso(result.snapshot.createdAt),
+      updatedAt: toIso(result.snapshot.updatedAt),
+    },
+  };
 };

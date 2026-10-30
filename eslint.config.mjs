@@ -24,6 +24,7 @@ const eslintConfig = defineConfig([
     ".agents/**",
     "**/node_modules/**",
     "apps/api/authentication/**",
+    "graphify-out/**",
   ]),
   {
     settings: {

@@ -8,15 +8,20 @@ import * as workspaceRepo from '../src/repositories/workspace.repository.js';
 import * as memberRepo from '../src/repositories/workspace-member.repository.js';
 import * as invitationRepo from '../src/repositories/workspace-invitation.repository.js';
 import * as diagramRepo from '../src/repositories/diagram.repository.js';
+import * as sessionRepo from '../src/repositories/session.repository.js';
+import { emailService } from '../src/services/email.service.js';
 
 describe('Apps/API Modular Architecture Tests', () => {
   const app = createApp();
 
   const user = { id: 'usr-test-1', email: 'test@drawzware.com' };
-  const token = jwt.sign({ sub: user.id, email: user.email }, 'test-secret', { expiresIn: '1h' });
+  const token = jwt.sign({ sub: user.id, email: user.email, isEmailVerified: true }, 'test-secret', { expiresIn: '1h' });
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(sessionRepo, 'createSessionDoc').mockResolvedValue({} as any);
+    vi.spyOn(emailService, 'sendVerificationEmail').mockResolvedValue(true);
+    vi.spyOn(userRepo, 'findUserDocById').mockResolvedValue({ _id: user.id, isEmailVerified: true, tokenVersion: 0 } as any);
   });
 
   describe('Health & Metadata', () => {
@@ -84,7 +89,7 @@ describe('Apps/API Modular Architecture Tests', () => {
         .send({ name: 'Alice Designer', email: 'alice@example.com', password: 'securePassword123' });
 
       expect(res.status).toBe(201);
-      expect(res.body.message).toBe('User registered successfully');
+      expect(res.body.message).toContain('User registered successfully');
       expect(res.body.user.id).toBe(mockCreatedUser._id);
       expect(res.body.user.name).toBe(mockCreatedUser.name);
       expect(res.body.user.email).toBe(mockCreatedUser.email);

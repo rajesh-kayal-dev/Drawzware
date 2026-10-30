@@ -47,13 +47,14 @@ export const WorkspaceMemberSchema = z.object({
   role: WorkspaceRoleSchema,
   createdAt: z.string(),
   userEmail: z.string().email().optional(),
+  allowedDiagramIds: z.array(z.string()).optional(),
 });
 export type WorkspaceMember = z.infer<typeof WorkspaceMemberSchema>;
 
 /**
  * Workspace invitations
  */
-export const InvitationStatusSchema = z.enum(['pending', 'accepted', 'declined', 'expired']);
+export const InvitationStatusSchema = z.enum(['pending', 'accepted', 'declined', 'expired', 'revoked']);
 export type InvitationStatus = z.infer<typeof InvitationStatusSchema>;
 
 export const WorkspaceInvitationSchema = z.object({
@@ -63,6 +64,9 @@ export const WorkspaceInvitationSchema = z.object({
   role: z.enum(['editor', 'viewer']), // owner cannot be assigned via invitation directly
   invitedBy: z.string().min(1),
   status: InvitationStatusSchema,
+  returnUrl: z.string().optional(),
+  canvasUrl: z.string().optional(),
+  diagramId: z.string().optional(),
   createdAt: z.string(),
   expiresAt: z.string(),
 });
@@ -71,6 +75,9 @@ export type WorkspaceInvitation = z.infer<typeof WorkspaceInvitationSchema>;
 export const CreateInvitationInputSchema = z.object({
   email: z.string().email(),
   role: z.enum(['editor', 'viewer']).default('editor'),
+  returnUrl: z.string().optional(),
+  canvasUrl: z.string().optional(),
+  diagramId: z.string().optional(),
 });
 export type CreateInvitationInput = z.infer<typeof CreateInvitationInputSchema>;
 
@@ -115,11 +122,236 @@ export const ImportDiagramInputSchema = z.object({
 export type ImportDiagramInput = z.infer<typeof ImportDiagramInputSchema>;
 
 /**
+ * Input payload for saving or updating a diagram's canvas snapshot.
+ * Accepts either `project` or `state` matching ProjectSchema.
+ * Optional `clientVersion` enables optimistic concurrency conflict detection.
+ */
+export const SaveDiagramSnapshotInputSchema = z
+  .object({
+    project: ProjectSchema.optional(),
+    state: ProjectSchema.optional(),
+    clientVersion: z.number().int().positive().optional(),
+  })
+  .refine((data) => data.project !== undefined || data.state !== undefined, {
+    message: "Either 'project' or 'state' must be provided matching ProjectSchema",
+  });
+export type SaveDiagramSnapshotInput = z.infer<typeof SaveDiagramSnapshotInputSchema>;
+
+/**
+ * Canonical response payload when returning a diagram snapshot.
+ */
+export const DiagramSnapshotResponseSchema = z.object({
+  diagramId: z.string(),
+  version: z.number().int().positive(),
+  state: ProjectSchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type DiagramSnapshotResponse = z.infer<typeof DiagramSnapshotResponseSchema>;
+
+/**
+ * Concurrency conflict response payload when a stale clientVersion is supplied.
+ */
+export const DiagramSnapshotConflictErrorSchema = z.object({
+  error: z.literal('VERSION_CONFLICT'),
+  message: z.string(),
+  currentVersion: z.number().int().positive(),
+  currentSnapshot: ProjectSchema.optional(),
+});
+export type DiagramSnapshotConflictError = z.infer<typeof DiagramSnapshotConflictErrorSchema>;
+
+/**
+ * Real-time collaborator presence representation.
+ */
+export const UserPresenceSchema = z.object({
+  userId: z.string().min(1),
+  userName: z.string().min(1),
+  email: z.string().email().optional(),
+  avatarUrl: z.string().url().optional(),
+  color: z.string().optional(),
+  cursor: z
+    .object({
+      x: z.number(),
+      y: z.number(),
+    })
+    .nullable()
+    .optional(),
+  selectedNodeIds: z.array(z.string()).default([]),
+  lastActiveAt: z.string().optional(),
+});
+export type UserPresence = z.infer<typeof UserPresenceSchema>;
+
+/**
+ * Collab WebSocket protocol message types
+ */
+export const CollabClientMessageTypeSchema = z.enum([
+  'join_room',
+  'leave_room',
+  'sync_step_1',
+  'sync_step_2',
+  'sync_update',
+  'presence_update',
+  'cursor_move',
+  'ping',
+]);
+export type CollabClientMessageType = z.infer<typeof CollabClientMessageTypeSchema>;
+
+export const CollabClientMessageSchema = z.object({
+  type: CollabClientMessageTypeSchema,
+  diagramId: z.string(),
+  payload: z.record(z.string(), z.unknown()).optional(),
+});
+export type CollabClientMessage = z.infer<typeof CollabClientMessageSchema>;
+
+export const CollabServerMessageTypeSchema = z.enum([
+  'room_joined',
+  'sync_step_1',
+  'sync_step_2',
+  'sync_update',
+  'presence_batch',
+  'user_joined',
+  'user_left',
+  'permission_revoked',
+  'error',
+  'pong',
+]);
+export type CollabServerMessageType = z.infer<typeof CollabServerMessageTypeSchema>;
+
+export const CollabServerMessageSchema = z.object({
+  type: CollabServerMessageTypeSchema,
+  diagramId: z.string(),
+  payload: z.record(z.string(), z.unknown()).optional(),
+});
+export type CollabServerMessage = z.infer<typeof CollabServerMessageSchema>;
+
+/**
  * Authenticated User representation extracted from verified JWT claims
  */
 export interface AuthenticatedUser {
   id: string;
   email?: string;
+  isEmailVerified?: boolean;
+  tokenVersion?: number;
   appMetadata?: Record<string, unknown>;
   userMetadata?: Record<string, unknown>;
 }
+
+/**
+ * Authentication and Session Schemas
+ */
+export const RegisterInputSchema = z.object({
+  name: z.string({ message: 'Name is required' }).trim().min(1, 'Name is required').max(100),
+  email: z.string({ message: 'Valid email is required' }).trim().email('Valid email is required').toLowerCase(),
+  password: z.string({ message: 'Password must be at least 6 characters' }).min(6, 'Password must be at least 6 characters'),
+  returnUrl: z.string().optional(),
+});
+export type RegisterInput = z.infer<typeof RegisterInputSchema>;
+
+export const LoginInputSchema = z.object({
+  email: z.string({ message: 'Valid email is required' }).trim().email('Valid email is required').toLowerCase(),
+  password: z.string({ message: 'Password is required' }).min(1, 'Password is required'),
+});
+export type LoginInput = z.infer<typeof LoginInputSchema>;
+
+export const VerifyEmailInputSchema = z.object({
+  token: z.string().trim().min(1, 'Verification token is required'),
+});
+export type VerifyEmailInput = z.infer<typeof VerifyEmailInputSchema>;
+
+export const ResendVerificationInputSchema = z.object({
+  email: z.string().trim().email('Valid email is required').toLowerCase(),
+  returnUrl: z.string().optional(),
+});
+export type ResendVerificationInput = z.infer<typeof ResendVerificationInputSchema>;
+
+export const ForgotPasswordInputSchema = z.object({
+  email: z.string().trim().email('Valid email is required').toLowerCase(),
+  returnUrl: z.string().optional(),
+});
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordInputSchema>;
+
+export const ResetPasswordInputSchema = z.object({
+  token: z.string().trim().min(1, 'Reset token is required'),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+});
+export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>;
+
+export const RefreshTokenInputSchema = z.object({
+  refreshToken: z.string().trim().min(1, 'Refresh token is required'),
+});
+export type RefreshTokenInput = z.infer<typeof RefreshTokenInputSchema>;
+
+export const AuthTokensSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+  expiresIn: z.number(),
+});
+export type AuthTokens = z.infer<typeof AuthTokensSchema>;
+
+export const InvitationPreviewSchema = z.object({
+  id: z.string().uuid(),
+  workspaceId: z.string().uuid(),
+  workspaceName: z.string(),
+  email: z.string().email(),
+  role: z.enum(['editor', 'viewer']),
+  inviterName: z.string(),
+  inviterEmail: z.string().email().optional(),
+  expiresAt: z.string(),
+  isExpired: z.boolean(),
+  status: InvitationStatusSchema,
+  returnUrl: z.string().optional(),
+  canvasUrl: z.string().optional(),
+  diagramId: z.string().optional(),
+  accountExists: z.boolean().optional(),
+});
+export type InvitationPreview = z.infer<typeof InvitationPreviewSchema>;
+
+export const InvitationSignupInputSchema = z.object({
+  invitationId: z.string().min(1, 'Invitation ID is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+export type InvitationSignupInput = z.infer<typeof InvitationSignupInputSchema>;
+
+/**
+ * Generates a valid camelCase username from an email address:
+ * - Extracts prefix before '@'
+ * - Strips all numbers, underscores, and special characters
+ * - Converts multi-word tokens to camelCase (e.g. rajeshkayal33@gmail.com -> rajeshkayal, john.doe44@domain.com -> johnDoe)
+ * - Returns only letters [a-zA-Z]
+ */
+export function generateUsernameFromEmail(email: string): string {
+  if (!email || typeof email !== 'string') return 'user';
+
+  // 1. Skip everything after '@'
+  const prefix = email.split('@')[0] || '';
+
+  // 2. Remove numbers, underscores, and special characters; split into words
+  const words = prefix
+    .split(/[^a-zA-Z]+/)
+    .filter((word) => word.length > 0)
+    .map((word) => word.toLowerCase());
+
+  if (words.length === 0) {
+    return 'user';
+  }
+
+  // 3. Convert to camelCase
+  const camelCase = words[0] + words.slice(1).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+
+  // 4. Sanitize to strictly ensure letters only
+  const sanitized = camelCase.replace(/[^a-zA-Z]/g, '');
+
+  if (sanitized.length < 2) {
+    return sanitized.length === 1 ? `${sanitized}User` : 'user';
+  }
+
+  return sanitized.slice(0, 50);
+}
+
+/**
+ * Validates that a generated username consists only of alphabetic characters and has a valid length.
+ */
+export function validateUsername(username: string): boolean {
+  return /^[a-zA-Z]{2,50}$/.test(username);
+}
+

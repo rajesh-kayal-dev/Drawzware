@@ -17,6 +17,12 @@ import {
   parseBackupDocument,
   serializeDrawzBackup,
   IPC_CHANNELS,
+  SaveDiagramSnapshotInputSchema,
+  DiagramSnapshotResponseSchema,
+  DiagramSnapshotConflictErrorSchema,
+  UserPresenceSchema,
+  CollabClientMessageSchema,
+  CollabServerMessageSchema,
 } from '@drawzware/contracts';
 
 describe('packages/contracts — Canonical Package Exports', () => {
@@ -91,6 +97,94 @@ describe('packages/contracts — Canonical Package Exports', () => {
     expect(IPC_CHANNELS.FILE_OPEN_DRAWZ).toBe('file:open-drawz');
     expect(IPC_CHANNELS.FILE_SAVE_DRAWZ).toBe('file:save-drawz');
     expect(IPC_CHANNELS.FILE_IMPORT_BACKUP).toBe('file:import-backup');
+  });
+
+  it('validates SaveDiagramSnapshotInputSchema with project or state, and clientVersion', () => {
+    const validProject = {
+      id: 'proj-snap-1',
+      name: 'Cloud Snapshot Project',
+      createdAt: '2026-10-25T00:00:00.000Z',
+      updatedAt: '2026-10-25T00:00:00.000Z',
+      nodes: [],
+      edges: [],
+      viewport: { x: 0, y: 0, zoom: 1 },
+    };
+
+    // Valid with project field
+    const resWithProject = SaveDiagramSnapshotInputSchema.safeParse({
+      project: validProject,
+      clientVersion: 3,
+    });
+    expect(resWithProject.success).toBe(true);
+
+    // Valid with state field
+    const resWithState = SaveDiagramSnapshotInputSchema.safeParse({
+      state: validProject,
+    });
+    expect(resWithState.success).toBe(true);
+
+    // Invalid when neither project nor state provided
+    const resEmpty = SaveDiagramSnapshotInputSchema.safeParse({
+      clientVersion: 2,
+    });
+    expect(resEmpty.success).toBe(false);
+
+    // Invalid clientVersion (must be positive integer)
+    const resInvalidVer = SaveDiagramSnapshotInputSchema.safeParse({
+      project: validProject,
+      clientVersion: -1,
+    });
+    expect(resInvalidVer.success).toBe(false);
+  });
+
+  it('validates DiagramSnapshotResponseSchema and ConflictErrorSchema', () => {
+    const validResponse = {
+      diagramId: 'diag-001',
+      version: 2,
+      state: {
+        id: 'proj-snap-1',
+        name: 'Cloud Snapshot Project',
+        createdAt: '2026-10-25T00:00:00.000Z',
+        updatedAt: '2026-10-25T00:00:00.000Z',
+        nodes: [],
+        edges: [],
+        viewport: { x: 0, y: 0, zoom: 1 },
+      },
+      createdAt: '2026-10-25T00:00:00.000Z',
+      updatedAt: '2026-10-25T00:00:00.000Z',
+    };
+    expect(DiagramSnapshotResponseSchema.safeParse(validResponse).success).toBe(true);
+
+    const conflictPayload = {
+      error: 'VERSION_CONFLICT',
+      message: 'Cloud snapshot version conflict.',
+      currentVersion: 5,
+    };
+    expect(DiagramSnapshotConflictErrorSchema.safeParse(conflictPayload).success).toBe(true);
+  });
+
+  it('validates UserPresenceSchema and CollabMessage schemas', () => {
+    const validPresence = {
+      userId: 'usr-123',
+      userName: 'Alice Engineer',
+      cursor: { x: 100, y: 200 },
+      selectedNodeIds: ['node-1', 'node-2'],
+    };
+    expect(UserPresenceSchema.safeParse(validPresence).success).toBe(true);
+
+    const clientMsg = {
+      type: 'cursor_move',
+      diagramId: 'diag-001',
+      payload: { x: 150, y: 300 },
+    };
+    expect(CollabClientMessageSchema.safeParse(clientMsg).success).toBe(true);
+
+    const serverMsg = {
+      type: 'presence_batch',
+      diagramId: 'diag-001',
+      payload: { users: [validPresence] },
+    };
+    expect(CollabServerMessageSchema.safeParse(serverMsg).success).toBe(true);
   });
 });
 

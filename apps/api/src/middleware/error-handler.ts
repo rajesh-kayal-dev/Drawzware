@@ -1,10 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
 
 export function serverError(res: Response, message: string, err?: unknown) {
+  const isProduction = process.env.NODE_ENV === 'production';
   return res.status(500).json({
     error: 'INTERNAL_ERROR',
     message,
-    details: err instanceof Error ? err.message : undefined,
+    details: isProduction ? undefined : (err instanceof Error ? err.message : undefined),
   });
 }
 

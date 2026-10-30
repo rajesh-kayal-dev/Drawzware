@@ -11,6 +11,9 @@ export interface IWorkspaceInvitation {
   status: InvitationStatus;
   expiresAt: Date;
   acceptedAt?: Date;
+  returnUrl?: string;
+  canvasUrl?: string;
+  diagramId?: string;
   createdAt: Date;
   updatedAt: Date;
   save?: () => Promise<IWorkspaceInvitation>;
@@ -47,7 +50,7 @@ const workspaceInvitationSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: ['pending', 'accepted', 'declined', 'expired'],
+      enum: ['pending', 'accepted', 'declined', 'expired', 'revoked'],
       default: 'pending',
       index: true,
     },
@@ -58,6 +61,19 @@ const workspaceInvitationSchema = new mongoose.Schema(
     },
     acceptedAt: {
       type: Date,
+    },
+    returnUrl: {
+      type: String,
+      trim: true,
+    },
+    canvasUrl: {
+      type: String,
+      trim: true,
+    },
+    diagramId: {
+      type: String,
+      trim: true,
+      index: true,
     },
   },
   {

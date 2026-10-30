@@ -4,10 +4,10 @@ import {
   getGlobalSearchItems,
   getItemGroup,
   findMatchingCanvasNode,
-} from '@/lib/global-search-registry';
-import { instantiateStackPreset } from '@/lib/technology-stacks';
-import { useCanvasStore } from '@/stores/useCanvasStore';
-import type { SystemNodeType } from '@/types';
+} from '@/features/canvas/registries/global-search-registry';
+import { instantiateStackPreset } from '@/features/canvas/registries/technology-stacks';
+import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
+import type { SystemNodeType } from '@/features/canvas/types/canvas.types';
 
 describe('Global Search & Quick Insert Registry', () => {
   it('loads items across all required categories', () => {

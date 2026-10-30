@@ -2,22 +2,22 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   EXPANDED_COMPONENTS,
   EXPANDED_COMPONENT_CATEGORIES,
-} from '@/lib/expanded-components-registry';
+} from '@/features/canvas/registries/expanded-components-registry';
 import {
   POPULAR_SERVICES,
   POPULAR_SERVICE_CATEGORIES,
-} from '@/lib/popular-services-registry';
+} from '@/features/canvas/registries/popular-services-registry';
 import {
   TECHNOLOGY_STACK_PRESETS,
   instantiateStackPreset,
-} from '@/lib/technology-stacks';
+} from '@/features/canvas/registries/technology-stacks';
 import {
   hasTechIcon,
   getTechIconDef,
 } from '@/lib/icons/tech-icons';
-import { useCanvasStore } from '@/stores/useCanvasStore';
-import { createSystemNode } from '@/lib/node-factory';
-import { SystemNodeDataSchema } from '@/types';
+import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
+import { createSystemNode } from '@/features/canvas/utils/node-factory';
+import { SystemNodeDataSchema } from '@/features/canvas/types/canvas.types';
 
 describe('Component Library Expansion & Resizing Fix', () => {
   beforeEach(() => {

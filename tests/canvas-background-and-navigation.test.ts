@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useSettingsStore, type CanvasBackground } from '@/stores/useSettingsStore';
+import { useSettingsStore, type CanvasBackground } from '@/features/settings/stores/useSettingsStore';
 import { BackgroundVariant } from '@xyflow/react';
 
 const mockStore = new Map<string, string>();
@@ -16,12 +16,11 @@ const mockLocalStorage = {
   }),
 };
 
-if (typeof globalThis.localStorage === 'undefined') {
-  Object.defineProperty(globalThis, 'localStorage', {
-    value: mockLocalStorage,
-    writable: true,
-  });
-}
+Object.defineProperty(globalThis, 'localStorage', {
+  value: mockLocalStorage,
+  writable: true,
+  configurable: true,
+});
 
 describe('Canvas Background & Touchpad Navigation Options', () => {
   beforeEach(() => {
