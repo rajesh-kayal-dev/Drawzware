@@ -1,12 +1,9 @@
 {
-  "6": "desktop/types/ipc.ts",
   "7": "electron-builder.json",
-  "12": "workspace.service.ts",
   "14": "package.json",
   "18": "api/package.json",
   "28": "ShapeDrawingOverlay.tsx",
   "29": "dependencies",
-  "31": "DashboardIntroProvider.tsx",
   "33": "components.json",
   "34": "steps",
   "36": "compilerOptions",

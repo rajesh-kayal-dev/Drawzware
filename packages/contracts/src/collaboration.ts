@@ -192,6 +192,7 @@ export const CollabClientMessageTypeSchema = z.enum([
   'sync_update',
   'presence_update',
   'cursor_move',
+  'ping',
 ]);
 export type CollabClientMessageType = z.infer<typeof CollabClientMessageTypeSchema>;
 
@@ -212,6 +213,7 @@ export const CollabServerMessageTypeSchema = z.enum([
   'user_left',
   'permission_revoked',
   'error',
+  'pong',
 ]);
 export type CollabServerMessageType = z.infer<typeof CollabServerMessageTypeSchema>;
 

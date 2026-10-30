@@ -460,6 +460,18 @@ export class CollabServer {
       return;
     }
 
+    if (message.type === 'ping') {
+      client.isAlive = true;
+      this.sendToClient(client, {
+        type: 'pong',
+        diagramId: client.diagramId,
+        payload: {
+          timestamp: Date.now(),
+        },
+      });
+      return;
+    }
+
     if (message.type === 'leave_room') {
       try {
         client.socket.close(1000, 'User left room');

@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/controllers/diagram.controller.ts": {
-    "mtime": 1793315287.6295886,
-    "seen": 1793315702.3403506,
-    "ast_hash": "2f01a4f6095a672bc2cf65f503b889c9",
+    "mtime": 1793359885.812968,
+    "seen": 1793364576.5244484,
+    "ast_hash": "d16d54ded634536e826bd9aceed9396d",
     "semantic_hash": ""
   },
   "apps/api/src/controllers/workspace.controller.ts": {
@@ -90,10 +90,10 @@
     "semantic_hash": ""
   },
   "apps/api/src/models/diagram-snapshot.model.ts": {
-    "mtime": 1792859463.6887307,
-    "seen": 1792905217.2613525,
-    "ast_hash": "1179176876b87c998cc2d109ce47244f",
-    "semantic_hash": "1179176876b87c998cc2d109ce47244f"
+    "mtime": 1793364056.8404033,
+    "seen": 1793364576.5244484,
+    "ast_hash": "fb6b13875248cf303841d3aaf0741cd3",
+    "semantic_hash": ""
   },
   "apps/api/src/models/diagram.model.ts": {
     "mtime": 1792859463.6887307,
@@ -126,9 +126,9 @@
     "semantic_hash": "4e329c6ca5893882f2b2b1d46debd1a0"
   },
   "apps/api/src/repositories/diagram.repository.ts": {
-    "mtime": 1792908780.2544158,
-    "seen": 1792909237.8413463,
-    "ast_hash": "16155d16fc6345cbfbdb5b22d42fd9cb",
+    "mtime": 1793364072.4460907,
+    "seen": 1793364576.5244484,
+    "ast_hash": "0ed55b0bf3a95f8239e4f2c8763fc70d",
     "semantic_hash": ""
   },
   "apps/api/src/repositories/user.repository.ts": {
@@ -258,8 +258,8 @@
     "semantic_hash": ""
   },
   "apps/api/tests/real-http-audit.test.ts": {
-    "mtime": 1793021104.116852,
-    "seen": 1793021634.2536337,
+    "mtime": 1793359628.53411,
+    "seen": 1793364576.5244484,
     "ast_hash": "e3233f369f9e5906241a63708a341bcd",
     "semantic_hash": ""
   },
@@ -420,10 +420,10 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/page.tsx": {
-    "mtime": 1792868717.7245665,
-    "seen": 1792905217.2613525,
-    "ast_hash": "8b346ff4d8aa3dd000e29ec2a14b1ae8",
-    "semantic_hash": "8b346ff4d8aa3dd000e29ec2a14b1ae8"
+    "mtime": 1793358415.214979,
+    "seen": 1793359049.958077,
+    "ast_hash": "991fda799a8aa96113c6fe2b6c6c9870",
+    "semantic_hash": ""
   },
   "apps/web/src/app/robots.ts": {
     "mtime": 1791984370.6134057,
@@ -456,9 +456,9 @@
     "semantic_hash": "97596add7b3aab40ffd8de4ecbd0304c"
   },
   "apps/web/src/features/canvas/components/Canvas.tsx": {
-    "mtime": 1793311748.6063392,
-    "seen": 1793315702.3403506,
-    "ast_hash": "6722264742b84edfe61f63e9e66a1876",
+    "mtime": 1793358630.785664,
+    "seen": 1793359049.958077,
+    "ast_hash": "d0ceda82d0b2bbe7ba413f15d8ad47e2",
     "semantic_hash": ""
   },
   "apps/web/src/features/canvas/components/CanvasContextMenu.tsx": {
@@ -828,9 +828,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/features/collaboration/components/LiveCollaboratorsOverlay.tsx": {
-    "mtime": 1793309246.1651068,
-    "seen": 1793315702.3403506,
-    "ast_hash": "dd8928ee01a653e16ea56e9d4279e5a2",
+    "mtime": 1793365075.8246205,
+    "seen": 1793365266.7714007,
+    "ast_hash": "b51551bf41ee6c28242cdc10341a7f5c",
     "semantic_hash": ""
   },
   "apps/web/src/features/collaboration/components/PublishEmbedDialog.tsx": {
@@ -840,9 +840,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/features/collaboration/stores/useCollaborationStore.ts": {
-    "mtime": 1793305674.7108765,
-    "seen": 1793307434.0424535,
-    "ast_hash": "9d1204358f1a183ff1fb8d8fad00669c",
+    "mtime": 1793358896.8902397,
+    "seen": 1793359049.958077,
+    "ast_hash": "45cfd824bf8d59f59fe791abd0de0df6",
     "semantic_hash": ""
   },
   "apps/web/src/features/collaboration/types/collaboration.types.ts": {
@@ -1362,9 +1362,9 @@
     "semantic_hash": "6c5624e64029d802342877ac48007f58"
   },
   "packages/contracts/src/collaboration.ts": {
-    "mtime": 1793306597.1114528,
-    "seen": 1793307434.0428016,
-    "ast_hash": "48d941c8ed6970a4943f4bd64155d2b0",
+    "mtime": 1793364788.0182467,
+    "seen": 1793365266.7714007,
+    "ast_hash": "fb00e2705006314ea86d2658b7d5e075",
     "semantic_hash": ""
   },
   "packages/contracts/src/document.ts": {
@@ -2094,9 +2094,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/websocket/collab.server.ts": {
-    "mtime": 1793315176.2880836,
-    "seen": 1793315702.3403506,
-    "ast_hash": "ae8aaf8d73f4cf7f6575bc2e23a9febc",
+    "mtime": 1793364809.6823227,
+    "seen": 1793365266.7714007,
+    "ast_hash": "cb77d3d8dde080850ec18a10a0f3fcda",
     "semantic_hash": ""
   },
   "apps/api/tests/websocket-transport.test.ts": {
@@ -2106,27 +2106,27 @@
     "semantic_hash": ""
   },
   "apps/api/src/websocket/crdt.service.ts": {
-    "mtime": 1792925864.9096746,
-    "seen": 1792926302.8536105,
-    "ast_hash": "2ce5cfb627c5771b7a40d6f4978ceec0",
+    "mtime": 1793364128.5475109,
+    "seen": 1793364576.5244484,
+    "ast_hash": "f972f9df2eb2231ec7f421c707659cc3",
     "semantic_hash": ""
   },
   "apps/api/tests/crdt-collaboration.test.ts": {
-    "mtime": 1793020611.9420085,
-    "seen": 1793021634.2536337,
-    "ast_hash": "9c2850e9e0bd02e3705bdc9e56dd78f8",
+    "mtime": 1793364877.874157,
+    "seen": 1793365266.7714007,
+    "ast_hash": "7219677bda655cfb5bf9b6ccb1742431",
     "semantic_hash": ""
   },
   "apps/web/src/features/collaboration/hooks/useCollaborationSync.ts": {
-    "mtime": 1793315486.6540792,
-    "seen": 1793315702.3403506,
-    "ast_hash": "8388e6bd53801d143969ce43568632ed",
+    "mtime": 1793359147.574782,
+    "seen": 1793364576.5254517,
+    "ast_hash": "c8901cd42003b11edbfcc30288ce2ffb",
     "semantic_hash": ""
   },
   "apps/web/src/features/collaboration/services/collab.client.ts": {
-    "mtime": 1793315494.7701764,
-    "seen": 1793315702.3403506,
-    "ast_hash": "87b388f298f01576d1a3ab44320d3639",
+    "mtime": 1793364862.546019,
+    "seen": 1793365266.7714007,
+    "ast_hash": "4a34014c502dbb64672775f4401b1a8c",
     "semantic_hash": ""
   },
   "apps/web/src/features/collaboration/utils/yjs-sync.ts": {

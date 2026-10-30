@@ -61,6 +61,12 @@ export class CollabClient {
   private pendingCursor: { x: number; y: number } | null = null;
   private pendingSelectedNodeIds: string[] = [];
   private queuedMessages: CollabClientMessage[] = [];
+  private heartbeatPingTimer: NodeJS.Timeout | null = null;
+  private heartbeatWatchdogTimer: NodeJS.Timeout | null = null;
+  private serverSupportsAppPing = true;
+  private lastServerActivityTimestamp = 0;
+  private readonly PING_INTERVAL_MS = 12000;
+  private readonly DEAD_TIMEOUT_MS = 20000;
 
   constructor(options: CollabClientOptions) {
     this.options = options;
@@ -113,7 +119,10 @@ export class CollabClient {
 
     this.ws.onopen = () => {
       this.reconnectAttempts = 0;
+      this.serverSupportsAppPing = true;
+      this.lastServerActivityTimestamp = Date.now();
       this.setStatus('connected');
+      this.startHeartbeat();
       this.flushQueue();
     };
 
@@ -122,10 +131,14 @@ export class CollabClient {
     };
 
     this.ws.onerror = () => {
-      this.setStatus('error');
+      // If we already have a reconnect cycle or are disconnected, avoid flashing "error" status prematurely
+      if (this.reconnectAttempts >= 3) {
+        this.setStatus('error');
+      }
     };
 
     this.ws.onclose = (event: CloseEvent) => {
+      this.stopHeartbeat();
       this.ws = null;
       if (event.code === 4403 || event.code === 4401 || event.code === 4404 || event.code === 1008) {
         // Access revoked, diagram not found, or authentication expired - do not reconnect
@@ -145,22 +158,21 @@ export class CollabClient {
 
   private scheduleReconnect(): void {
     if (!this.shouldReconnect) return;
-    if (this.reconnectAttempts >= 5) {
-      this.shouldReconnect = false;
+    if (this.reconnectAttempts >= 4) {
       this.setStatus('error');
-      return;
+    } else {
+      this.setStatus('reconnecting');
     }
-    this.setStatus('reconnecting');
 
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
     }
 
     const backoff = Math.min(
-      this.baseDelayMs * Math.pow(1.5, this.reconnectAttempts),
-      this.maxDelayMs
+      this.baseDelayMs * Math.pow(1.5, Math.min(this.reconnectAttempts, 6)),
+      4000
     );
-    const jitter = Math.random() * 400;
+    const jitter = Math.random() * 300;
     const delay = backoff + jitter;
 
     this.reconnectAttempts++;
@@ -169,12 +181,35 @@ export class CollabClient {
     }, delay);
   }
 
+  reconnect(): void {
+    this.shouldReconnect = true;
+    this.reconnectAttempts = 0;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.ws) {
+      try {
+        this.ws.close();
+      } catch {
+        // Safe ignore
+      }
+      this.ws = null;
+    }
+    this.setStatus('connecting');
+    void this.connect();
+  }
+
   private handleServerMessage(rawData: unknown): void {
     if (typeof rawData !== 'string') return;
+    this.lastServerActivityTimestamp = Date.now();
     let message: CollabServerMessage;
     try {
       message = JSON.parse(rawData);
     } catch {
+      return;
+    }
+    if (message.type === 'pong') {
       return;
     }
 
@@ -261,6 +296,14 @@ export class CollabClient {
       case 'error': {
         const code = (message.payload?.code as string) || 'UNKNOWN_ERROR';
         const msg = (message.payload?.message as string) || 'Collaboration error occurred';
+        if (code === 'INVALID_MESSAGE_SCHEMA' && typeof msg === 'string' && msg.includes('ping')) {
+          this.serverSupportsAppPing = false;
+          if (this.heartbeatPingTimer) {
+            clearInterval(this.heartbeatPingTimer);
+            this.heartbeatPingTimer = null;
+          }
+          return;
+        }
         this.options.onError?.({ code, message: msg });
         break;
       }
@@ -352,7 +395,56 @@ export class CollabClient {
     }, 40);
   }
 
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    this.lastServerActivityTimestamp = Date.now();
+
+    // Send application-layer ping periodically
+    this.heartbeatPingTimer = setInterval(() => {
+      if (!this.serverSupportsAppPing) return;
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.send({
+          type: 'ping',
+          diagramId: this.options.diagramId,
+          payload: { timestamp: Date.now() },
+        });
+      }
+    }, this.PING_INTERVAL_MS);
+
+    // Watchdog: detect dead connection / half-open socket if no server activity
+    this.heartbeatWatchdogTimer = setInterval(() => {
+      if (this.status !== 'connected') return;
+      const elapsed = Date.now() - this.lastServerActivityTimestamp;
+      if (elapsed > this.DEAD_TIMEOUT_MS) {
+        console.warn(`[CollabClient] Heartbeat dead connection detected (${elapsed}ms without server activity). Reconnecting...`);
+        this.stopHeartbeat();
+        if (this.ws) {
+          try {
+            this.ws.close();
+          } catch {
+            // Safe ignore
+          }
+          this.ws = null;
+        }
+        this.setStatus('reconnecting');
+        this.scheduleReconnect();
+      }
+    }, 4000);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatPingTimer) {
+      clearInterval(this.heartbeatPingTimer);
+      this.heartbeatPingTimer = null;
+    }
+    if (this.heartbeatWatchdogTimer) {
+      clearInterval(this.heartbeatWatchdogTimer);
+      this.heartbeatWatchdogTimer = null;
+    }
+  }
+
   disconnect(): void {
+    this.stopHeartbeat();
     this.shouldReconnect = false;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);

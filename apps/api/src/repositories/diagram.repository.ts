@@ -26,8 +26,15 @@ export const touchDiagramDoc = async (id: string): Promise<IDiagram | null> => {
   return await DiagramModel.findByIdAndUpdate(id, { $set: { updatedAt: new Date() } }, { new: true });
 };
 
-export const createDiagramSnapshotDoc = async (diagramId: string, state: Project, version = 1): Promise<IDiagramSnapshot> => {
-  return await DiagramSnapshotModel.create({ diagramId, state, version });
+export const createDiagramSnapshotDoc = async (
+  diagramId: string,
+  state: Project,
+  version = 1,
+  crdtState?: Buffer
+): Promise<IDiagramSnapshot> => {
+  const payload: Record<string, unknown> = { diagramId, state, version };
+  if (crdtState) payload.crdtState = crdtState;
+  return await DiagramSnapshotModel.create(payload);
 };
 
 export const findDiagramSnapshotDoc = async (diagramId: string): Promise<IDiagramSnapshot | null> => {
@@ -45,16 +52,20 @@ export interface SaveSnapshotDocResult {
 export const saveDiagramSnapshotDoc = async (
   diagramId: string,
   state: Project,
-  clientVersion?: number
+  clientVersion?: number,
+  crdtState?: Buffer
 ): Promise<SaveSnapshotDocResult> => {
   const existing = await DiagramSnapshotModel.findOne({ diagramId });
 
   if (!existing) {
-    const created = await DiagramSnapshotModel.create({
+    const payload: Record<string, unknown> = {
       diagramId,
       state,
       version: 1,
-    });
+    };
+    if (crdtState) payload.crdtState = crdtState;
+
+    const created = await DiagramSnapshotModel.create(payload);
     await touchDiagramDoc(diagramId);
     return { success: true, snapshot: created };
   }
@@ -69,9 +80,18 @@ export const saveDiagramSnapshotDoc = async (
   }
 
   const nextVersion = existing.version + 1;
+  const setPayload: Record<string, unknown> = {
+    state,
+    version: nextVersion,
+    updatedAt: new Date(),
+  };
+  if (crdtState) {
+    setPayload.crdtState = crdtState;
+  }
+
   const updated = await DiagramSnapshotModel.findOneAndUpdate(
     { diagramId, version: existing.version },
-    { $set: { state, version: nextVersion, updatedAt: new Date() } },
+    { $set: setPayload },
     { new: true }
   );
 

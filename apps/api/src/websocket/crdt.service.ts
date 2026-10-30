@@ -126,7 +126,10 @@ export class CrdtManager {
 
     try {
       const snapshotDoc = await findDiagramSnapshotDoc(diagramId);
-      if (snapshotDoc && snapshotDoc.state) {
+      if (snapshotDoc?.crdtState && snapshotDoc.crdtState.length > 0) {
+        Y.applyUpdate(doc, new Uint8Array(snapshotDoc.crdtState));
+        version = snapshotDoc.version || 1;
+      } else if (snapshotDoc && snapshotDoc.state) {
         initYDocFromProject(snapshotDoc.state, doc);
         version = snapshotDoc.version || 1;
       } else {
@@ -249,10 +252,12 @@ export class CrdtManager {
         };
       }
 
+      const crdtBinary = Buffer.from(Y.encodeStateAsUpdate(session.doc));
       const result = await saveDiagramSnapshotDoc(
         diagramId,
         parseResult.data,
-        session.version > 0 ? session.version : undefined
+        session.version > 0 ? session.version : undefined,
+        crdtBinary
       );
 
       if (result.success && result.snapshot) {

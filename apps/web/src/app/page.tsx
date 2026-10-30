@@ -52,6 +52,7 @@ export default function LandingPage() {
 
   return (
     <div
+      suppressHydrationWarning
       onClickCapture={handleLandingClickCapture}
       className="lp-root min-h-screen bg-[#faf8f5] text-neutral-900 flex flex-col font-sans overflow-x-hidden w-full"
     >

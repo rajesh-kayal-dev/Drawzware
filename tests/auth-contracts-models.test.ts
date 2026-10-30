@@ -215,7 +215,7 @@ describe('Phase 1 & 2: Auth Models, Contracts & Email Service', () => {
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'dan@example.com',
-          subject: 'Verify your Drawzware email',
+          subject: 'Verify your DrawzWare account',
         })
       );
     });

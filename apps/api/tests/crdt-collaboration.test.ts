@@ -156,14 +156,9 @@ describe('Phase 3: Yjs CRDT Collaboration & Safe MongoDB Snapshot Persistence', 
       });
 
       vi.spyOn(diagramRepo, 'saveDiagramSnapshotDoc').mockImplementation(
-        async (diagramId: string, state: Project, clientVersion?: number) => {
+        async (diagramId: string, state: Project, clientVersion?: number, crdtState?: Buffer) => {
           if (!savedSnapshot) {
-            savedSnapshot = {
-              diagramId,
-              state,
-              version: 1,
-              updatedAt: new Date(),
-            };
+            savedSnapshot = { diagramId, state, version: 1, crdtState, updatedAt: new Date() };
             return { success: true, snapshot: savedSnapshot };
           }
 
@@ -348,14 +343,9 @@ describe('Phase 3: Yjs CRDT Collaboration & Safe MongoDB Snapshot Persistence', 
       });
 
       vi.spyOn(diagramRepo, 'saveDiagramSnapshotDoc').mockImplementation(
-        async (diagramId: string, state: Project, clientVersion?: number) => {
+        async (diagramId: string, state: Project, clientVersion?: number, crdtState?: Buffer) => {
           if (!persistedSnapshot) {
-            persistedSnapshot = {
-              diagramId,
-              state,
-              version: 1,
-              updatedAt: new Date(),
-            };
+            persistedSnapshot = { diagramId, state, version: 1, crdtState, updatedAt: new Date() };
             return { success: true, snapshot: persistedSnapshot };
           }
           const nextVersion = (clientVersion ?? persistedSnapshot.version) + 1;
@@ -363,6 +353,7 @@ describe('Phase 3: Yjs CRDT Collaboration & Safe MongoDB Snapshot Persistence', 
             diagramId,
             state,
             version: nextVersion,
+            crdtState: crdtState ?? persistedSnapshot.crdtState,
             updatedAt: new Date(),
           };
           return { success: true, snapshot: persistedSnapshot };
@@ -551,6 +542,159 @@ describe('Phase 3: Yjs CRDT Collaboration & Safe MongoDB Snapshot Persistence', 
       expect(errorMsg.payload?.code).toBe('INSUFFICIENT_PERMISSIONS');
 
       clientViewer.close();
+    });
+
+    it('responds to application-layer ping with pong to maintain connection health', async () => {
+      const client = createClientWs(`token=${tokenOwner}&diagramId=${sampleDiagramId}`);
+      await client.waitForMessage(); // room_joined
+      await client.waitForMessage(); // presence_batch
+
+      const pingTimestamp = Date.now();
+      client.send({
+        type: 'ping',
+        diagramId: sampleDiagramId,
+        payload: { timestamp: pingTimestamp },
+      });
+
+      const pongReply = await client.waitForMessage();
+      expect(pongReply.type).toBe('pong');
+      expect(pongReply.diagramId).toBe(sampleDiagramId);
+      expect(pongReply.payload?.timestamp).toBeDefined();
+
+      client.close();
+    });
+
+    it('persists crdtState binary alongside JSON state and restores with exact causal clocks', async () => {
+      const crdtManager = new CrdtManager({ debounceMs: 20 });
+      const testDiagId = 'diag-binary-test-01';
+
+      // 1. Initial hydration
+      const session1 = await crdtManager.getOrCreateSession(testDiagId);
+      const nodes1 = session1.doc.getMap('nodes');
+      nodes1.set('node-redis', {
+        id: 'node-redis',
+        type: 'custom',
+        position: { x: 50, y: 50 },
+        data: { label: 'Redis Cluster' },
+      });
+
+      // 2. Persist session
+      session1.isDirty = true;
+      const persistRes = await crdtManager.persistSession(testDiagId);
+      expect(persistRes.success).toBe(true);
+
+      expect(persistedSnapshot).not.toBeNull();
+      expect(persistedSnapshot.crdtState).toBeDefined();
+      expect(Buffer.isBuffer(persistedSnapshot.crdtState)).toBe(true);
+      expect(persistedSnapshot.crdtState.length).toBeGreaterThan(0);
+
+      // 3. Close & destroy session simulating server restart
+      await crdtManager.flushAndCloseSession(testDiagId);
+      expect(crdtManager.getSession(testDiagId)).toBeUndefined();
+
+      // 4. Hydrate in a new manager
+      const newManager = new CrdtManager({ debounceMs: 20 });
+      const session2 = await newManager.getOrCreateSession(testDiagId);
+      const nodes2 = session2.doc.getMap('nodes');
+      expect(nodes2.has('node-redis')).toBe(true);
+
+      const redisNode = nodes2.get('node-redis') as any;
+      expect(redisNode.data.label).toBe('Redis Cluster');
+
+      const sv = Y.encodeStateVector(session2.doc);
+      expect(sv.length).toBeGreaterThan(0);
+    });
+
+    it('safely migrates legacy JSON snapshots that lack crdtState and saves binary update on first edit', async () => {
+      const crdtManager = new CrdtManager({ debounceMs: 20 });
+      const legacyDiagId = 'legacy-diag-without-binary';
+
+      vi.spyOn(diagramRepo, 'findDiagramSnapshotDoc').mockImplementation(async (diagramId: string) => {
+        if (diagramId === legacyDiagId) {
+          if (persistedSnapshot && persistedSnapshot.diagramId === legacyDiagId) return persistedSnapshot;
+          return { diagramId: legacyDiagId, state: sampleProject, version: 1 } as any;
+        }
+        return null;
+      });
+
+      const session = await crdtManager.getOrCreateSession(legacyDiagId);
+      expect(session.doc.getMap('nodes').size).toBe(2);
+
+      session.doc.getMap('nodes').set('migrated-node', {
+        id: 'migrated-node',
+        type: 'custom',
+        position: { x: 100, y: 100 },
+        data: { label: 'Migrated Node' },
+      });
+      session.isDirty = true;
+      const persistRes = await crdtManager.persistSession(legacyDiagId);
+      expect(persistRes.success).toBe(true);
+
+      expect(persistedSnapshot.crdtState).toBeDefined();
+      expect(Buffer.isBuffer(persistedSnapshot.crdtState)).toBe(true);
+      expect(persistedSnapshot.state.nodes.some((n: any) => n.id === 'migrated-node')).toBe(true);
+
+      // spy auto-restored
+    });
+
+    it('reconciles offline edits after server restart without node duplication or property loss', async () => {
+      const crdtManager = new CrdtManager({ debounceMs: 20 });
+      const syncDiagId = 'diag-offline-reconcile-01';
+
+      // 1. Establish baseline session and persist
+      const session1 = await crdtManager.getOrCreateSession(syncDiagId);
+      session1.doc.getMap('nodes').set('node-gateway', {
+        id: 'node-gateway',
+        type: 'custom',
+        position: { x: 100, y: 100 },
+        data: { label: 'Gateway' },
+      });
+      session1.isDirty = true;
+      await crdtManager.persistSession(syncDiagId);
+
+      // 2. Client has this document locally
+      const clientDoc = new Y.Doc();
+      Y.applyUpdate(clientDoc, Buffer.from(persistedSnapshot.crdtState));
+
+      // 3. Server restarts and session is cleared
+      await crdtManager.flushAndCloseSession(syncDiagId);
+
+      // 4. Client makes OFFLINE edits
+      clientDoc.getMap('nodes').set('node-offline', {
+        id: 'node-offline',
+        type: 'custom',
+        position: { x: 200, y: 200 },
+        data: { label: 'Created Offline' },
+      });
+
+      // 5. Server starts up fresh and loads from DB
+      const freshManager = new CrdtManager({ debounceMs: 20 });
+      const freshServerSession = await freshManager.getOrCreateSession(syncDiagId);
+
+      // 6. Client reconnects: exchanges sync steps
+      const clientVector = Y.encodeStateVector(clientDoc);
+      const serverUpdateForClient = await freshManager.getSyncStep2(syncDiagId, uint8ArrayToBase64(clientVector));
+      Y.applyUpdate(clientDoc, base64ToUint8Array(serverUpdateForClient));
+
+      const serverVector = base64ToUint8Array(await freshManager.getSyncStep1(syncDiagId));
+      const clientUpdateForServer = Y.encodeStateAsUpdate(clientDoc, serverVector);
+      if (clientUpdateForServer.byteLength > 2) {
+        await freshManager.applyClientUpdate(syncDiagId, uint8ArrayToBase64(clientUpdateForServer));
+      }
+
+      // 7. Verify both client and server converged with both nodes
+      const finalServerNodes = freshServerSession.doc.getMap('nodes');
+      const finalClientNodes = clientDoc.getMap('nodes');
+
+      expect(finalServerNodes.size).toBe(2);
+      expect(finalClientNodes.size).toBe(2);
+      expect(finalServerNodes.has('node-gateway')).toBe(true);
+      expect(finalServerNodes.has('node-offline')).toBe(true);
+      expect(finalClientNodes.has('node-gateway')).toBe(true);
+      expect(finalClientNodes.has('node-offline')).toBe(true);
+
+      const offlineNode = finalServerNodes.get('node-offline') as any;
+      expect(offlineNode.data.label).toBe('Created Offline');
     });
   });
 });

@@ -4,6 +4,7 @@ import { Project } from '@drawzware/contracts';
 export interface IDiagramSnapshot extends Document {
   diagramId: string;
   state: Project;
+  crdtState?: Buffer;
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -20,6 +21,10 @@ const diagramSnapshotSchema = new mongoose.Schema(
     state: {
       type: mongoose.Schema.Types.Mixed,
       required: true,
+    },
+    crdtState: {
+      type: Buffer,
+      required: false,
     },
     version: {
       type: Number,

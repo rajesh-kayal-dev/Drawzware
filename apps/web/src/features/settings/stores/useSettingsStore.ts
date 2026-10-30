@@ -44,7 +44,19 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'sdc.settings',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          return window.localStorage;
+        }
+        if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
+          return globalThis.localStorage;
+        }
+        return {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+        };
+      }),
       // Rehydrated manually in Providers so server and first client render match.
       skipHydration: true,
       partialize: ({ theme, canvasBackground, snap, minimap, validation, animatedEdges }) => ({

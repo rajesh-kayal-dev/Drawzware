@@ -40,8 +40,8 @@ export const createDiagramHandler = async (req: Request, res: Response) => {
   const body = req.body as CreateDiagramInput;
   try {
     const member = await findWorkspaceMember(req.params.workspaceId, user.id);
-    if (!member || member.role !== 'owner') {
-      return res.status(403).json({ error: 'FORBIDDEN', message: 'Only workspace owners can create diagrams in this workspace.' });
+    if (!member || !hasMinimumRole(member.role, 'editor')) {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'You must be an editor or owner to create diagrams in this workspace.' });
     }
     const diagram = await createDiagram(req.params.workspaceId, body.title, body.diagramType, user.id);
     return res.status(201).json(diagram);
@@ -55,8 +55,8 @@ export const importDiagramHandler = async (req: Request, res: Response) => {
   const body = req.body as ImportDiagramInput;
   try {
     const member = await findWorkspaceMember(req.params.workspaceId, user.id);
-    if (!member || member.role !== 'owner') {
-      return res.status(403).json({ error: 'FORBIDDEN', message: 'Only workspace owners can import diagrams in this workspace.' });
+    if (!member || !hasMinimumRole(member.role, 'editor')) {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'You must be an editor or owner to import diagrams in this workspace.' });
     }
     const title = body.title || body.project.name || 'Imported Diagram';
     const diagramType = body.project.diagramType || 'architecture';
@@ -80,7 +80,7 @@ export const getDiagramHandler = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
     }
 
-    if (member.role !== 'owner') {
+    if (member.role !== 'owner' && !hasMinimumRole(member.role, 'editor')) {
       const allowed = member.allowedDiagramIds;
       if (allowed && allowed.length > 0 && !allowed.includes(req.params.diagramId)) {
         return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
@@ -108,7 +108,7 @@ export const updateDiagramHandler = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this workspace.' });
     }
 
-    if (member.role !== 'owner') {
+    if (member.role !== 'owner' && !hasMinimumRole(member.role, 'editor')) {
       const allowed = member.allowedDiagramIds;
       if (allowed && allowed.length > 0 && !allowed.includes(req.params.diagramId)) {
         return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
@@ -146,7 +146,7 @@ export const getDiagramSnapshotHandler = async (req: Request, res: Response) => 
       return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
     }
 
-    if (member.role !== 'owner') {
+    if (member.role !== 'owner' && !hasMinimumRole(member.role, 'editor')) {
       const allowed = member.allowedDiagramIds;
       if (allowed && allowed.length > 0 && !allowed.includes(req.params.diagramId)) {
         return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
@@ -178,7 +178,7 @@ export const saveDiagramSnapshotHandler = async (req: Request, res: Response) =>
       return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });
     }
 
-    if (member.role !== 'owner') {
+    if (member.role !== 'owner' && !hasMinimumRole(member.role, 'editor')) {
       const allowed = member.allowedDiagramIds;
       if (allowed && allowed.length > 0 && !allowed.includes(req.params.diagramId)) {
         return res.status(403).json({ error: 'FORBIDDEN', message: 'You do not have access to this diagram.' });

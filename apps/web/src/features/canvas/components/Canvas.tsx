@@ -202,12 +202,20 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const currentProject = projects.find((p) => p.id === projectId || p.cloudDiagramId === projectId);
   const activeDiagramId = useCollaborationStore((s) => s.activeDiagramId);
 
+  // Check if projectId is a cloud diagram UUID or ObjectId so refresh never drops cloud identity
+  const isCloudDiagramId =
+    typeof projectId === 'string' &&
+    (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId) ||
+      /^[0-9a-f]{24}$/i.test(projectId));
+
   // Only link to cloud collaboration if project is explicitly linked to a cloud diagram
   const resolvedCloudDiagramId =
     currentProject?.cloudDiagramId ||
     (activeDiagramId && (activeDiagramId === projectId || currentProject?.cloudDiagramId === activeDiagramId)
       ? activeDiagramId
-      : null);
+      : isCloudDiagramId
+        ? projectId
+        : null);
 
   const { isReadOnly, broadcastCursor } = useCollaborationSync({
     projectId,

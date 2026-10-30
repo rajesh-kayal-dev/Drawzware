@@ -106,6 +106,7 @@ describe('Phase 3: Auth Endpoints & Session Management', () => {
         return h === tokenHash ? (mockUser as any) : null;
       });
       const markSpy = vi.spyOn(userRepo, 'markEmailAsVerified').mockResolvedValue({} as any);
+      vi.spyOn(sessionRepo, 'createSessionDoc').mockResolvedValue({} as any);
 
       const response = await verifyEmail(rawToken);
       expect(response.success).toBe(true);

@@ -36,12 +36,12 @@ export function LiveCollaboratorsOverlay() {
 
   // Periodically check for idle cursors to gracefully fade out inactive pointers
   useEffect(() => {
-    if (!isLive || !showLiveCursors || liveCursors.length === 0) return;
+    if (!isLive || (!showLiveCursors && !activeEditorName)) return;
     const interval = setInterval(() => {
       setNow(Date.now());
     }, 1000);
     return () => clearInterval(interval);
-  }, [isLive, showLiveCursors, liveCursors.length]);
+  }, [isLive, showLiveCursors, liveCursors.length, activeEditorName]);
 
   if (!isLive) return null;
 
@@ -51,10 +51,12 @@ export function LiveCollaboratorsOverlay() {
       {showLiveCursors && (
         <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden select-none">
           {liveCursors.length > 0 ? (
-            liveCursors.map((cursor) => {
+            liveCursors
+              .filter((cursor) => !cursor.lastActiveAt || now === 0 || now - cursor.lastActiveAt < 10000)
+              .map((cursor) => {
               const screenX = cursor.x * viewport.zoom + viewport.x;
               const screenY = cursor.y * viewport.zoom + viewport.y;
-              const isIdle = cursor.lastActiveAt && now > 0 ? now - cursor.lastActiveAt > 8000 : false;
+              const isIdle = cursor.lastActiveAt && now > 0 ? now - cursor.lastActiveAt > 4000 : false;
 
               return (
                 <div
@@ -86,7 +88,12 @@ export function LiveCollaboratorsOverlay() {
       )}
 
       {/* 2. Floating Editing Status Indicator */}
-      {activeEditorName && (
+      {(() => {
+        if (!activeEditorName) return null;
+        const matchingCursor = liveCursors.find((c) => c.name === activeEditorName);
+        const isEditorActive = matchingCursor?.lastActiveAt && now > 0 ? now - matchingCursor.lastActiveAt < 4000 : false;
+        if (!isEditorActive) return null;
+        return (
         <div className="pointer-events-auto fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full border border-line bg-card/90 px-3.5 py-1.5 text-[12px] font-medium text-ink shadow-[var(--shadow-lg)] backdrop-blur-md animate-fade-in">
           <span className="relative flex size-2">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent opacity-75" />
@@ -96,7 +103,8 @@ export function LiveCollaboratorsOverlay() {
             <strong className="font-semibold text-ink">{activeEditorName}</strong> is editing…
           </span>
         </div>
-      )}
+        );
+      })()}
     </>
   );
 }

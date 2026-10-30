@@ -73,6 +73,7 @@ interface CollaborationState {
     canvasUrl: string;
     diagramId?: string;
   } | null;
+  reconnectHandler: (() => void) | null;
 
   // Actions
   signIn: (
@@ -93,6 +94,7 @@ interface CollaborationState {
   loadWorkspaces: () => Promise<Array<Workspace & { role?: string }>>;
   publishCurrentCanvas: (workspaceId?: string) => Promise<{ success: boolean; diagramId?: string; error?: string }>;
   retryConnection: () => void;
+  setReconnectHandler: (fn: (() => void) | null) => void;
   retryLastInvitation: () => Promise<void>;
   setLiveCursors: (cursors: LiveCursor[]) => void;
   setUndoManager: (um: Y.UndoManager | null) => void;
@@ -160,6 +162,7 @@ export const useCollaborationStore = create<CollaborationState>((set, get) => ({
   savedToCloudConnectionFailed: false,
   invitationError: null,
   lastFailedInvitationParams: null,
+  reconnectHandler: null,
 
   signIn: (
     userOrEmail = 'user@example.com',
@@ -520,7 +523,15 @@ export const useCollaborationStore = create<CollaborationState>((set, get) => ({
   },
 
   retryConnection: () => {
-    set({ savedToCloudConnectionFailed: false, isLive: true });
+    set({ savedToCloudConnectionFailed: false, connectionStatus: 'connecting', isLive: true });
+    const fn = get().reconnectHandler;
+    if (typeof fn === 'function') {
+      fn();
+    }
+  },
+
+  setReconnectHandler: (fn) => {
+    set({ reconnectHandler: fn });
   },
 
   publishCurrentCanvas: async (targetWorkspaceId?: string) => {

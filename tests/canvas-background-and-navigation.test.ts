@@ -16,12 +16,11 @@ const mockLocalStorage = {
   }),
 };
 
-if (typeof globalThis.localStorage === 'undefined') {
-  Object.defineProperty(globalThis, 'localStorage', {
-    value: mockLocalStorage,
-    writable: true,
-  });
-}
+Object.defineProperty(globalThis, 'localStorage', {
+  value: mockLocalStorage,
+  writable: true,
+  configurable: true,
+});
 
 describe('Canvas Background & Touchpad Navigation Options', () => {
   beforeEach(() => {

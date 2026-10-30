@@ -110,7 +110,7 @@ describe('Phase 5: Frontend UI & Client Integration', () => {
       expect(updated.isLive).toBe(false); // Cloud collaboration not enabled
     });
 
-    it('signing in a verified user enables live collaboration (isLive=true)', () => {
+    it('signing in a verified user records profile and preserves offline-first isLive invariant', () => {
       const { signIn } = useCollaborationStore.getState();
 
       signIn({
@@ -123,11 +123,12 @@ describe('Phase 5: Frontend UI & Client Integration', () => {
       const updated = useCollaborationStore.getState();
       expect(updated.currentUser?.email).toBe('architect@example.com');
       expect(updated.currentUser?.isEmailVerified).toBe(true);
-      expect(updated.isLive).toBe(true);
+      // Invariant: signing in alone does not force cloud collaboration until user links a cloud diagram
+      expect(updated.isLive).toBe(false);
     });
 
-    it('signOut resets cloud collaboration and returns to offline personal mode', () => {
-      const { signIn, signOut } = useCollaborationStore.getState();
+    it('signOut resets cloud collaboration and returns to offline personal mode', async () => {
+      const { signIn, signOut, setLive } = useCollaborationStore.getState();
 
       signIn({
         id: 'user-verified',
@@ -136,9 +137,10 @@ describe('Phase 5: Frontend UI & Client Integration', () => {
         isEmailVerified: true,
       });
 
+      setLive(true);
       expect(useCollaborationStore.getState().isLive).toBe(true);
 
-      signOut();
+      await signOut();
 
       const afterLogout = useCollaborationStore.getState();
       expect(afterLogout.currentUser).toBeNull();

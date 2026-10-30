@@ -36,13 +36,13 @@ export function useCollaborationSync({
   const isLive = useCollaborationStore((s) => s.isLive);
   const myRole = useCollaborationStore((s) => s.myRole);
   const isReadOnly = useCollaborationStore((s) => s.isReadOnly);
-  const activeDiagramId = useCollaborationStore((s) => s.activeDiagramId);
   const currentUser = useCollaborationStore((s) => s.currentUser);
   const setMyRole = useCollaborationStore((s) => s.setMyRole);
   const setConnectionStatus = useCollaborationStore((s) => s.setConnectionStatus);
   const setUndoManager = useCollaborationStore((s) => s.setUndoManager);
   const updateFromPresence = useCollaborationStore((s) => s.updateFromPresence);
   const removeUserPresence = useCollaborationStore((s) => s.removeUserPresence);
+  const setReconnectHandler = useCollaborationStore((s) => s.setReconnectHandler);
 
   const clientRef = useRef<CollabClient | null>(null);
   const docRef = useRef<Y.Doc | null>(null);
@@ -251,9 +251,26 @@ export function useCollaborationSync({
     });
 
     clientRef.current = client;
+    setReconnectHandler(() => clientRef.current?.reconnect());
     client.connect();
 
+    // Auto-reconnect when browser tab regains network or focus
+    const onOnlineOrFocus = () => {
+      if (clientRef.current && (clientRef.current.getStatus() === 'error' || clientRef.current.getStatus() === 'disconnected')) {
+        clientRef.current.reconnect();
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', onOnlineOrFocus);
+      window.addEventListener('focus', onOnlineOrFocus);
+    }
+
     return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', onOnlineOrFocus);
+        window.removeEventListener('focus', onOnlineOrFocus);
+      }
+      setReconnectHandler(null);
       if (dragSyncTimer) {
         clearTimeout(dragSyncTimer);
         dragSyncTimer = null;
@@ -276,6 +293,7 @@ export function useCollaborationSync({
     currentUser?.isEmailVerified,
     setConnectionStatus,
     setUndoManager,
+    setReconnectHandler,
     updateFromPresence,
     removeUserPresence,
     setMyRole,
