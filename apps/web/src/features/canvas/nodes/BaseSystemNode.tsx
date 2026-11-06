@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react';
-import { Link2, Lock, TriangleAlert } from 'lucide-react';
+import { Lock, TriangleAlert } from 'lucide-react';
 import { NODE_REGISTRY } from './node-registry';
 import { IconChip } from '@/shared/components/ui/panel';
 import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
@@ -24,7 +24,8 @@ export const NODE_ENV_META: Record<NodeEnvironment, { short: string; label: stri
   development: { short: 'dev', label: 'Dev' },
 };
 
-const NODE_WIDTH = 200;
+/** Default width for a new system node — compact vertical card to match sidebar palette cards. */
+const NODE_WIDTH = 92;
 /** Duplicate handles sharing a spot with a visible one: invisible but connectable. */
 const HIDDEN = '!opacity-0 pointer-events-none';
 
@@ -38,31 +39,33 @@ function BaseSystemNodeComponent({ id, data, selected, draggable, width, height 
   const pushHistory = useCanvasStore((s) => s.pushHistory);
   const hasWarning = useHasValidationWarning(id);
 
-  const techStack = data.techStack ?? [];
-  const subtitle = techStack.length > 0 ? techStack.join(' · ') : config.label;
-  const linkCount = data.links?.length ?? 0;
   const locked = draggable === false && !presenting;
 
-  const isSmall = height !== undefined && height < 58;
-  const isCompact = (width !== undefined && width < 140) || (height !== undefined && height < 44);
+  // When the user manually resizes to a wide node (≥140px), switch to horizontal layout for legibility.
+  const isWide = width !== undefined && width >= 140;
+  // Ultra-compact: very small manually-resized node
+  const isUltraCompact = (width !== undefined && width < 60) || (height !== undefined && height < 50);
 
   return (
     <div
       className={cn(
-        'relative rounded-[12px] border bg-paper text-ink transition-[border-color,box-shadow] duration-[120ms] ease-out box-border overflow-hidden flex flex-col justify-center',
+        'relative rounded-[12px] border bg-paper text-ink transition-[border-color,box-shadow] duration-[120ms] ease-out box-border overflow-hidden',
+        // Vertical card layout by default; horizontal when user resizes wide
+        isWide
+          ? 'flex flex-row items-center gap-2 px-2.5 py-2'
+          : 'flex flex-col items-center justify-center text-center px-2 pt-2.5 pb-2',
         selected
           ? 'border-accent shadow-[0_0_0_3px_var(--accent-soft),var(--shadow)]'
           : 'border-line shadow-[var(--shadow)] hover:border-ink-3 hover:shadow-[var(--shadow-lg)]',
-        isCompact ? 'p-1.5' : isSmall ? 'p-2' : 'p-3'
       )}
-      // Fixed 200px until resized; after resizing, fill the React Flow wrapper.
-      style={{ width: width ? '100%' : NODE_WIDTH, height: height ? '100%' : undefined }}
+      // Fixed compact width until resized; after resizing, fills the React Flow wrapper.
+      style={{ width: width ? '100%' : NODE_WIDTH, height: height ? '100%' : undefined, minHeight: 76 }}
       onDoubleClick={() => setSelectedNodeId(id)}
     >
       <NodeResizer
         isVisible={!!selected && !presenting}
-        minWidth={80}
-        minHeight={36}
+        minWidth={60}
+        minHeight={50}
         lineStyle={{
           borderColor: '#0ea5e9',
           borderWidth: 1.5,
@@ -95,56 +98,46 @@ function BaseSystemNodeComponent({ id, data, selected, draggable, width, height 
         </span>
       )}
 
-      <div className="flex items-center gap-2">
-        <span className="relative shrink-0">
-          <IconChip color={nodeColor} size={isCompact ? 24 : 32}>
-            {customIcon && hasTechIcon(customIcon) ? (
-              <TechIcon name={customIcon} className={isCompact ? 'size-3.5' : 'size-4'} color={nodeColor} />
-            ) : (
-              <Icon className={isCompact ? 'size-3' : 'size-4'} />
-            )}
-          </IconChip>
-          {data.status && (
-            <span
-              title={NODE_STATUS_META[data.status].label}
-              className={cn(
-                'absolute -top-[3px] -right-[3px] size-2.5 rounded-full border-2 border-paper',
-                NODE_STATUS_META[data.status].dot
-              )}
-            />
+      {/* Icon — centered at top in vertical mode, left-aligned in wide mode */}
+      <span className="relative shrink-0">
+        <IconChip color={nodeColor} size={isUltraCompact ? 22 : 32}>
+          {customIcon && hasTechIcon(customIcon) ? (
+            <TechIcon name={customIcon} className={isUltraCompact ? 'size-3' : 'size-[18px]'} color={nodeColor} />
+          ) : (
+            <Icon className={isUltraCompact ? 'size-3' : 'size-[18px]'} />
           )}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1">
-            <span className={cn('truncate font-semibold', isCompact ? 'text-[12px] leading-[16px]' : 'text-[13.5px] leading-[18px]')}>
-              {data.label || 'Untitled'}
-            </span>
-            {locked && <Lock aria-label="Locked" className="size-3 shrink-0 text-ink-3" />}
-            {data.environment && !isCompact && (
-              <span className="ml-auto shrink-0 rounded-full bg-line-2 px-1.5 font-mono text-[10px] leading-4 text-ink-2">
-                {NODE_ENV_META[data.environment].short}
-              </span>
+        </IconChip>
+        {data.status && (
+          <span
+            title={NODE_STATUS_META[data.status].label}
+            className={cn(
+              'absolute -top-[3px] -right-[3px] size-2.5 rounded-full border-2 border-paper',
+              NODE_STATUS_META[data.status].dot
             )}
-          </div>
-          {!isSmall && <div className="truncate text-[11.5px] leading-[14px] text-ink-3">{subtitle}</div>}
+          />
+        )}
+      </span>
+
+      {/* Label — centered below icon in vertical mode, inline in wide mode */}
+      <div className={cn('min-w-0', isWide ? 'flex-1' : 'mt-1.5 w-full')}>
+        <div className={cn('flex items-center', isWide ? 'gap-1' : 'justify-center gap-0.5')}>
+          <span
+            className={cn(
+              'font-medium leading-tight',
+              isWide ? 'truncate text-[13px]' : 'line-clamp-2 break-words text-[11px] text-center',
+              isUltraCompact && 'text-[10px]'
+            )}
+          >
+            {data.label || 'Untitled'}
+          </span>
+          {locked && <Lock aria-label="Locked" className="size-3 shrink-0 text-ink-3" />}
+          {data.environment && isWide && (
+            <span className="ml-auto shrink-0 rounded-full bg-line-2 px-1.5 font-mono text-[10px] leading-4 text-ink-2">
+              {NODE_ENV_META[data.environment].short}
+            </span>
+          )}
         </div>
       </div>
-
-      {(!height || height >= 76) && data.description && (
-        <p className="mt-2 line-clamp-2 text-[12px] leading-4 text-ink-2">{data.description}</p>
-      )}
-
-      {(!height || height >= 64) && (data.owner || linkCount > 0) && (
-        <div className="mt-2 flex items-center gap-2 text-[11px] leading-[14px] text-ink-3">
-          {data.owner && <span className="min-w-0 truncate">{data.owner}</span>}
-          {linkCount > 0 && (
-            <span className="ml-auto inline-flex shrink-0 items-center gap-0.5 font-mono">
-              <Link2 className="size-3" />
-              {linkCount}
-            </span>
-          )}
-        </div>
-      )}
 
       <Handle type="source" id="bottom-source" position={Position.Bottom} />
       <Handle type="target" id="bottom-target" position={Position.Bottom} className={HIDDEN} />

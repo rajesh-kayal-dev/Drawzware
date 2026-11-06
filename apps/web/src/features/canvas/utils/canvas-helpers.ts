@@ -63,7 +63,7 @@ export function useAddNodeAtCenter() {
         y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
       });
       const offset = (counter.current++ % 8) * 24;
-      const half = kind === 'group' ? { w: 160, h: 100 } : { w: 100, h: 36 };
+      const half = kind === 'group' ? { w: 160, h: 100 } : { w: 46, h: 38 };
       const position = { x: center.x - half.w + offset, y: center.y - half.h + offset };
       const node = kind === 'note' ? createNoteNode(position) : createSystemNode(kind, position);
       addNode(node);
@@ -126,7 +126,7 @@ export function useAddCustomComponentAtCenter() {
         y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
       });
       const offset = (counter.current++ % 8) * 24;
-      const position = { x: center.x - 100 + offset, y: center.y - 36 + offset };
+      const position = { x: center.x - 46 + offset, y: center.y - 38 + offset };
       const node = createSystemNode(item.genericType, position, {
         label: 'name' in item ? item.name : item.label,
         customIcon: item.customIcon,

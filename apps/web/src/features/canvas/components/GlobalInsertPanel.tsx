@@ -175,7 +175,7 @@ export function GlobalInsertPanel({
         });
 
         const offset = (insertCounter.current++ % 8) * 26;
-        const pos = { x: center.x - 100 + offset, y: center.y - 36 + offset };
+        const pos = { x: center.x - 46 + offset, y: center.y - 38 + offset };
 
         let newNode: SystemNode | null = null;
 

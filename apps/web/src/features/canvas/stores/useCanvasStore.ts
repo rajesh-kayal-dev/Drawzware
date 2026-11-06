@@ -29,8 +29,8 @@ export interface PresentationState {
   index: number;
 }
 
-const DEFAULT_NODE_WIDTH = 200;
-const DEFAULT_NODE_HEIGHT = 72;
+const DEFAULT_NODE_WIDTH = 92;
+const DEFAULT_NODE_HEIGHT = 76;
 
 function nodeSize(node: SystemNode) {
   const styleW = typeof node.style?.width === 'number' ? node.style.width : undefined;

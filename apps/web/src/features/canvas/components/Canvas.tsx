@@ -727,7 +727,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
           } else if (item.kind === 'step' && item.stepId) {
             newNode = createStepNode(item.stepId, { x: p.x - 170, y: p.y - 100 });
           } else if (item.kind === 'component' && item.type) {
-            newNode = createSystemNode(item.type as SystemNodeType, { x: p.x - 100, y: p.y - 36 }, {
+            newNode = createSystemNode(item.type as SystemNodeType, { x: p.x - 46, y: p.y - 38 }, {
               ...(item.label ? { label: item.label } : {}),
               ...(item.customIcon ? { customIcon: item.customIcon } : {}),
               ...(item.color ? { color: item.color } : {}),
@@ -888,7 +888,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
       if (!nodeType || !(nodeType in NODE_REGISTRY)) return;
       const p = screenToFlowPosition({ x: event.clientX, y: event.clientY });
       const isGroup = nodeType === 'group';
-      const node = createSystemNode(nodeType, { x: p.x - (isGroup ? 160 : 100), y: p.y - (isGroup ? 100 : 36) });
+      const node = createSystemNode(nodeType, { x: p.x - (isGroup ? 160 : 46), y: p.y - (isGroup ? 100 : 38) });
       pushHistory();
       addNode(node);
     },
