@@ -76,6 +76,8 @@ function ShapeSvg({
     fill: isTransparent ? 'transparent' : fill,
     stroke,
     strokeWidth,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
     strokeDasharray,
     vectorEffect: 'non-scaling-stroke' as const,
     pointerEvents: 'all' as const,
@@ -86,11 +88,8 @@ function ShapeSvg({
     case 'circle':
     case 'ellipse':
       return (
-        <ellipse
-          cx="50%"
-          cy="50%"
-          rx="47%"
-          ry="47%"
+        <path
+          d="M 49.7 3 C 76 2.5 97.4 23.6 97 50.4 C 96.7 76.7 75.9 97.3 49.5 97 C 23.7 96.7 2.6 75.8 3 49.4 C 3.2 23.5 23.8 3.5 49.7 3 Z"
           {...commonProps}
         />
       );
@@ -135,8 +134,6 @@ function ShapeSvg({
           />
           <path
             d={pathD}
-            strokeLinecap="round"
-            strokeLinejoin="round"
             {...commonProps}
             fill="none"
             pointerEvents="stroke"
@@ -199,8 +196,6 @@ function ShapeSvg({
           />
           <path
             d={pathD}
-            strokeLinecap="round"
-            strokeLinejoin="round"
             markerStart={hasStart ? `url(#${markerIdStart})` : undefined}
             markerEnd={hasEnd ? `url(#${markerIdEnd})` : undefined}
             {...commonProps}
@@ -213,8 +208,8 @@ function ShapeSvg({
 
     case 'diamond':
       return (
-        <polygon
-          points="50,2 98,50 50,98 2,50"
+        <path
+          d="M 49.5 2.5 L 97.5 50.6 L 50.6 97.5 L 2.5 49.6 Z"
           {...commonProps}
         />
       );
@@ -324,7 +319,7 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
 
   // Styling properties
   const shapeFill = data?.shapeFill ?? 'transparent';
-  const shapeStroke = data?.shapeStroke ?? 'var(--line-2)';
+  const shapeStroke = data?.shapeStroke ?? 'var(--ink)';
   const strokeWidth = data?.strokeWidth ?? (isLine ? 2 : 1.5);
   const strokeStyle = data?.strokeStyle ?? 'solid';
   const strokeDasharray = getStrokeDasharray(strokeStyle);
@@ -814,8 +809,6 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
           : shapeType === 'rectangle' || shapeType === 'rounded-rectangle'
           ? 'pointer-events-auto'
           : 'pointer-events-none',
-        selected && !isLine && !isEditing && 'drop-shadow-[0_0_0_2px_var(--accent-soft)]',
-        selected && !isLine && !isEditing && 'ring-2 ring-accent ring-offset-2 ring-offset-bg/50 rounded-[8px]',
         selected && isLine && 'drop-shadow-[0_0_3px_var(--accent)]'
       )}
       style={{
@@ -830,16 +823,16 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
         minHeight={30}
         keepAspectRatio={shapeType === 'circle' || shapeType === 'star'}
         lineStyle={{
-          borderColor: '#0ea5e9',
-          borderWidth: 1.5,
-          borderStyle: 'solid',
+          borderColor: 'color-mix(in srgb, var(--accent) 24%, transparent)',
+          borderWidth: 1,
+          borderStyle: 'dashed',
         }}
         handleStyle={{
-          width: 9,
-          height: 9,
-          backgroundColor: '#ffffff',
-          borderColor: '#0ea5e9',
-          borderWidth: 2,
+          width: 6,
+          height: 6,
+          backgroundColor: 'var(--paper)',
+          borderColor: 'var(--accent)',
+          borderWidth: 1,
           borderRadius: 2,
         }}
         onResizeEnd={() => pushHistory()}
@@ -892,7 +885,7 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
         <svg
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
-          className="absolute inset-0 size-full overflow-visible drop-shadow-sm pointer-events-none"
+          className="absolute inset-0 size-full overflow-visible pointer-events-none"
         >
           <ShapeSvg
             id={id}

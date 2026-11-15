@@ -42,8 +42,19 @@ function nodeSize(node: SystemNode) {
   };
 }
 
-function normalizeComponentNodes(nodes: SystemNode[]): SystemNode[] {
+function normalizeCanvasNodes(nodes: SystemNode[]): SystemNode[] {
   return nodes.map((node) => {
+    // Older untouched shapes used blue; preserve any custom fill, color, or weight.
+    if (
+      node.type === 'shape' &&
+      node.data.shapeStroke === '#3b82f6' &&
+      node.data.strokeWidth === 2.5 &&
+      node.data.shapeFill === 'transparent' &&
+      node.data.strokeStyle === 'solid' &&
+      node.data.color === 'var(--ink)'
+    ) {
+      return { ...node, data: { ...node.data, shapeStroke: 'var(--ink)' } };
+    }
     if (node.type !== 'system') return node;
 
     const styleWidth = typeof node.style?.width === 'number' ? node.style.width : undefined;
@@ -295,7 +306,7 @@ function loadInitialTextFormatting() {
 function loadInitialDrawingFormatting(): DrawingFormatting {
   if (typeof window === 'undefined') {
     return {
-      strokeColor: '#3b82f6',
+      strokeColor: 'var(--ink)',
       strokeWidth: 2.5,
       strokeStyle: 'solid',
       fillColor: 'transparent',
@@ -308,7 +319,7 @@ function loadInitialDrawingFormatting(): DrawingFormatting {
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
-        strokeColor: typeof parsed.strokeColor === 'string' ? parsed.strokeColor : '#3b82f6',
+        strokeColor: typeof parsed.strokeColor === 'string' ? parsed.strokeColor : 'var(--ink)',
         strokeWidth: typeof parsed.strokeWidth === 'number' ? parsed.strokeWidth : 2.5,
         strokeStyle: parsed.strokeStyle === 'dashed' || parsed.strokeStyle === 'dotted' ? parsed.strokeStyle : 'solid',
         fillColor: typeof parsed.fillColor === 'string' ? parsed.fillColor : 'transparent',
@@ -320,7 +331,7 @@ function loadInitialDrawingFormatting(): DrawingFormatting {
     // fallback
   }
   return {
-    strokeColor: '#3b82f6',
+    strokeColor: 'var(--ink)',
     strokeWidth: 2.5,
     strokeStyle: 'solid',
     fillColor: 'transparent',
@@ -539,15 +550,15 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     const diagramData = {
       architecture: {
         ...sourceDiagramData.architecture,
-        nodes: normalizeComponentNodes(sourceDiagramData.architecture.nodes),
+        nodes: normalizeCanvasNodes(sourceDiagramData.architecture.nodes),
       },
       sequence: {
         ...sourceDiagramData.sequence,
-        nodes: normalizeComponentNodes(sourceDiagramData.sequence.nodes),
+        nodes: normalizeCanvasNodes(sourceDiagramData.sequence.nodes),
       },
       er: {
         ...sourceDiagramData.er,
-        nodes: normalizeComponentNodes(sourceDiagramData.er.nodes),
+        nodes: normalizeCanvasNodes(sourceDiagramData.er.nodes),
       },
     };
     const activeNodes = diagramData[initialDiagramType]?.nodes || nodes;
@@ -557,7 +568,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       projectId,
       diagramType: initialDiagramType,
       diagramData,
-      nodes: normalizeComponentNodes(activeNodes),
+      nodes: normalizeCanvasNodes(activeNodes),
       edges: activeEdges,
       viewport,
       selectedNodeId: null,

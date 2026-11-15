@@ -145,7 +145,7 @@ export function createShapeNode(
       shapeType,
       color: formatting?.color ?? 'var(--ink)',
       shapeFill: formatting?.shapeFill ?? 'transparent',
-      shapeStroke: formatting?.shapeStroke ?? '#3b82f6',
+      shapeStroke: formatting?.shapeStroke ?? 'var(--ink)',
       strokeWidth: formatting?.strokeWidth ?? 2.5,
       strokeStyle: formatting?.strokeStyle ?? 'solid',
       arrowStart: formatting?.arrowStart ?? false,
