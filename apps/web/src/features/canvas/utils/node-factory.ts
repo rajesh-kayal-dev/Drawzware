@@ -28,7 +28,7 @@ export function createSystemNode(
     id: nextId(isGroup ? 'group' : 'node'),
     type: isGroup ? 'group' : 'system',
     position,
-    ...(isGroup ? { style: { width: 320, height: 200 } } : {}),
+    ...(isGroup ? { style: { width: 320, height: 200 } } : { style: { width: 112, height: 112 } }),
     data,
   };
 }

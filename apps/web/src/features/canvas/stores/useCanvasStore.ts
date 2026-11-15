@@ -29,8 +29,9 @@ export interface PresentationState {
   index: number;
 }
 
-const DEFAULT_NODE_WIDTH = 92;
-const DEFAULT_NODE_HEIGHT = 76;
+const DEFAULT_NODE_WIDTH = 112;
+const DEFAULT_NODE_HEIGHT = 112;
+const MIN_NODE_SIZE = 88;
 
 function nodeSize(node: SystemNode) {
   const styleW = typeof node.style?.width === 'number' ? node.style.width : undefined;
@@ -39,6 +40,34 @@ function nodeSize(node: SystemNode) {
     width: node.measured?.width ?? node.width ?? styleW ?? DEFAULT_NODE_WIDTH,
     height: node.measured?.height ?? node.height ?? styleH ?? DEFAULT_NODE_HEIGHT,
   };
+}
+
+function normalizeComponentNodes(nodes: SystemNode[]): SystemNode[] {
+  return nodes.map((node) => {
+    if (node.type !== 'system') return node;
+
+    const styleWidth = typeof node.style?.width === 'number' ? node.style.width : undefined;
+    const styleHeight = typeof node.style?.height === 'number' ? node.style.height : undefined;
+    const width = node.measured?.width ?? node.width ?? styleWidth;
+    const height = node.measured?.height ?? node.height ?? styleHeight;
+
+    // Preserve user-resized dimensions; normalize only legacy nodes below the supported minimum.
+    if (width !== undefined && height !== undefined && width >= MIN_NODE_SIZE && height >= MIN_NODE_SIZE) {
+      return node;
+    }
+
+    return {
+      ...node,
+      width: undefined,
+      height: undefined,
+      measured: undefined,
+      style: {
+        ...node.style,
+        width: DEFAULT_NODE_WIDTH,
+        height: DEFAULT_NODE_HEIGHT,
+      },
+    };
+  });
 }
 
 /**
@@ -386,7 +415,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   libraryCollapsed: true,
   setLibraryCollapsed: (libraryCollapsed) => set({ libraryCollapsed }),
   toggleLibrary: () => set((state) => ({ libraryCollapsed: !state.libraryCollapsed })),
-  libraryActiveTab: 'diagrams',
+  libraryActiveTab: 'components',
   setLibraryActiveTab: (libraryActiveTab) => set({ libraryActiveTab }),
   openInsertItem: () =>
     set((state) => {
@@ -498,10 +527,24 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   initCanvas: (projectId, nodes, edges, viewport, initialDiagramType = 'architecture', initialDiagramData) => {
-    const diagramData = initialDiagramData || {
+    const sourceDiagramData = initialDiagramData || {
       architecture: { nodes, edges },
       sequence: { nodes: [], edges: [] },
       er: { nodes: [], edges: [] },
+    };
+    const diagramData = {
+      architecture: {
+        ...sourceDiagramData.architecture,
+        nodes: normalizeComponentNodes(sourceDiagramData.architecture.nodes),
+      },
+      sequence: {
+        ...sourceDiagramData.sequence,
+        nodes: normalizeComponentNodes(sourceDiagramData.sequence.nodes),
+      },
+      er: {
+        ...sourceDiagramData.er,
+        nodes: normalizeComponentNodes(sourceDiagramData.er.nodes),
+      },
     };
     const activeNodes = diagramData[initialDiagramType]?.nodes || nodes;
     const activeEdges = diagramData[initialDiagramType]?.edges || edges;
@@ -510,7 +553,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       projectId,
       diagramType: initialDiagramType,
       diagramData,
-      nodes: activeNodes,
+      nodes: normalizeComponentNodes(activeNodes),
       edges: activeEdges,
       viewport,
       selectedNodeId: null,

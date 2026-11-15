@@ -448,5 +448,41 @@ describe('Component Library Expansion & Resizing Fix', () => {
       expect(useCanvasStore.getState().nodes[0].style?.width).toBe(80);
       expect(useCanvasStore.getState().nodes[0].style?.height).toBe(34);
     });
+
+    it('normalizes saved system components to a stable square size', () => {
+      const dns = createSystemNode('dns', { x: 10, y: 10 }, {
+        label: 'DNS',
+        customIcon: 'dns',
+        color: '#2684FF',
+      });
+      dns.style = { width: 60, height: 150 };
+      const client = createSystemNode('client', { x: 120, y: 10 }, { label: 'Client' });
+      client.style = { width: 80, height: 150 };
+
+      useCanvasStore.getState().initCanvas('project-1', [dns, client], [], { x: 0, y: 0, zoom: 1 });
+
+      for (const node of useCanvasStore.getState().nodes) {
+        expect(node.style?.width).toBe(112);
+        expect(node.style?.height).toBe(112);
+      }
+    });
+
+    it('preserves user-resized system component dimensions when loading', () => {
+      const client = createSystemNode('client', { x: 10, y: 10 }, { label: 'Client' });
+      client.style = { width: 168, height: 112 };
+
+      useCanvasStore.getState().initCanvas('project-1', [client], [], { x: 0, y: 0, zoom: 1 });
+
+      expect(useCanvasStore.getState().nodes[0].style).toMatchObject({ width: 168, height: 112 });
+    });
+
+    it('preserves components resized down to the supported minimum', () => {
+      const client = createSystemNode('client', { x: 10, y: 10 }, { label: 'Client' });
+      client.style = { width: 88, height: 88 };
+
+      useCanvasStore.getState().initCanvas('project-1', [client], [], { x: 0, y: 0, zoom: 1 });
+
+      expect(useCanvasStore.getState().nodes[0].style).toMatchObject({ width: 88, height: 88 });
+    });
   });
 });

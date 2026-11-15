@@ -26,7 +26,7 @@ export function getFitViewOptions(duration?: number): FitViewOptions {
       top: '76px',
       right: selectedNodeId || selectedEdgeId ? '340px' : '48px',
       bottom: '96px',
-      left: libraryCollapsed ? '96px' : '308px',
+      left: libraryCollapsed ? '96px' : '380px',
     },
     duration,
     maxZoom: 1,
@@ -126,7 +126,7 @@ export function useAddCustomComponentAtCenter() {
         y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
       });
       const offset = (counter.current++ % 8) * 24;
-      const position = { x: center.x - 46 + offset, y: center.y - 38 + offset };
+      const position = { x: center.x - 56 + offset, y: center.y - 56 + offset };
       const node = createSystemNode(item.genericType, position, {
         label: 'name' in item ? item.name : item.label,
         customIcon: item.customIcon,

@@ -40,6 +40,7 @@ import { useKeyboardShortcuts } from '@/shared/hooks/useKeyboardShortcuts';
 import { useIsNarrow } from '@/shared/hooks/useMediaQuery';
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { createSystemNode } from '@/features/canvas/utils/node-factory';
+import { normalizeConnectionHandles } from '@/features/canvas/utils/connection-handles';
 import { TECHNOLOGY_STACK_PRESETS, instantiateStackPreset } from '@/features/canvas/registries/technology-stacks';
 import { getMinimapColor } from '@/features/canvas/utils/minimap';
 import { computeIssues, ValidationWarningsContext } from '@/features/canvas/utils/validation';
@@ -158,6 +159,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const setPresentationIndex = useCanvasStore((s) => s.setPresentationIndex);
   const libraryCollapsed = useCanvasStore((s) => s.libraryCollapsed);
   const setLibraryCollapsed = useCanvasStore((s) => s.setLibraryCollapsed);
+  const setLibraryActiveTab = useCanvasStore((s) => s.setLibraryActiveTab);
   const activeTool = useCanvasStore((s) => s.activeTool);
   const setActiveTool = useCanvasStore((s) => s.setActiveTool);
   const placementItem = useCanvasStore((s) => s.placementItem);
@@ -190,6 +192,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
 
   const connectEndPos = useRef<{ x: number; y: number } | null>(null);
   const connectStartRef = useRef<{ nodeId: string | null; handleId: string | null } | null>(null);
+  const connectedEdgeId = useRef<string | null>(null);
   const edgeReconnectSuccessful = useRef(true);
 
   const { screenToFlowPosition, fitView } = useReactFlow();
@@ -275,10 +278,13 @@ function CanvasInner({ projectId }: { projectId: string }) {
     if (!loaded) loadProjects();
   }, [loaded, loadProjects]);
 
-  // Library starts closed by default when opening any canvas/project.
+  // Keep the component catalog visible on desktop; mobile keeps its compact canvas-first entry.
   useEffect(() => {
-    setLibraryCollapsed(true);
-  }, [setLibraryCollapsed]);
+    if (!window.matchMedia('(max-width: 899px)').matches) {
+      setLibraryActiveTab('components');
+      setLibraryCollapsed(false);
+    }
+  }, [setLibraryActiveTab, setLibraryCollapsed]);
 
   // ── Derived chrome state ───────────────────────────────
   const selectedCount = useMemo(() => nodes.reduce((n, node) => n + (node.selected ? 1 : 0), 0), [nodes]);
@@ -329,8 +335,9 @@ function CanvasInner({ projectId }: { projectId: string }) {
   }, [presenting, nodes, edges, currentId]);
 
   const flowEdges = useMemo(() => {
-    if (!presenting) return edges;
-    return edges.map((e) => {
+    const renderEdges = edges.map(normalizeConnectionHandles);
+    if (!presenting) return renderEdges;
+    return renderEdges.map((e) => {
       const opacity = e.source === currentId || e.target === currentId ? 1 : 0.2;
       return { ...e, selected: false, style: { ...e.style, opacity } };
     });
@@ -647,11 +654,20 @@ function CanvasInner({ projectId }: { projectId: string }) {
 
   const onNodeDragStop = useCallback(() => pushHistory(), [pushHistory]);
 
+  const settleConnectionPicker = useCallback(() => {
+    if (!connectedEdgeId.current || !connectEndPos.current) return;
+    setPendingEdge({ edgeId: connectedEdgeId.current, position: connectEndPos.current });
+    connectedEdgeId.current = null;
+    connectEndPos.current = null;
+  }, [setPendingEdge]);
+
   const onConnectStart: OnConnectStart = useCallback((_, params) => {
     connectStartRef.current = {
       nodeId: params.nodeId,
       handleId: params.handleId,
     };
+    connectedEdgeId.current = null;
+    connectEndPos.current = null;
   }, []);
 
   const handleConnect: OnConnect = useCallback(
@@ -673,13 +689,14 @@ function CanvasInner({ projectId }: { projectId: string }) {
           targetHandle: connection.sourceHandle,
         };
       }
-      onConnect(finalConnection);
-      if (!connectEndPos.current) return;
+      const existingIds = new Set(useCanvasStore.getState().edges.map((edge) => edge.id));
+      onConnect(normalizeConnectionHandles(finalConnection));
       const latest = useCanvasStore.getState().edges;
-      const newEdge = latest[latest.length - 1];
-      if (newEdge) setPendingEdge({ edgeId: newEdge.id, position: connectEndPos.current });
+      const newEdge = latest.find((edge) => !existingIds.has(edge.id));
+      connectedEdgeId.current = newEdge?.id ?? null;
+      settleConnectionPicker();
     },
-    [onConnect, setPendingEdge, isReadOnly]
+    [onConnect, isReadOnly, settleConnectionPicker]
   );
 
   const onConnectEnd = useCallback((event: MouseEvent | TouchEvent) => {
@@ -687,7 +704,9 @@ function CanvasInner({ projectId }: { projectId: string }) {
       'changedTouches' in event
         ? { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY }
         : { x: event.clientX, y: event.clientY };
-  }, []);
+    settleConnectionPicker();
+    connectStartRef.current = null;
+  }, [settleConnectionPicker]);
 
   const onReconnectStart = useCallback(() => {
     edgeReconnectSuccessful.current = false;
@@ -698,7 +717,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
       if (isReadOnly) return;
       edgeReconnectSuccessful.current = true;
       pushHistory();
-      setEdges(reconnectEdge(oldEdge, newConnection, useCanvasStore.getState().edges) as SystemEdgeModel[]);
+      setEdges(reconnectEdge(oldEdge, normalizeConnectionHandles(newConnection), useCanvasStore.getState().edges) as SystemEdgeModel[]);
     },
     [pushHistory, setEdges, isReadOnly]
   );
