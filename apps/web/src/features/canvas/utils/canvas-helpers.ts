@@ -4,6 +4,7 @@ import { useCallback, useRef } from 'react';
 import { useReactFlow, useStoreApi, type FitViewOptions } from '@xyflow/react';
 import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
 import { createNoteNode, createSystemNode } from '@/features/canvas/utils/node-factory';
+import { COMPONENT_NODE_SIZE } from '@/features/canvas/utils/component-card-layout';
 import { formatKey } from '@/shared/components/ui/kbd';
 import { getShortcutKeys, type ShortcutId } from '@/features/canvas/utils/shortcuts';
 import type { CanvasTool, SystemEdge, SystemNode, SystemNodeType } from '@/features/canvas/types/canvas.types';
@@ -63,7 +64,7 @@ export function useAddNodeAtCenter() {
         y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
       });
       const offset = (counter.current++ % 8) * 24;
-      const half = kind === 'group' ? { w: 160, h: 100 } : { w: 46, h: 38 };
+      const half = kind === 'group' ? { w: 160, h: 100 } : { w: COMPONENT_NODE_SIZE / 2, h: COMPONENT_NODE_SIZE / 2 };
       const position = { x: center.x - half.w + offset, y: center.y - half.h + offset };
       const node = kind === 'note' ? createNoteNode(position) : createSystemNode(kind, position);
       addNode(node);

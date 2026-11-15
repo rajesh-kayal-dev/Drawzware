@@ -10,6 +10,7 @@ import {
 import type { SystemNode, SystemEdge, SystemNodeData, SystemEdgeData, CanvasTool, PlacementItem, DrawingFormatting, DiagramType, LibraryTab } from '@/features/canvas/types/canvas.types';
 import { getInitialSequenceDiagram, getInitialERDiagram } from '@/features/canvas/templates/diagram-templates';
 import { useCollaborationStore } from '@/features/collaboration/stores/useCollaborationStore';
+import { COMPONENT_NODE_MIN_SIZE, COMPONENT_NODE_SIZE, COMPONENT_NODE_WIDE_MIN_HEIGHT, COMPONENT_NODE_WIDE_WIDTH } from '@/features/canvas/utils/component-card-layout';
 
 interface HistoryEntry {
   nodes: SystemNode[];
@@ -29,9 +30,8 @@ export interface PresentationState {
   index: number;
 }
 
-const DEFAULT_NODE_WIDTH = 112;
-const DEFAULT_NODE_HEIGHT = 112;
-const MIN_NODE_SIZE = 88;
+const DEFAULT_NODE_WIDTH = COMPONENT_NODE_SIZE;
+const DEFAULT_NODE_HEIGHT = COMPONENT_NODE_SIZE;
 
 function nodeSize(node: SystemNode) {
   const styleW = typeof node.style?.width === 'number' ? node.style.width : undefined;
@@ -51,8 +51,12 @@ function normalizeComponentNodes(nodes: SystemNode[]): SystemNode[] {
     const width = node.measured?.width ?? node.width ?? styleWidth;
     const height = node.measured?.height ?? node.height ?? styleHeight;
 
-    // Preserve user-resized dimensions; normalize only legacy nodes below the supported minimum.
-    if (width !== undefined && height !== undefined && width >= MIN_NODE_SIZE && height >= MIN_NODE_SIZE) {
+    // Migrate the previous untouched 112px square, but keep custom wide and resized cards.
+    const oldDefault = width === 112 && height === 112 && styleWidth === 112 && styleHeight === 112;
+    const minHeight = width !== undefined && width >= COMPONENT_NODE_WIDE_WIDTH
+      ? COMPONENT_NODE_WIDE_MIN_HEIGHT
+      : COMPONENT_NODE_MIN_SIZE;
+    if (!oldDefault && width !== undefined && height !== undefined && width >= COMPONENT_NODE_MIN_SIZE && height >= minHeight) {
       return node;
     }
 

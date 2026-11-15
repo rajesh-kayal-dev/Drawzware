@@ -40,6 +40,7 @@ import { useKeyboardShortcuts } from '@/shared/hooks/useKeyboardShortcuts';
 import { useIsNarrow } from '@/shared/hooks/useMediaQuery';
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { createSystemNode } from '@/features/canvas/utils/node-factory';
+import { COMPONENT_NODE_SIZE } from '@/features/canvas/utils/component-card-layout';
 import { normalizeConnectionHandles } from '@/features/canvas/utils/connection-handles';
 import { TECHNOLOGY_STACK_PRESETS, instantiateStackPreset } from '@/features/canvas/registries/technology-stacks';
 import { getMinimapColor } from '@/features/canvas/utils/minimap';
@@ -746,7 +747,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
           } else if (item.kind === 'step' && item.stepId) {
             newNode = createStepNode(item.stepId, { x: p.x - 170, y: p.y - 100 });
           } else if (item.kind === 'component' && item.type) {
-            newNode = createSystemNode(item.type as SystemNodeType, { x: p.x - 46, y: p.y - 38 }, {
+            newNode = createSystemNode(item.type as SystemNodeType, { x: p.x - COMPONENT_NODE_SIZE / 2, y: p.y - COMPONENT_NODE_SIZE / 2 }, {
               ...(item.label ? { label: item.label } : {}),
               ...(item.customIcon ? { customIcon: item.customIcon } : {}),
               ...(item.color ? { color: item.color } : {}),
@@ -907,7 +908,7 @@ function CanvasInner({ projectId }: { projectId: string }) {
       if (!nodeType || !(nodeType in NODE_REGISTRY)) return;
       const p = screenToFlowPosition({ x: event.clientX, y: event.clientY });
       const isGroup = nodeType === 'group';
-      const node = createSystemNode(nodeType, { x: p.x - (isGroup ? 160 : 46), y: p.y - (isGroup ? 100 : 38) });
+      const node = createSystemNode(nodeType, { x: p.x - (isGroup ? 160 : COMPONENT_NODE_SIZE / 2), y: p.y - (isGroup ? 100 : COMPONENT_NODE_SIZE / 2) });
       pushHistory();
       addNode(node);
     },

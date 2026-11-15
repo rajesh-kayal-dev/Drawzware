@@ -462,8 +462,8 @@ describe('Component Library Expansion & Resizing Fix', () => {
       useCanvasStore.getState().initCanvas('project-1', [dns, client], [], { x: 0, y: 0, zoom: 1 });
 
       for (const node of useCanvasStore.getState().nodes) {
-        expect(node.style?.width).toBe(112);
-        expect(node.style?.height).toBe(112);
+        expect(node.style?.width).toBe(96);
+        expect(node.style?.height).toBe(96);
       }
     });
 
@@ -474,6 +474,18 @@ describe('Component Library Expansion & Resizing Fix', () => {
       useCanvasStore.getState().initCanvas('project-1', [client], [], { x: 0, y: 0, zoom: 1 });
 
       expect(useCanvasStore.getState().nodes[0].style).toMatchObject({ width: 168, height: 112 });
+    });
+
+    it('migrates the old default square without flattening a wide compact card', () => {
+      const oldDefault = createSystemNode('dns', { x: 10, y: 10 });
+      oldDefault.style = { width: 112, height: 112 };
+      const wide = createSystemNode('service', { x: 160, y: 10 });
+      wide.style = { width: 168, height: 48 };
+
+      useCanvasStore.getState().initCanvas('project-1', [oldDefault, wide], [], { x: 0, y: 0, zoom: 1 });
+
+      expect(useCanvasStore.getState().nodes[0].style).toMatchObject({ width: 96, height: 96 });
+      expect(useCanvasStore.getState().nodes[1].style).toMatchObject({ width: 168, height: 48 });
     });
 
     it('preserves components resized down to the supported minimum', () => {

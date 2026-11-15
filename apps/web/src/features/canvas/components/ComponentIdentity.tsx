@@ -9,6 +9,7 @@ interface ComponentIdentityProps {
   color: string;
   className?: string;
   iconSize?: 'small' | 'large';
+  layout?: 'vertical' | 'horizontal';
   trailing?: ReactNode;
   fallback?: ReactNode;
 }
@@ -20,29 +21,31 @@ export function ComponentIdentity({
   color,
   className = '',
   iconSize = 'small',
+  layout = 'vertical',
   trailing,
   fallback,
 }: ComponentIdentityProps) {
   const large = iconSize === 'large';
+  const horizontal = layout === 'horizontal';
 
   return (
     <span
-      className={`flex min-w-0 flex-col items-center text-center ${large ? 'h-[88px] justify-start gap-1.5' : 'justify-center'} ${className}`}
+      className={`flex min-w-0 items-center ${horizontal ? 'flex-row gap-2.5 text-left' : 'flex-col gap-1.5 text-center'} ${className}`}
     >
       <span
-        className={`flex shrink-0 items-center justify-center rounded-xl bg-white ${large ? 'size-10' : 'mb-1 size-8'}`}
+        className={`flex shrink-0 items-center justify-center rounded-lg bg-white ${large && !horizontal ? 'size-9' : 'size-8'}`}
       >
         {icon ? (
           <TechIcon
             name={icon}
-            className={large ? 'size-6' : 'size-5'}
+            className={large ? (horizontal ? 'size-6' : 'size-[30px]') : 'size-5'}
             color={color}
             aria-hidden="true"
           />
         ) : fallback}
       </span>
-      <span className={`flex w-full items-center justify-center gap-1 ${large ? 'min-h-8' : ''}`}>
-        <span className={`min-w-0 font-medium leading-tight text-ink line-clamp-2 break-words ${large ? 'text-[13px]' : 'text-[11px]'}`}>
+      <span className={`flex min-w-0 items-center gap-1 ${horizontal ? 'flex-1 justify-start' : 'w-full justify-center'}`}>
+        <span className={`min-w-0 leading-tight text-ink line-clamp-2 break-words ${large ? 'text-[13px] font-semibold' : 'text-[11px] font-medium'}`}>
           {name}
         </span>
         {trailing}
