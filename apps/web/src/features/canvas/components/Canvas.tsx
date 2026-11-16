@@ -172,21 +172,32 @@ function CanvasInner({ projectId }: { projectId: string }) {
   const validationEnabled = useSettingsStore((s) => s.validation);
   const animatedEdges = useSettingsStore((s) => s.animatedEdges);
   const canvasBackground = useSettingsStore((s) => s.canvasBackground);
+  const canvasBrightness = useSettingsStore((s) => s.canvasBrightness);
 
   const canvasBgStyle = useMemo<React.CSSProperties>(() => {
+    let baseColor: string;
     switch (canvasBackground) {
       case 'white':
-        return { backgroundColor: '#ffffff' };
+        baseColor = '#ffffff';
+        break;
       case 'dark':
-        return { backgroundColor: '#121212' };
+        baseColor = '#121212';
+        break;
       case 'neutral':
-        return { backgroundColor: 'var(--canvas-neutral)' };
+        baseColor = 'var(--canvas-neutral)';
+        break;
       case 'grid':
       case 'dots':
       default:
-        return { backgroundColor: 'var(--bg)' };
+        baseColor = 'var(--bg)';
     }
-  }, [canvasBackground]);
+    const adjustment = Math.abs(canvasBrightness - 100);
+    return {
+      backgroundColor: adjustment === 0
+        ? baseColor
+        : `color-mix(in srgb, ${baseColor}, ${canvasBrightness > 100 ? 'white' : 'black'} ${adjustment}%)`,
+    };
+  }, [canvasBackground, canvasBrightness]);
 
   const narrow = useIsNarrow();
   const presenting = presentation.active;

@@ -14,6 +14,16 @@ interface ComponentIdentityProps {
   fallback?: ReactNode;
 }
 
+function needsDarkIconTile(color: string): boolean {
+  const hex = /^#([0-9a-f]{6})$/i.exec(color)?.[1];
+  if (!hex) return false;
+  const channels = [0, 2, 4].map((offset) => {
+    const value = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722 > 0.6;
+}
+
 /** Shared logo-over-name treatment for component library cards and canvas nodes. */
 export function ComponentIdentity({
   name,
@@ -33,7 +43,8 @@ export function ComponentIdentity({
       className={`flex min-w-0 items-center ${horizontal ? 'flex-row gap-2.5 text-left' : 'flex-col gap-1.5 text-center'} ${className}`}
     >
       <span
-        className={`flex shrink-0 items-center justify-center rounded-lg bg-white ${large && !horizontal ? 'size-9' : 'size-8'}`}
+        className={`flex shrink-0 items-center justify-center rounded-lg border border-black/10 ${large && !horizontal ? 'size-9' : 'size-8'}`}
+        style={{ color, backgroundColor: needsDarkIconTile(color) ? '#27272a' : '#ffffff' }}
       >
         {icon ? (
           <TechIcon
