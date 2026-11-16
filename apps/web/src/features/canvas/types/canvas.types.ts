@@ -4,6 +4,7 @@ import type { Node, Edge, Viewport } from '@xyflow/react';
 export type CanvasTool =
   | 'select'
   | 'rectangle'
+  | 'diamond'
   | 'circle'
   | 'arrow'
   | 'line'

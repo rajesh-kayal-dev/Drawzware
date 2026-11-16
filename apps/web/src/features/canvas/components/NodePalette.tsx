@@ -15,6 +15,7 @@ import {
   Type,
   Search,
   Square,
+  Diamond,
   Circle,
   ArrowUpRight,
   Cloud,
@@ -449,7 +450,7 @@ function SidebarDrawingToolsMenu({
       className="relative flex items-center justify-center"
     >
       <DropdownMenu open={open} onOpenChange={setOpen}>
-        <SimpleTooltip label="Drawing tools" keys={['D']} side="right">
+        <SimpleTooltip label="Drawing tools" keys={['B']} side="right">
           <DropdownMenuTrigger asChild>
             <Button
               variant="icon"
@@ -481,7 +482,7 @@ function SidebarDrawingToolsMenu({
                   isDrawing ? 'text-accent font-bold' : 'text-ink-3'
                 )}
               >
-                D
+                B
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -513,7 +514,7 @@ function SidebarDrawingToolsMenu({
               Pencil
             </span>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-ink-3">D</span>
+              <span className="text-[10px] text-ink-3">B</span>
               {activeTool === 'pencil' && <Check className="size-3.5 text-accent" />}
             </div>
           </DropdownMenuItem>
@@ -2059,7 +2060,33 @@ function LibraryRail({
         </Button>
       </SimpleTooltip>
 
-      {/* 3. Circle (O) */}
+      {/* 3. Diamond (D) */}
+      <SimpleTooltip label="Diamond" keys={['D']} side="right">
+        <Button
+          variant="icon"
+          size="icon-toolbar"
+          aria-label="Diamond"
+          onClick={() => selectToolAndCollapse('diamond')}
+          className={cn(
+            'relative transition-all',
+            activeTool === 'diamond'
+              ? 'bg-accent/15 text-accent shadow-2xs font-semibold ring-1 ring-accent/30'
+              : 'text-text hover:bg-surface-2'
+          )}
+        >
+          <Diamond className="size-[15px]" />
+          <span
+            className={cn(
+              'absolute bottom-0.5 right-1 text-[8.5px] font-mono leading-none select-none pointer-events-none',
+              activeTool === 'diamond' ? 'text-accent font-bold' : 'text-ink-3'
+            )}
+          >
+            D
+          </span>
+        </Button>
+      </SimpleTooltip>
+
+      {/* 4. Circle (O) */}
       <SimpleTooltip label="Circle" keys={['O']} side="right">
         <Button
           variant="icon"
@@ -2085,7 +2112,7 @@ function LibraryRail({
         </Button>
       </SimpleTooltip>
 
-      {/* 4. Arrow (A) */}
+      {/* 5. Arrow (A) */}
       <SimpleTooltip label="Arrow" keys={['A']} side="right">
         <Button
           variant="icon"
@@ -2111,7 +2138,7 @@ function LibraryRail({
         </Button>
       </SimpleTooltip>
 
-      {/* 5. Straight Line (L) */}
+      {/* 6. Straight Line (L) */}
       <SimpleTooltip label="Straight Line" keys={['L']} side="right">
         <Button
           variant="icon"

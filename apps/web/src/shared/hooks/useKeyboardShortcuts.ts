@@ -234,6 +234,11 @@ export function useKeyboardShortcuts() {
         s.setActiveTool(s.activeTool === 'rectangle' ? 'select' : 'rectangle');
         return;
       }
+      if (key === 'd') {
+        e.preventDefault();
+        s.setActiveTool(s.activeTool === 'diamond' ? 'select' : 'diamond');
+        return;
+      }
       if (key === 'o') {
         e.preventDefault();
         s.setActiveTool(s.activeTool === 'circle' ? 'select' : 'circle');
@@ -261,7 +266,7 @@ export function useKeyboardShortcuts() {
         s.setActiveTool(s.activeTool === 'text' ? 'select' : 'text');
         return;
       }
-      if (key === 'd') {
+      if (key === 'b') {
         e.preventDefault();
         s.setActiveTool(s.activeTool === 'pencil' ? 'select' : 'pencil');
         return;

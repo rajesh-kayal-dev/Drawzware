@@ -198,6 +198,7 @@ export function getCanvasCursorClass(
   }
   if (
     activeTool === 'rectangle' ||
+    activeTool === 'diamond' ||
     activeTool === 'circle' ||
     activeTool === 'arrow' ||
     activeTool === 'line'

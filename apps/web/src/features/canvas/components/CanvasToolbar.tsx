@@ -581,6 +581,7 @@ export function CanvasToolbar() {
 
   const isShapeDrawingTool =
     activeTool === 'rectangle' ||
+    activeTool === 'diamond' ||
     activeTool === 'circle' ||
     activeTool === 'arrow' ||
     activeTool === 'line';
