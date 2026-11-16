@@ -33,6 +33,8 @@ jobs:
 
       - name: Unit & Integration Tests
         run: npm test
+        env:
+          NODE_OPTIONS: ${{ matrix.node-version == 20 && '--experimental-websocket' || '' }}
 
       - name: Build Next.js Static Export
         run: npm run build

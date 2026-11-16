@@ -137,8 +137,8 @@ function CommandMenuBody({ onClose }: { onClose: () => void }) {
             : { x: 0, y: 0 };
           const isGroup = type === 'group';
           const node = createSystemNode(type, {
-            x: center.x - (isGroup ? 160 : 100),
-            y: center.y - (isGroup ? 100 : 36),
+            x: center.x - (isGroup ? 160 : 46),
+            y: center.y - (isGroup ? 100 : 38),
           });
           const { addNode, setNodes, setSelectedNodeId } = store();
           addNode(node);

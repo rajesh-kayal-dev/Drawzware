@@ -28,6 +28,7 @@ export function ConnectionTypePicker() {
     return pending ? s.edges.find((e) => e.id === pending.edgeId)?.data?.edgeType : undefined;
   });
   const setPendingEdge = useCanvasStore((s) => s.setPendingEdge);
+  const setSelectedEdgeId = useCanvasStore((s) => s.setSelectedEdgeId);
   const updateEdgeData = useCanvasStore((s) => s.updateEdgeData);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -65,6 +66,8 @@ export function ConnectionTypePicker() {
       value={currentType}
       onSelect={(edgeType) => {
         if (edgeType !== currentType) updateEdgeData(pendingEdge.edgeId, { edgeType });
+        // Keep the newly created wire visibly selected after the picker closes.
+        setSelectedEdgeId(pendingEdge.edgeId);
         setPendingEdge(null);
       }}
       className="animate-fade-in fixed z-50"

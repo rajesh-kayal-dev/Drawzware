@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
 import { cleanWaypoints, perpendicularDistance, pointsToSvgPath, type Point } from '@drawzware/canvas-core';
 import type { SystemNodeData, SystemNode } from '@/features/canvas/types/canvas.types';
+import { createCanvasTextNode, createShapeNode } from '@/features/canvas/utils/node-factory';
+import { getCanvasFontClass } from '@/features/canvas/utils/canvas-font';
 
 describe('Canvas UX and Drawing Tools (Sidebar, Toolbar, Straight Line, Arrow)', () => {
   beforeEach(() => {
@@ -170,6 +172,27 @@ describe('Canvas UX and Drawing Tools (Sidebar, Toolbar, Straight Line, Arrow)',
   });
 
   describe('5. Persistence and Diagram Compatibility', () => {
+    it('uses handwriting for new text while preserving an explicitly chosen font', () => {
+      expect(createCanvasTextNode({ x: 0, y: 0 }).data.fontFamily).toBe('sketch');
+      expect(createCanvasTextNode({ x: 0, y: 0 }, 'Title', { fontFamily: 'serif' }).data.fontFamily).toBe('serif');
+      expect(getCanvasFontClass()).toBe('font-sketch');
+      expect(getCanvasFontClass('serif')).toBe('font-serif');
+    });
+
+    it('uses ink for new shapes and migrates only the old default blue stroke', () => {
+      const fresh = createShapeNode('ellipse', { x: 0, y: 0 });
+      const oldDefault = createShapeNode('diamond', { x: 150, y: 0 }, '', undefined, { shapeStroke: '#3b82f6' });
+      const customBlue = createShapeNode('diamond', { x: 300, y: 0 }, '', undefined, {
+        shapeStroke: '#3b82f6',
+        strokeWidth: 5,
+      });
+
+      expect(fresh.data.shapeStroke).toBe('var(--ink)');
+      useCanvasStore.getState().initCanvas('shape-colors', [oldDefault, customBlue], [], { x: 0, y: 0, zoom: 1 });
+      expect(useCanvasStore.getState().nodes[0].data.shapeStroke).toBe('var(--ink)');
+      expect(useCanvasStore.getState().nodes[1].data.shapeStroke).toBe('#3b82f6');
+    });
+
     it('persists line and arrow updates in canvas store with history tracking', () => {
       const lineNode: SystemNode = {
         id: 'line-node-1',

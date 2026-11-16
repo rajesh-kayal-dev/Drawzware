@@ -14,6 +14,8 @@ import {
   Sun,
   Moon,
   Monitor,
+  Grip,
+  Grid3X3,
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
@@ -29,9 +31,9 @@ import { useSettingsStore, type CanvasBackground, type ThemePreference } from '@
 import { useTheme } from '@/shared/hooks/useTheme';
 import { useCollaborationStore } from '@/features/collaboration/stores/useCollaborationStore';
 import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
-import { useProjectStore } from '@/features/projects/stores/useProjectStore';
 import { exportToPng, exportToSvg, exportToJson, exportFilename } from '@/features/import-export/utils/export';
-import { openDrawzProject, saveAsDrawzProject } from '@/features/projects/utils/file-operations';
+import { openDrawzProject } from '@/features/projects/utils/file-operations';
+import { saveCurrentCanvasAsDrawz } from '@/features/canvas/utils/save-canvas';
 import { downloadFile, cn } from '@/shared/utils/utils';
 import { toast } from '@/stores/useToastStore';
 import {
@@ -40,7 +42,6 @@ import {
   getCollaboratorInitial,
 } from '@/features/collaboration/utils/collaborator-helpers';
 import { EditProfileModal } from '@/features/collaboration/components/EditProfileModal';
-import type { Project } from '@drawzware/contracts';
 
 interface CanvasMoreMenuProps {
   projectId: string;
@@ -51,6 +52,8 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
   const { preference, setPreference } = useTheme();
   const canvasBackground = useSettingsStore((s) => s.canvasBackground);
   const setCanvasBackground = useSettingsStore((s) => s.setCanvasBackground);
+  const canvasBrightness = useSettingsStore((s) => s.canvasBrightness);
+  const setCanvasBrightness = useSettingsStore((s) => s.setCanvasBrightness);
 
   const currentUser = useCollaborationStore((s) => s.currentUser);
   const setAuthModalOpen = useCollaborationStore((s) => s.setAuthModalOpen);
@@ -63,30 +66,19 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [isExportingDrawz, setIsExportingDrawz] = useState(false);
   const [isOpeningDrawz, setIsOpeningDrawz] = useState(false);
+  const [backgroundControlsOpen, setBackgroundControlsOpen] = useState(false);
+
+  const chooseBackground = (background: CanvasBackground) => {
+    setCanvasBackground(background);
+    setBackgroundControlsOpen(true);
+  };
 
   // 1. Export Handlers
   const handleSaveAsDrawz = async () => {
     if (isExportingDrawz) return;
-    const currentProject = useProjectStore.getState().projects.find((p) => p.id === projectId);
-    const { nodes, edges, viewport, diagramType, diagramData } = useCanvasStore.getState();
-    const projectToSave: Project = currentProject
-      ? { ...currentProject, nodes, edges, viewport, diagramType, diagramData }
-      : {
-          id: projectId,
-          name: projectName || 'Untitled Design',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          nodes,
-          edges,
-          viewport,
-          diagramType,
-          diagramData,
-        };
-
     setIsExportingDrawz(true);
     try {
-      await saveAsDrawzProject(projectToSave);
-      toast({ message: 'Saved as .drawz file', tone: 'ok' });
+      await saveCurrentCanvasAsDrawz(projectId, projectName);
     } catch {
       toast({ message: 'Failed to save project', tone: 'danger' });
     } finally {
@@ -265,11 +257,13 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
                 type="button"
                 onClick={() => setPreference('light')}
                 title="Light theme"
+                aria-label="Light theme"
+                aria-pressed={preference === 'light'}
                 className={cn(
                   'flex items-center justify-center py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer',
                   preference === 'light'
                     ? 'bg-[#6366f1] text-white shadow-xs'
-                    : 'text-ink-3 hover:text-ink'
+                    : 'text-ink-2 hover:text-ink'
                 )}
               >
                 <Sun className="size-3.5" />
@@ -278,11 +272,13 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
                 type="button"
                 onClick={() => setPreference('dark')}
                 title="Dark theme"
+                aria-label="Dark theme"
+                aria-pressed={preference === 'dark'}
                 className={cn(
                   'flex items-center justify-center py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer',
                   preference === 'dark'
                     ? 'bg-[#6366f1] text-white shadow-xs'
-                    : 'text-ink-3 hover:text-ink'
+                    : 'text-ink-2 hover:text-ink'
                 )}
               >
                 <Moon className="size-3.5" />
@@ -291,11 +287,13 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
                 type="button"
                 onClick={() => setPreference('system')}
                 title="System theme"
+                aria-label="System theme"
+                aria-pressed={preference === 'system'}
                 className={cn(
                   'flex items-center justify-center py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer',
                   preference === 'system'
                     ? 'bg-[#6366f1] text-white shadow-xs'
-                    : 'text-ink-3 hover:text-ink'
+                    : 'text-ink-2 hover:text-ink'
                 )}
               >
                 <Monitor className="size-3.5" />
@@ -310,38 +308,44 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
               {/* Dots */}
               <button
                 type="button"
-                onClick={() => setCanvasBackground('dots')}
+                onClick={() => chooseBackground('dots')}
                 title="Dotted canvas"
+                aria-label="Dotted canvas"
+                aria-pressed={canvasBackground === 'dots'}
                 className={cn(
                   'size-7 rounded-[8px] border transition-all cursor-pointer flex items-center justify-center text-[10px] font-bold',
                   canvasBackground === 'dots'
                     ? 'ring-2 ring-accent border-accent scale-105 bg-surface-2 text-accent'
-                    : 'border-line/70 bg-card/60 text-ink-3 hover:border-line-hover'
+                    : 'border-line/70 bg-card/60 text-ink-2 hover:border-line-hover'
                 )}
               >
-                :::
+                <Grip className="size-3.5" aria-hidden="true" />
               </button>
 
               {/* Grid */}
               <button
                 type="button"
-                onClick={() => setCanvasBackground('grid')}
+                onClick={() => chooseBackground('grid')}
                 title="Grid lines"
+                aria-label="Grid lines"
+                aria-pressed={canvasBackground === 'grid'}
                 className={cn(
                   'size-7 rounded-[8px] border transition-all cursor-pointer flex items-center justify-center text-[11px] font-bold',
                   canvasBackground === 'grid'
                     ? 'ring-2 ring-accent border-accent scale-105 bg-surface-2 text-accent'
-                    : 'border-line/70 bg-card/60 text-ink-3 hover:border-line-hover'
+                    : 'border-line/70 bg-card/60 text-ink-2 hover:border-line-hover'
                 )}
               >
-                #
+                <Grid3X3 className="size-3.5" aria-hidden="true" />
               </button>
 
               {/* White */}
               <button
                 type="button"
-                onClick={() => setCanvasBackground('white')}
+                onClick={() => chooseBackground('white')}
                 title="Plain white"
+                aria-label="Plain white canvas"
+                aria-pressed={canvasBackground === 'white'}
                 className={cn(
                   'size-7 rounded-[8px] border transition-all cursor-pointer bg-white',
                   canvasBackground === 'white'
@@ -353,8 +357,10 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
               {/* Neutral */}
               <button
                 type="button"
-                onClick={() => setCanvasBackground('neutral')}
+                onClick={() => chooseBackground('neutral')}
                 title="Neutral"
+                aria-label="Neutral canvas"
+                aria-pressed={canvasBackground === 'neutral'}
                 className={cn(
                   'size-7 rounded-[8px] border transition-all cursor-pointer bg-[#fcfbf9] dark:bg-[#1f232d]',
                   canvasBackground === 'neutral'
@@ -366,8 +372,10 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
               {/* Dark */}
               <button
                 type="button"
-                onClick={() => setCanvasBackground('dark')}
+                onClick={() => chooseBackground('dark')}
                 title="Plain dark"
+                aria-label="Plain dark canvas"
+                aria-pressed={canvasBackground === 'dark'}
                 className={cn(
                   'size-7 rounded-[8px] border transition-all cursor-pointer bg-[#12141c]',
                   canvasBackground === 'dark'
@@ -376,6 +384,35 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
                 )}
               />
             </div>
+            {backgroundControlsOpen && (
+              <div className="pt-2.5 space-y-2" onKeyDown={(event) => event.stopPropagation()}>
+                <div className="flex items-center justify-between gap-2 text-[11px]">
+                  <label htmlFor="canvas-brightness" className="font-medium text-ink-2">Brightness</label>
+                  <div className="flex items-center gap-2">
+                    <output htmlFor="canvas-brightness" className="w-9 text-right tabular-nums text-ink-2">{canvasBrightness}%</output>
+                    <button
+                      type="button"
+                      onClick={() => setCanvasBrightness(100)}
+                      disabled={canvasBrightness === 100}
+                      className="rounded px-1.5 py-0.5 text-accent hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40 disabled:cursor-default"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+                <input
+                  id="canvas-brightness"
+                  type="range"
+                  min="60"
+                  max="140"
+                  step="5"
+                  value={canvasBrightness}
+                  onChange={(event) => setCanvasBrightness(Number(event.target.value))}
+                  className="h-1.5 w-full cursor-pointer accent-accent"
+                />
+                <div className="flex justify-between text-[10px] text-ink-3"><span>Dimmer</span><span>Brighter</span></div>
+              </div>
+            )}
           </div>
 
           <DropdownMenuSeparator className="my-1" />

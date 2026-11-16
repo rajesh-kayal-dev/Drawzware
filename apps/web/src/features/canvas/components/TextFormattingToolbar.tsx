@@ -87,6 +87,7 @@ function getTargetSelection(targetNodeId: string): { sel: Selection | null; hasS
 }
 
 const FONT_FAMILIES = [
+  { id: 'sketch', label: 'Hand-drawn', class: 'font-sketch' },
   { id: 'sans', label: 'Sans (Inter)', class: 'font-sans' },
   { id: 'serif', label: 'Serif', class: 'font-serif' },
   { id: 'mono', label: 'Mono', class: 'font-mono' },
@@ -137,7 +138,7 @@ export function TextFormattingToolbar() {
   const below = top < PILL_CLEARANCE;
 
   const data = targetNode.data;
-  const currentFont = data?.fontFamily ?? 'sans';
+  const currentFont = data?.fontFamily ?? 'sketch';
   const currentSize = data?.fontSize ?? (targetNode.type === 'shape' ? 14 : 16);
   const currentColor = data?.color ?? 'var(--ink)';
   const isBold = Boolean(data?.bold);
@@ -210,7 +211,7 @@ export function TextFormattingToolbar() {
         <SimpleTooltip label="Font family" side="top">
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[12px] font-normal">
-              <span className="capitalize">{currentFont}</span>
+              <span>{FONT_FAMILIES.find((family) => family.id === currentFont)?.label ?? currentFont}</span>
               <ChevronDown className="size-3 text-ink-3" />
             </Button>
           </DropdownMenuTrigger>

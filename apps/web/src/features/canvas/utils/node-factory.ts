@@ -1,6 +1,7 @@
 import { NODE_REGISTRY } from '@/features/canvas/nodes/node-registry';
 import type { ERColumn, ShapeType, StepId, SystemNode, SystemNodeData, SystemNodeType } from '@/features/canvas/types/canvas.types';
 import { getStepConfig, getStepFormatting, SYSTEM_DESIGN_STEPS } from '@/features/canvas/registries/steps-registry';
+import { COMPONENT_NODE_SIZE } from './component-card-layout';
 
 let counter = 0;
 
@@ -28,7 +29,7 @@ export function createSystemNode(
     id: nextId(isGroup ? 'group' : 'node'),
     type: isGroup ? 'group' : 'system',
     position,
-    ...(isGroup ? { style: { width: 320, height: 200 } } : {}),
+    ...(isGroup ? { style: { width: 320, height: 200 } } : { style: { width: COMPONENT_NODE_SIZE, height: COMPONENT_NODE_SIZE } }),
     data,
   };
 }
@@ -86,7 +87,7 @@ export function createCanvasTextNode(
       description: '',
       techStack: [],
       fontSize: formatting?.fontSize ?? 16,
-      fontFamily: formatting?.fontFamily ?? 'sans',
+      fontFamily: formatting?.fontFamily ?? 'sketch',
       color: formatting?.color ?? 'var(--ink)',
       bold: formatting?.bold ?? false,
       italic: formatting?.italic ?? false,
@@ -144,7 +145,7 @@ export function createShapeNode(
       shapeType,
       color: formatting?.color ?? 'var(--ink)',
       shapeFill: formatting?.shapeFill ?? 'transparent',
-      shapeStroke: formatting?.shapeStroke ?? '#3b82f6',
+      shapeStroke: formatting?.shapeStroke ?? 'var(--ink)',
       strokeWidth: formatting?.strokeWidth ?? 2.5,
       strokeStyle: formatting?.strokeStyle ?? 'solid',
       arrowStart: formatting?.arrowStart ?? false,

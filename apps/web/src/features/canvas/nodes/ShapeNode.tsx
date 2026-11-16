@@ -6,6 +6,7 @@ import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
 import { cn } from '@/shared/utils/utils';
 import { pointsToSvgPath, cleanWaypoints, perpendicularDistance, type Point } from '@drawzware/canvas-core';
 import type { ShapeType, SystemNode } from '@/features/canvas/types/canvas.types';
+import { getCanvasFontClass } from '@/features/canvas/utils/canvas-font';
 
 const HIDDEN = '!opacity-0 pointer-events-none';
 
@@ -76,6 +77,8 @@ function ShapeSvg({
     fill: isTransparent ? 'transparent' : fill,
     stroke,
     strokeWidth,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
     strokeDasharray,
     vectorEffect: 'non-scaling-stroke' as const,
     pointerEvents: 'all' as const,
@@ -86,19 +89,16 @@ function ShapeSvg({
     case 'circle':
     case 'ellipse':
       return (
-        <ellipse
-          cx="50%"
-          cy="50%"
-          rx="47%"
-          ry="47%"
+        <path
+          d="M 49.7 3 C 76 2.5 97.4 23.6 97 50.4 C 96.7 76.7 75.9 97.3 49.5 97 C 23.7 96.7 2.6 75.8 3 49.4 C 3.2 23.5 23.8 3.5 49.7 3 Z"
           {...commonProps}
         />
       );
 
     case 'star':
       return (
-        <polygon
-          points="50,3 62,35 97,35 69,56 80,92 50,70 20,92 31,56 3,35 38,35"
+        <path
+          d="M 49.7 3.2 L 62.5 35.4 L 97 35 L 69.4 56.2 L 80.1 92.3 L 50.2 70.3 L 19.8 91.7 L 31.3 55.8 L 3.1 35.3 L 37.7 35 Z"
           {...commonProps}
         />
       );
@@ -107,10 +107,10 @@ function ShapeSvg({
       return (
         <g {...commonProps}>
           {/* Head */}
-          <circle cx="50" cy="28" r="18" fill={isTransparent ? 'transparent' : fill} />
+          <path d="M 50 10 C 60.2 9.6 68.1 17.9 68 28.3 C 67.8 38.4 60.1 46.2 49.8 46 C 39.8 45.8 32.1 38.3 32 28 C 31.8 17.9 39.9 10.2 50 10 Z" fill={isTransparent ? 'transparent' : fill} />
           {/* Body */}
           <path
-            d="M 16 92 C 16 66, 32 58, 50 58 C 68 58, 84 66, 84 92 Z"
+            d="M 16.2 92 C 15.8 66.4 32.1 57.7 50 58 C 68.2 58.2 84.3 66.1 83.8 92 Z"
             fill={isTransparent ? 'transparent' : fill}
           />
         </g>
@@ -118,7 +118,7 @@ function ShapeSvg({
 
     case 'line': {
       const hasPoints = points && points.length >= 2;
-      const pathD = hasPoints ? pointsToSvgPath(points, 0) : 'M 3 50 L 97 50';
+      const pathD = hasPoints ? pointsToSvgPath(points, 0) : 'M 3 50.2 Q 50 49.5 97 50';
 
       return (
         <>
@@ -135,8 +135,6 @@ function ShapeSvg({
           />
           <path
             d={pathD}
-            strokeLinecap="round"
-            strokeLinejoin="round"
             {...commonProps}
             fill="none"
             pointerEvents="stroke"
@@ -151,7 +149,7 @@ function ShapeSvg({
       const hasEnd = arrowEnd !== false;
       const hasStart = Boolean(arrowStart);
       const hasPoints = points && points.length >= 2;
-      const pathD = hasPoints ? pointsToSvgPath(points, 8) : 'M 10 50 L 90 50';
+      const pathD = hasPoints ? pointsToSvgPath(points, 8) : 'M 10 50.1 Q 50 49.5 90 50';
 
       return (
         <>
@@ -199,8 +197,6 @@ function ShapeSvg({
           />
           <path
             d={pathD}
-            strokeLinecap="round"
-            strokeLinejoin="round"
             markerStart={hasStart ? `url(#${markerIdStart})` : undefined}
             markerEnd={hasEnd ? `url(#${markerIdEnd})` : undefined}
             {...commonProps}
@@ -213,45 +209,40 @@ function ShapeSvg({
 
     case 'diamond':
       return (
-        <polygon
-          points="50,2 98,50 50,98 2,50"
+        <path
+          d="M 49.5 2.5 L 97.5 50.6 L 50.6 97.5 L 2.5 49.6 Z"
           {...commonProps}
         />
       );
 
     case 'triangle':
       return (
-        <polygon
-          points="50,4 98,96 2,96"
+        <path
+          d="M 49.7 4.1 L 97.6 96.2 Q 49.7 95.6 2.2 96.3 Z"
           {...commonProps}
         />
       );
 
     case 'hexagon':
       return (
-        <polygon
-          points="25,2 75,2 98,50 75,98 25,98 2,50"
+        <path
+          d="M 24.8 2.3 Q 50 1.8 75.3 2.2 L 97.8 50.2 L 74.8 97.7 Q 50 98.2 25.2 97.8 L 2.1 49.7 Z"
           {...commonProps}
         />
       );
 
     case 'pill':
       return (
-        <rect
-          x="2"
-          y="2"
-          width="96"
-          height="96"
-          rx="48"
-          ry="48"
+        <path
+          d="M 49.7 2.2 C 76 1.8 98.2 23.5 97.8 50.2 C 97.5 76.6 75.7 98.1 49.8 97.8 C 23.5 97.6 1.9 76.1 2.2 49.7 C 2.4 23.7 23.5 2.4 49.7 2.2 Z"
           {...commonProps}
         />
       );
 
     case 'parallelogram':
       return (
-        <polygon
-          points="18,2 98,2 82,98 2,98"
+        <path
+          d="M 18.1 2.3 Q 58 1.7 97.8 2.2 L 82.2 97.7 Q 42 98.2 2.3 97.8 Z"
           {...commonProps}
         />
       );
@@ -259,7 +250,7 @@ function ShapeSvg({
     case 'document':
       return (
         <path
-          d="M 2 2 L 98 2 L 98 84 Q 74 98 50 84 Q 26 70 2 84 Z"
+          d="M 2.2 2.3 Q 50 1.8 97.8 2.2 L 98.1 84 Q 74 98.3 50 84.2 Q 26 70.2 2.1 83.8 Z"
           {...commonProps}
         />
       );
@@ -267,32 +258,25 @@ function ShapeSvg({
     case 'callout':
       return (
         <path
-          d="M 4 4 L 96 4 Q 98 4 98 6 L 98 76 Q 98 78 96 78 L 40 78 L 24 96 L 28 78 L 4 78 Q 2 78 2 76 L 2 6 Q 2 4 4 4 Z"
+          d="M 4.2 4 Q 50 3.5 95.8 4.1 Q 98 4.2 98 6.1 L 97.8 75.9 Q 97.9 78.1 96 78 L 40.1 78.2 L 24 95.8 L 28.1 77.9 L 4.1 78 Q 2 77.8 2.1 76 L 2 6 Q 2.1 4 4.2 4 Z"
           {...commonProps}
         />
       );
 
     case 'divider':
       return (
-        <line
-          x1="2"
-          y1="50"
-          x2="98"
-          y2="50"
+        <path
+          d="M 2 50.1 Q 50 49.5 98 50.2"
           {...commonProps}
+          fill="none"
           strokeDasharray="4 4"
         />
       );
 
     case 'rounded-rectangle':
       return (
-        <rect
-          x="2"
-          y="2"
-          width="96"
-          height="96"
-          rx="12"
-          ry="12"
+        <path
+          d="M 14 2.2 Q 50 1.8 86 2.2 C 94 2.1 98 6.2 97.8 14.2 Q 98.3 50 97.8 86 C 98 94 93.8 98 86 97.8 Q 50 98.2 14 97.8 C 6 98 2 94 2.2 86 Q 1.8 50 2.2 14 C 2 6 6.1 2 14 2.2 Z"
           {...commonProps}
         />
       );
@@ -300,13 +284,8 @@ function ShapeSvg({
     case 'rectangle':
     default:
       return (
-        <rect
-          x="2"
-          y="2"
-          width="96"
-          height="96"
-          rx="4"
-          ry="4"
+        <path
+          d="M 6 2.2 Q 50 1.8 94 2.2 Q 98 2 97.8 6 Q 98.2 50 97.8 94 Q 98 98 94 97.8 Q 50 98.2 6 97.8 Q 2 98 2.2 94 Q 1.8 50 2.2 6 Q 2 2 6 2.2 Z"
           {...commonProps}
         />
       );
@@ -324,7 +303,7 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
 
   // Styling properties
   const shapeFill = data?.shapeFill ?? 'transparent';
-  const shapeStroke = data?.shapeStroke ?? 'var(--line-2)';
+  const shapeStroke = data?.shapeStroke ?? 'var(--ink)';
   const strokeWidth = data?.strokeWidth ?? (isLine ? 2 : 1.5);
   const strokeStyle = data?.strokeStyle ?? 'solid';
   const strokeDasharray = getStrokeDasharray(strokeStyle);
@@ -779,7 +758,6 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
   );
 
   const fontSize = data?.fontSize ?? 14;
-  const fontFamily = data?.fontFamily ?? 'sans';
   const isBold = Boolean(data?.bold);
   const isItalic = Boolean(data?.italic);
   const isUnderline = Boolean(data?.underline);
@@ -795,14 +773,7 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
     textAlign: align,
   };
 
-  const fontClass =
-    fontFamily === 'serif'
-      ? 'font-serif'
-      : fontFamily === 'mono'
-      ? 'font-mono'
-      : fontFamily === 'casual'
-      ? 'font-sans tracking-wide'
-      : 'font-sans';
+  const fontClass = getCanvasFontClass(data?.fontFamily);
 
   return (
     <div
@@ -814,8 +785,6 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
           : shapeType === 'rectangle' || shapeType === 'rounded-rectangle'
           ? 'pointer-events-auto'
           : 'pointer-events-none',
-        selected && !isLine && !isEditing && 'drop-shadow-[0_0_0_2px_var(--accent-soft)]',
-        selected && !isLine && !isEditing && 'ring-2 ring-accent ring-offset-2 ring-offset-bg/50 rounded-[8px]',
         selected && isLine && 'drop-shadow-[0_0_3px_var(--accent)]'
       )}
       style={{
@@ -830,16 +799,16 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
         minHeight={30}
         keepAspectRatio={shapeType === 'circle' || shapeType === 'star'}
         lineStyle={{
-          borderColor: '#0ea5e9',
-          borderWidth: 1.5,
-          borderStyle: 'solid',
+          borderColor: 'var(--shape-selection-line)',
+          borderWidth: 1,
+          borderStyle: 'dashed',
         }}
         handleStyle={{
-          width: 9,
-          height: 9,
-          backgroundColor: '#ffffff',
-          borderColor: '#0ea5e9',
-          borderWidth: 2,
+          width: 6,
+          height: 6,
+          backgroundColor: 'var(--paper)',
+          borderColor: 'var(--accent)',
+          borderWidth: 1,
           borderRadius: 2,
         }}
         onResizeEnd={() => pushHistory()}
@@ -892,7 +861,7 @@ function ShapeNodeComponent({ id, data, selected, width, height }: NodeProps<Sys
         <svg
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
-          className="absolute inset-0 size-full overflow-visible drop-shadow-sm pointer-events-none"
+          className="absolute inset-0 size-full overflow-visible pointer-events-none"
         >
           <ShapeSvg
             id={id}

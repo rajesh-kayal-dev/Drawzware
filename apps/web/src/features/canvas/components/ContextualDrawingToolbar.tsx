@@ -156,6 +156,7 @@ export function ContextualDrawingToolbar() {
 
   const showFillControl =
     activeTool === 'rectangle' ||
+    activeTool === 'diamond' ||
     activeTool === 'circle' ||
     (selectedNode?.type === 'shape' &&
       selectedNode.data?.shapeType !== 'line' &&

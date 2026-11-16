@@ -16,7 +16,7 @@ import {
 import type { ShapeType, SystemEdge, SystemNode } from '@/features/canvas/types/canvas.types';
 import { cn } from '@/shared/utils/utils';
 
-const DRAWING_TOOLS = new Set(['rectangle', 'circle', 'arrow', 'line']);
+const DRAWING_TOOLS = new Set(['rectangle', 'diamond', 'circle', 'arrow', 'line']);
 
 export function ShapeDrawingOverlay() {
   const activeTool = useCanvasStore((s) => s.activeTool);
@@ -299,7 +299,7 @@ export function ShapeDrawingOverlay() {
         return;
       }
 
-      // ── CASE 3: Standard geometric shape (Rectangle, Circle) ──
+      // ── CASE 3: Standard geometric shape ──
       let dx = currentFlow.x - startFlow.x;
       let dy = currentFlow.y - startFlow.y;
       const isTiny = Math.hypot(dx, dy) < 8;
@@ -313,6 +313,9 @@ export function ShapeDrawingOverlay() {
         if (activeTool === 'circle') {
           width = 110;
           height = 110;
+        } else if (activeTool === 'diamond') {
+          width = 130;
+          height = 130;
         } else {
           width = 160;
           height = 100;
@@ -422,9 +425,9 @@ export function ShapeDrawingOverlay() {
     }
   }
 
-  // Preview bounds for rect / circle
+  // Preview bounds for geometric shapes
   let shapePreview = null;
-  if (dragState && (activeTool === 'rectangle' || activeTool === 'circle')) {
+  if (dragState && (activeTool === 'rectangle' || activeTool === 'diamond' || activeTool === 'circle')) {
     let dx = dragState.currentFlow.x - dragState.startFlow.x;
     let dy = dragState.currentFlow.y - dragState.startFlow.y;
     if (dragState.isShift) {
@@ -527,6 +530,16 @@ export function ShapeDrawingOverlay() {
                   stroke={stroke}
                   strokeWidth={strokeWidth}
                   strokeDasharray={strokeDash}
+                />
+              )}
+              {activeTool === 'diamond' && (
+                <path
+                  d={`M ${shapePreview.w * 0.495} ${shapePreview.h * 0.025} L ${shapePreview.w * 0.975} ${shapePreview.h * 0.506} L ${shapePreview.w * 0.506} ${shapePreview.h * 0.975} L ${shapePreview.w * 0.025} ${shapePreview.h * 0.496} Z`}
+                  fill={fill}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={strokeDash}
+                  strokeLinejoin="round"
                 />
               )}
             </g>

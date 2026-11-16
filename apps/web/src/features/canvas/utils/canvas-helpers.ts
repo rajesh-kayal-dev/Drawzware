@@ -4,6 +4,7 @@ import { useCallback, useRef } from 'react';
 import { useReactFlow, useStoreApi, type FitViewOptions } from '@xyflow/react';
 import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
 import { createNoteNode, createSystemNode } from '@/features/canvas/utils/node-factory';
+import { COMPONENT_NODE_SIZE } from '@/features/canvas/utils/component-card-layout';
 import { formatKey } from '@/shared/components/ui/kbd';
 import { getShortcutKeys, type ShortcutId } from '@/features/canvas/utils/shortcuts';
 import type { CanvasTool, SystemEdge, SystemNode, SystemNodeType } from '@/features/canvas/types/canvas.types';
@@ -26,7 +27,7 @@ export function getFitViewOptions(duration?: number): FitViewOptions {
       top: '76px',
       right: selectedNodeId || selectedEdgeId ? '340px' : '48px',
       bottom: '96px',
-      left: libraryCollapsed ? '96px' : '308px',
+      left: libraryCollapsed ? '96px' : '380px',
     },
     duration,
     maxZoom: 1,
@@ -63,7 +64,7 @@ export function useAddNodeAtCenter() {
         y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
       });
       const offset = (counter.current++ % 8) * 24;
-      const half = kind === 'group' ? { w: 160, h: 100 } : { w: 100, h: 36 };
+      const half = kind === 'group' ? { w: 160, h: 100 } : { w: COMPONENT_NODE_SIZE / 2, h: COMPONENT_NODE_SIZE / 2 };
       const position = { x: center.x - half.w + offset, y: center.y - half.h + offset };
       const node = kind === 'note' ? createNoteNode(position) : createSystemNode(kind, position);
       addNode(node);
@@ -126,7 +127,7 @@ export function useAddCustomComponentAtCenter() {
         y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
       });
       const offset = (counter.current++ % 8) * 24;
-      const position = { x: center.x - 100 + offset, y: center.y - 36 + offset };
+      const position = { x: center.x - 56 + offset, y: center.y - 56 + offset };
       const node = createSystemNode(item.genericType, position, {
         label: 'name' in item ? item.name : item.label,
         customIcon: item.customIcon,
@@ -197,6 +198,7 @@ export function getCanvasCursorClass(
   }
   if (
     activeTool === 'rectangle' ||
+    activeTool === 'diamond' ||
     activeTool === 'circle' ||
     activeTool === 'arrow' ||
     activeTool === 'line'

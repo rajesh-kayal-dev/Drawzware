@@ -10,6 +10,7 @@ import {
 import type { SystemNode, SystemEdge, SystemNodeData, SystemEdgeData, CanvasTool, PlacementItem, DrawingFormatting, DiagramType, LibraryTab } from '@/features/canvas/types/canvas.types';
 import { getInitialSequenceDiagram, getInitialERDiagram } from '@/features/canvas/templates/diagram-templates';
 import { useCollaborationStore } from '@/features/collaboration/stores/useCollaborationStore';
+import { COMPONENT_NODE_MIN_SIZE, COMPONENT_NODE_SIZE, COMPONENT_NODE_WIDE_MIN_HEIGHT, COMPONENT_NODE_WIDE_WIDTH } from '@/features/canvas/utils/component-card-layout';
 
 interface HistoryEntry {
   nodes: SystemNode[];
@@ -29,8 +30,8 @@ export interface PresentationState {
   index: number;
 }
 
-const DEFAULT_NODE_WIDTH = 200;
-const DEFAULT_NODE_HEIGHT = 72;
+const DEFAULT_NODE_WIDTH = COMPONENT_NODE_SIZE;
+const DEFAULT_NODE_HEIGHT = COMPONENT_NODE_SIZE;
 
 function nodeSize(node: SystemNode) {
   const styleW = typeof node.style?.width === 'number' ? node.style.width : undefined;
@@ -39,6 +40,49 @@ function nodeSize(node: SystemNode) {
     width: node.measured?.width ?? node.width ?? styleW ?? DEFAULT_NODE_WIDTH,
     height: node.measured?.height ?? node.height ?? styleH ?? DEFAULT_NODE_HEIGHT,
   };
+}
+
+function normalizeCanvasNodes(nodes: SystemNode[]): SystemNode[] {
+  return nodes.map((node) => {
+    // Older untouched shapes used blue; preserve any custom fill, color, or weight.
+    if (
+      node.type === 'shape' &&
+      node.data.shapeStroke === '#3b82f6' &&
+      node.data.strokeWidth === 2.5 &&
+      node.data.shapeFill === 'transparent' &&
+      node.data.strokeStyle === 'solid' &&
+      node.data.color === 'var(--ink)'
+    ) {
+      return { ...node, data: { ...node.data, shapeStroke: 'var(--ink)' } };
+    }
+    if (node.type !== 'system') return node;
+
+    const styleWidth = typeof node.style?.width === 'number' ? node.style.width : undefined;
+    const styleHeight = typeof node.style?.height === 'number' ? node.style.height : undefined;
+    const width = node.measured?.width ?? node.width ?? styleWidth;
+    const height = node.measured?.height ?? node.height ?? styleHeight;
+
+    // Migrate the previous untouched 112px square, but keep custom wide and resized cards.
+    const oldDefault = width === 112 && height === 112 && styleWidth === 112 && styleHeight === 112;
+    const minHeight = width !== undefined && width >= COMPONENT_NODE_WIDE_WIDTH
+      ? COMPONENT_NODE_WIDE_MIN_HEIGHT
+      : COMPONENT_NODE_MIN_SIZE;
+    if (!oldDefault && width !== undefined && height !== undefined && width >= COMPONENT_NODE_MIN_SIZE && height >= minHeight) {
+      return node;
+    }
+
+    return {
+      ...node,
+      width: undefined,
+      height: undefined,
+      measured: undefined,
+      style: {
+        ...node.style,
+        width: DEFAULT_NODE_WIDTH,
+        height: DEFAULT_NODE_HEIGHT,
+      },
+    };
+  });
 }
 
 /**
@@ -223,7 +267,7 @@ function loadInitialTextFormatting() {
   if (typeof window === 'undefined') {
     return {
       fontSize: 16,
-      fontFamily: 'sans',
+      fontFamily: 'sketch',
       color: 'var(--ink)',
       bold: false,
       italic: false,
@@ -237,7 +281,7 @@ function loadInitialTextFormatting() {
       const parsed = JSON.parse(raw);
       return {
         fontSize: typeof parsed.fontSize === 'number' ? parsed.fontSize : 16,
-        fontFamily: typeof parsed.fontFamily === 'string' ? parsed.fontFamily : 'sans',
+        fontFamily: typeof parsed.fontFamily === 'string' ? parsed.fontFamily : 'sketch',
         color: typeof parsed.color === 'string' ? parsed.color : 'var(--ink)',
         bold: Boolean(parsed.bold),
         italic: Boolean(parsed.italic),
@@ -250,7 +294,7 @@ function loadInitialTextFormatting() {
   }
   return {
     fontSize: 16,
-    fontFamily: 'sans',
+    fontFamily: 'sketch',
     color: 'var(--ink)',
     bold: false,
     italic: false,
@@ -262,7 +306,7 @@ function loadInitialTextFormatting() {
 function loadInitialDrawingFormatting(): DrawingFormatting {
   if (typeof window === 'undefined') {
     return {
-      strokeColor: '#3b82f6',
+      strokeColor: 'var(--ink)',
       strokeWidth: 2.5,
       strokeStyle: 'solid',
       fillColor: 'transparent',
@@ -275,7 +319,7 @@ function loadInitialDrawingFormatting(): DrawingFormatting {
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
-        strokeColor: typeof parsed.strokeColor === 'string' ? parsed.strokeColor : '#3b82f6',
+        strokeColor: typeof parsed.strokeColor === 'string' ? parsed.strokeColor : 'var(--ink)',
         strokeWidth: typeof parsed.strokeWidth === 'number' ? parsed.strokeWidth : 2.5,
         strokeStyle: parsed.strokeStyle === 'dashed' || parsed.strokeStyle === 'dotted' ? parsed.strokeStyle : 'solid',
         fillColor: typeof parsed.fillColor === 'string' ? parsed.fillColor : 'transparent',
@@ -287,7 +331,7 @@ function loadInitialDrawingFormatting(): DrawingFormatting {
     // fallback
   }
   return {
-    strokeColor: '#3b82f6',
+    strokeColor: 'var(--ink)',
     strokeWidth: 2.5,
     strokeStyle: 'solid',
     fillColor: 'transparent',
@@ -386,7 +430,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   libraryCollapsed: true,
   setLibraryCollapsed: (libraryCollapsed) => set({ libraryCollapsed }),
   toggleLibrary: () => set((state) => ({ libraryCollapsed: !state.libraryCollapsed })),
-  libraryActiveTab: 'diagrams',
+  libraryActiveTab: 'components',
   setLibraryActiveTab: (libraryActiveTab) => set({ libraryActiveTab }),
   openInsertItem: () =>
     set((state) => {
@@ -498,10 +542,24 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   initCanvas: (projectId, nodes, edges, viewport, initialDiagramType = 'architecture', initialDiagramData) => {
-    const diagramData = initialDiagramData || {
+    const sourceDiagramData = initialDiagramData || {
       architecture: { nodes, edges },
       sequence: { nodes: [], edges: [] },
       er: { nodes: [], edges: [] },
+    };
+    const diagramData = {
+      architecture: {
+        ...sourceDiagramData.architecture,
+        nodes: normalizeCanvasNodes(sourceDiagramData.architecture.nodes),
+      },
+      sequence: {
+        ...sourceDiagramData.sequence,
+        nodes: normalizeCanvasNodes(sourceDiagramData.sequence.nodes),
+      },
+      er: {
+        ...sourceDiagramData.er,
+        nodes: normalizeCanvasNodes(sourceDiagramData.er.nodes),
+      },
     };
     const activeNodes = diagramData[initialDiagramType]?.nodes || nodes;
     const activeEdges = diagramData[initialDiagramType]?.edges || edges;
@@ -510,7 +568,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       projectId,
       diagramType: initialDiagramType,
       diagramData,
-      nodes: activeNodes,
+      nodes: normalizeCanvasNodes(activeNodes),
       edges: activeEdges,
       viewport,
       selectedNodeId: null,

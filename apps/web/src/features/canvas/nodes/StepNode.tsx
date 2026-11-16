@@ -916,13 +916,13 @@ function StepNodeComponent({ id, data, selected, width, height }: NodeProps<Syst
       />
 
       {/* 4 Handles for connecting flows or steps */}
-      <Handle type="target" id="top-target" position={Position.Top} />
+      <Handle type="target" id="top-target" position={Position.Top} className="pointer-events-auto" />
       <Handle type="source" id="top-source" position={Position.Top} className={HIDDEN} />
-      <Handle type="target" id="left-target" position={Position.Left} />
+      <Handle type="target" id="left-target" position={Position.Left} className="pointer-events-auto" />
       <Handle type="source" id="left-source" position={Position.Left} className={HIDDEN} />
-      <Handle type="source" id="bottom-source" position={Position.Bottom} />
+      <Handle type="source" id="bottom-source" position={Position.Bottom} className="pointer-events-auto" />
       <Handle type="target" id="bottom-target" position={Position.Bottom} className={HIDDEN} />
-      <Handle type="source" id="right-source" position={Position.Right} />
+      <Handle type="source" id="right-source" position={Position.Right} className="pointer-events-auto" />
       <Handle type="target" id="right-target" position={Position.Right} className={HIDDEN} />
 
       {/* Header Bar */}

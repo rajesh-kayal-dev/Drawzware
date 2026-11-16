@@ -4,6 +4,12 @@
 @import "../styles/tokens.css";
 @import "../styles/scanner.css";
 
+@font-face {
+  font-family: "Virgil";
+  src: url("/fonts/Virgil.woff2") format("woff2");
+  font-display: swap;
+}
+
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
@@ -45,6 +51,10 @@
   --shadow-1: var(--shadow);
   --shadow-2: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
+}
+
+.font-sketch {
+  font-family: "Virgil", "Segoe Print", cursive;
 }
 
 @layer base {
@@ -231,18 +241,27 @@
   transition: opacity 200ms ease;
 }
 
-/* Node handles: 8px dots, hidden until hover/selected. */
+/* Node handles: visible connection points with a larger, forgiving drag target. */
 .react-flow__handle {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   min-width: 0;
   min-height: 0;
   border: 2px solid var(--paper);
   background: var(--ink-3);
   opacity: 0;
+  /* Keep the connection dot above the selected node's resize line. */
+  z-index: 50;
   transition:
     opacity 120ms ease,
     background-color 120ms ease;
+}
+.react-flow__handle::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  background: transparent;
 }
 .react-flow__node:hover .react-flow__handle,
 .react-flow__node.selected .react-flow__handle,
@@ -257,9 +276,7 @@
     opacity: 1;
   }
   .react-flow__handle::after {
-    content: "";
-    position: absolute;
-    inset: -5px;
+    inset: -7px;
   }
 }
 
@@ -273,6 +290,16 @@
   box-sizing: border-box;
   z-index: 40;
   touch-action: none;
+}
+
+/* Keep edge resize grips away from connection handles at the side midpoints. */
+.react-flow__resize-control.handle.left:not(.top):not(.bottom),
+.react-flow__resize-control.handle.right:not(.top):not(.bottom) {
+  top: 25%;
+}
+.react-flow__resize-control.handle.top:not(.left):not(.right),
+.react-flow__resize-control.handle.bottom:not(.left):not(.right) {
+  left: 25%;
 }
 
 /* Generous interaction target around each resize handle (26px x 26px) */
@@ -292,13 +319,14 @@
   border-color: #0ea5e9;
   z-index: 35;
   touch-action: none;
+  pointer-events: none;
 }
 
 /* Generous interaction target along each resize line (18px) */
 .react-flow__resize-control.line::after {
   content: "";
   position: absolute;
-  pointer-events: auto;
+  pointer-events: none;
   cursor: inherit;
 }
 

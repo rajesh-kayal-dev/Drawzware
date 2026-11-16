@@ -5,20 +5,7 @@ import { NodeResizer, type NodeProps } from '@xyflow/react';
 import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
 import { cn } from '@/shared/utils/utils';
 import type { SystemNode } from '@/features/canvas/types/canvas.types';
-
-function getFontFamilyClass(family?: string) {
-  switch (family) {
-    case 'serif':
-      return 'font-serif';
-    case 'mono':
-      return 'font-mono';
-    case 'casual':
-      return 'font-sans tracking-wide';
-    case 'sans':
-    default:
-      return 'font-sans';
-  }
-}
+import { getCanvasFontClass } from '@/features/canvas/utils/canvas-font';
 
 const ALLOWED_TAGS = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'P', 'DIV', 'BR', 'FONT']);
 const DANGEROUS_TAGS = new Set([
@@ -385,7 +372,7 @@ function CanvasTextNodeComponent({ id, data, selected }: NodeProps<SystemNode>) 
 
   const fontSize = data?.fontSize ?? 16;
   const effectiveFontSize = liveFontSize ?? fontSize;
-  const fontFamilyClass = getFontFamilyClass(data?.fontFamily);
+  const fontFamilyClass = getCanvasFontClass(data?.fontFamily);
   const color = data?.color || 'var(--ink)';
   const bold = data?.bold;
   const italic = data?.italic;

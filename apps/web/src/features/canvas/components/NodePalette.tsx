@@ -15,6 +15,7 @@ import {
   Type,
   Search,
   Square,
+  Diamond,
   Circle,
   ArrowUpRight,
   Cloud,
@@ -70,6 +71,7 @@ import {
 import {
   TechIcon,
 } from '@/lib/icons/tech-icons';
+import { ComponentIdentity } from './ComponentIdentity';
 import {
   EXPANDED_COMPONENTS,
   EXPANDED_COMPONENT_CATEGORIES,
@@ -221,6 +223,17 @@ export const EXPANDED_CATEGORY_ICONS: Record<ExpandedComponentCategory, LucideIc
   Security: ShieldCheck,
   Networking: Network,
 };
+
+const COMPONENT_CATALOG_ORDER: ExpandedComponentCategory[] = [
+  'Databases',
+  'Messaging & Monitoring',
+  'Networking',
+  'Infrastructure',
+  'Backend',
+  'Frontend',
+  'Languages',
+  'Security',
+];
 
 function filterExpandedComponents(query: string): ExpandedComponentItem[] {
   const q = query.trim().toLowerCase();
@@ -437,7 +450,7 @@ function SidebarDrawingToolsMenu({
       className="relative flex items-center justify-center"
     >
       <DropdownMenu open={open} onOpenChange={setOpen}>
-        <SimpleTooltip label="Drawing tools" keys={['D']} side="right">
+        <SimpleTooltip label="Drawing tools" keys={['B']} side="right">
           <DropdownMenuTrigger asChild>
             <Button
               variant="icon"
@@ -469,7 +482,7 @@ function SidebarDrawingToolsMenu({
                   isDrawing ? 'text-accent font-bold' : 'text-ink-3'
                 )}
               >
-                D
+                B
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -501,7 +514,7 @@ function SidebarDrawingToolsMenu({
               Pencil
             </span>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-ink-3">D</span>
+              <span className="text-[10px] text-ink-3">B</span>
               {activeTool === 'pencil' && <Check className="size-3.5 text-accent" />}
             </div>
           </DropdownMenuItem>
@@ -561,6 +574,7 @@ function LibraryPanel({
   const placementItem = useCanvasStore((s) => s.placementItem);
   const setPlacementItem = useCanvasStore((s) => s.setPlacementItem);
   const globalSearchInputRef = useRef<HTMLInputElement>(null);
+  const [catalogCategory, setCatalogCategory] = useState<'All' | ExpandedComponentCategory>('All');
 
   useEffect(() => {
     if (activeTab === 'all') {
@@ -1298,23 +1312,16 @@ function LibraryPanel({
                     }}
                     aria-label={`Place ${item.label}`}
                     className={cn(
-                      'focus-ring group relative flex flex-col items-center justify-center gap-1 rounded-[8px] border border-line/60 bg-card/70 p-1.5 py-2 text-center transition-all duration-[120ms] select-none hover:border-line-hover hover:bg-surface-2 cursor-grab active:cursor-grabbing min-h-[58px]',
+                      'focus-ring group relative flex min-h-[76px] flex-col items-center justify-center rounded-[8px] border border-line/60 bg-card/70 p-2 text-center transition-all duration-[120ms] select-none hover:border-line-hover hover:bg-surface-2 cursor-grab active:cursor-grabbing',
                       isPlaced && 'border-accent bg-accent/10 shadow-xs ring-1 ring-accent/30'
                     )}
                   >
-                    <div
-                      className="flex size-6 items-center justify-center rounded-md transition-transform group-hover:scale-105"
-                      style={{ color: item.color }}
-                    >
-                      <TechIcon
-                        name={item.customIcon}
-                        className="size-[20px]"
-                        color={item.color}
-                      />
-                    </div>
-                    <span className="truncate w-full text-[10px] font-medium text-text text-center leading-tight px-0.5">
-                      {item.label}
-                    </span>
+                    <ComponentIdentity
+                      name={item.label}
+                      icon={item.customIcon}
+                      color={item.color}
+                      className="w-full"
+                    />
                   </div>
                 </SimpleTooltip>
               );
@@ -1322,6 +1329,100 @@ function LibraryPanel({
           </div>
         )}
       </section>
+    );
+  };
+
+  const renderComponentCatalog = () => {
+    const orderedItems = [...filteredExpanded].sort(
+      (a, b) => COMPONENT_CATALOG_ORDER.indexOf(a.category) - COMPONENT_CATALOG_ORDER.indexOf(b.category)
+    );
+    const visibleItems =
+      catalogCategory === 'All'
+        ? orderedItems
+        : orderedItems.filter((item) => item.category === catalogCategory);
+    const categories: Array<'All' | ExpandedComponentCategory> = ['All', ...EXPANDED_COMPONENT_CATEGORIES];
+
+    return (
+      <div className="pt-1">
+        <div
+          role="group"
+          aria-label="Filter components by category"
+          className="flex gap-1.5 overflow-x-auto pb-2 [scrollbar-width:thin]"
+        >
+          {categories.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => setCatalogCategory(category)}
+              aria-pressed={catalogCategory === category}
+              className={cn(
+                'focus-ring shrink-0 rounded-full px-2.5 py-1 text-[10.5px] font-medium transition-colors',
+                catalogCategory === category
+                  ? 'bg-accent text-white'
+                  : 'bg-surface-2 text-text-muted hover:text-text'
+              )}
+            >
+              {category === 'Messaging & Monitoring' ? 'Messaging' : category}
+            </button>
+          ))}
+        </div>
+
+        {visibleItems.length === 0 ? (
+          <EmptySearch query={query} type="components" />
+        ) : (
+          <div className="grid grid-cols-3 gap-2 pb-2">
+            {visibleItems.map((item) => {
+              const isPlaced =
+                placementItem?.kind === 'component' &&
+                placementItem.label === item.label &&
+                placementItem.customIcon === item.customIcon;
+              const placementData: PlacementItem = {
+                kind: 'component',
+                type: item.genericType,
+                label: item.label,
+                customIcon: item.customIcon,
+                color: item.color,
+                defaultTechStack: item.defaultTechStack,
+                description: item.description,
+              };
+
+              return (
+                <SimpleTooltip
+                  key={item.id}
+                  label={`${item.label}${item.aliases.length ? ` · ${item.aliases.join(', ')}` : ''}`}
+                  side="right"
+                >
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    draggable
+                    onDragStart={(event) => onDragStartPlacementItem(event, placementData)}
+                    onClick={() => setPlacementItem(isPlaced ? null : placementData)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        addCustomComponent(item);
+                      }
+                    }}
+                    aria-label={`Place ${item.label}`}
+                    className={cn(
+                      'focus-ring flex min-h-[76px] cursor-grab flex-col items-center justify-center rounded-[9px] border border-line bg-card p-2 text-center transition-colors hover:border-line-hover hover:bg-surface-2 active:cursor-grabbing',
+                      isPlaced && 'border-accent bg-accent/10 ring-1 ring-accent/30'
+                    )}
+                  >
+                    <ComponentIdentity
+                      name={item.label}
+                      icon={item.customIcon}
+                      color={item.color}
+                      className="w-full"
+                    />
+                  </div>
+                </SimpleTooltip>
+              );
+            })}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -1689,9 +1790,7 @@ function LibraryPanel({
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-3">
         {/* ── TAB 1: COMPONENTS (ONLY SYSTEM DESIGN COMPONENTS) ──────────── */}
         {activeTab === 'components' && (
-          <div className="pt-1">
-            {renderArchitectureComponents()}
-          </div>
+          renderComponentCatalog()
         )}
 
         {/* ── TAB 0: DIAGRAMS (DIAGRAM MODES) ──────────── */}
@@ -1961,7 +2060,33 @@ function LibraryRail({
         </Button>
       </SimpleTooltip>
 
-      {/* 3. Circle (O) */}
+      {/* 3. Diamond (D) */}
+      <SimpleTooltip label="Diamond" keys={['D']} side="right">
+        <Button
+          variant="icon"
+          size="icon-toolbar"
+          aria-label="Diamond"
+          onClick={() => selectToolAndCollapse('diamond')}
+          className={cn(
+            'relative transition-all',
+            activeTool === 'diamond'
+              ? 'bg-accent/15 text-accent shadow-2xs font-semibold ring-1 ring-accent/30'
+              : 'text-text hover:bg-surface-2'
+          )}
+        >
+          <Diamond className="size-[15px]" />
+          <span
+            className={cn(
+              'absolute bottom-0.5 right-1 text-[8.5px] font-mono leading-none select-none pointer-events-none',
+              activeTool === 'diamond' ? 'text-accent font-bold' : 'text-ink-3'
+            )}
+          >
+            D
+          </span>
+        </Button>
+      </SimpleTooltip>
+
+      {/* 4. Circle (O) */}
       <SimpleTooltip label="Circle" keys={['O']} side="right">
         <Button
           variant="icon"
@@ -1987,7 +2112,7 @@ function LibraryRail({
         </Button>
       </SimpleTooltip>
 
-      {/* 4. Arrow (A) */}
+      {/* 5. Arrow (A) */}
       <SimpleTooltip label="Arrow" keys={['A']} side="right">
         <Button
           variant="icon"
@@ -2013,7 +2138,7 @@ function LibraryRail({
         </Button>
       </SimpleTooltip>
 
-      {/* 5. Straight Line (L) */}
+      {/* 6. Straight Line (L) */}
       <SimpleTooltip label="Straight Line" keys={['L']} side="right">
         <Button
           variant="icon"
@@ -2338,6 +2463,7 @@ function LibrarySheet({
               query={query}
               onQueryChange={onQueryChange}
               searchInputRef={{ current: null }}
+              showSearchInput={false}
             />
           )}
           {sheetTab === 'diagrams' && (

@@ -11,12 +11,21 @@ import {
   Wrench,
   Network,
   Boxes,
-  Crosshair,
   Plus,
 } from 'lucide-react';
 import { useReactFlow, useStoreApi } from '@xyflow/react';
 import { cn } from '@/shared/utils/utils';
 import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
+import { Button } from '@/shared/components/ui/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/components/ui/dialog';
 import { TechIcon } from '@/lib/icons/tech-icons';
 import {
   GLOBAL_FILTER_CATEGORIES,
@@ -28,6 +37,8 @@ import {
   findMatchingCanvasNode,
 } from '@/features/canvas/registries/global-search-registry';
 import { useInsertStackPreset } from '../utils/canvas-helpers';
+import { getLayoutedElements } from '@/features/canvas/utils/auto-layout';
+import { saveCurrentCanvasAsDrawz } from '@/features/canvas/utils/save-canvas';
 import {
   createSystemNode,
   createShapeNode,
@@ -43,6 +54,7 @@ interface GlobalInsertPanelProps {
   query: string;
   onQueryChange: (q: string) => void;
   searchInputRef: React.RefObject<HTMLInputElement | null>;
+  showSearchInput?: boolean;
 }
 
 const GROUP_ICONS: Record<GlobalGroup, React.ComponentType<{ className?: string }>> = {
@@ -51,14 +63,6 @@ const GROUP_ICONS: Record<GlobalGroup, React.ComponentType<{ className?: string 
   'Technology Stacks': Workflow,
   Diagrams: Network,
   Tools: Wrench,
-};
-
-const GROUP_COLORS: Record<GlobalGroup, string> = {
-  Components: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/30',
-  'Apps & Services': 'text-pink-500 bg-pink-500/10 border-pink-500/30',
-  'Technology Stacks': 'text-purple-500 bg-purple-500/10 border-purple-500/30',
-  Diagrams: 'text-blue-500 bg-blue-500/10 border-blue-500/30',
-  Tools: 'text-amber-500 bg-amber-500/10 border-amber-500/30',
 };
 
 const GROUP_ORDER: GlobalGroup[] = [
@@ -73,8 +77,10 @@ export function GlobalInsertPanel({
   query,
   onQueryChange,
   searchInputRef,
+  showSearchInput = true,
 }: GlobalInsertPanelProps) {
   const [selectedCategory, setSelectedCategory] = useState<GlobalFilterCategory>('All Categories');
+  const [clearOpen, setClearOpen] = useState(false);
 
   const activeTool = useCanvasStore((s) => s.activeTool);
   const setActiveTool = useCanvasStore((s) => s.setActiveTool);
@@ -83,6 +89,7 @@ export function GlobalInsertPanel({
   const addNode = useCanvasStore((s) => s.addNode);
   const pushHistory = useCanvasStore((s) => s.pushHistory);
   const setSelectedNodeId = useCanvasStore((s) => s.setSelectedNodeId);
+  const projectId = useCanvasStore((s) => s.projectId);
 
   const { screenToFlowPosition, setCenter, fitView, zoomIn, zoomOut } = useReactFlow();
   const storeApi = useStoreApi();
@@ -90,24 +97,38 @@ export function GlobalInsertPanel({
 
   const insertCounter = useRef(0);
   const isDraggingRef = useRef(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   // Search results
   const searchResults = useMemo(() => {
     return searchAllItems(query, selectedCategory);
   }, [query, selectedCategory]);
 
-  // Grouped results into the 5 specified categories
+  const visibleResults = useMemo(() => {
+    if (query.trim()) return searchResults.slice(0, 50);
+    if (selectedCategory !== 'All Categories') return searchResults.slice(0, 30);
+    return GROUP_ORDER.flatMap((group) =>
+      searchResults.filter((item) => (item.group || getItemGroup(item.category)) === group).slice(0, 4)
+    );
+  }, [query, searchResults, selectedCategory]);
+
+  const focusResult = (index: number) => {
+    const buttons = resultsRef.current?.querySelectorAll<HTMLButtonElement>('[data-search-result]');
+    buttons?.[index]?.focus();
+  };
+
+  // Keep the full registry searchable while rendering a compact browse view.
   const groupedResults = useMemo(() => {
     const groups: { group: GlobalGroup; items: GlobalSearchItem[] }[] = [];
 
     for (const groupName of GROUP_ORDER) {
-      const items = searchResults.filter((item) => (item.group || getItemGroup(item.category)) === groupName);
+      const items = visibleResults.filter((item) => (item.group || getItemGroup(item.category)) === groupName);
       if (items.length > 0) {
         groups.push({ group: groupName, items });
       }
     }
     return groups;
-  }, [searchResults]);
+  }, [visibleResults]);
 
   // Check if a matching node already exists on canvas
   const findExistingCanvasNode = useCallback(
@@ -129,11 +150,21 @@ export function GlobalInsertPanel({
 
       // 2. Canvas quick action (autolayout, fitview, zoom, undo, redo, export, clear)
       if (item.action.kind === 'action' && item.action.actionId) {
-        setLibraryCollapsed(true);
+        if (item.action.actionId !== 'clear') setLibraryCollapsed(true);
         switch (item.action.actionId) {
           case 'fitview':
             fitView({ padding: 0.15, duration: 250 });
             return;
+          case 'autolayout': {
+            const canvas = useCanvasStore.getState();
+            if (canvas.nodes.length === 0) return;
+            canvas.pushHistory();
+            const layouted = getLayoutedElements(canvas.nodes, canvas.edges);
+            canvas.setNodes(layouted.nodes);
+            canvas.setEdges(layouted.edges);
+            requestAnimationFrame(() => fitView({ padding: 0.15, duration: 250 }));
+            return;
+          }
           case 'zoomin':
             zoomIn({ duration: 150 });
             return;
@@ -147,7 +178,13 @@ export function GlobalInsertPanel({
             useCanvasStore.getState().redo();
             return;
           case 'clear':
-            useCanvasStore.getState().clearCanvas();
+            setClearOpen(true);
+            return;
+          case 'save-drawz':
+            if (projectId) void saveCurrentCanvasAsDrawz(projectId);
+            return;
+          case 'shortcuts':
+            useCanvasStore.getState().setShortcutsOpen(true);
             return;
           case 'export':
             useCanvasStore.getState().setExportOpen(true);
@@ -175,7 +212,7 @@ export function GlobalInsertPanel({
         });
 
         const offset = (insertCounter.current++ % 8) * 26;
-        const pos = { x: center.x - 100 + offset, y: center.y - 36 + offset };
+        const pos = { x: center.x - 46 + offset, y: center.y - 38 + offset };
 
         let newNode: SystemNode | null = null;
 
@@ -237,6 +274,7 @@ export function GlobalInsertPanel({
       pushHistory,
       addNode,
       setSelectedNodeId,
+      projectId,
     ]
   );
 
@@ -253,35 +291,70 @@ export function GlobalInsertPanel({
   );
 
   return (
+    <>
     <div className="flex flex-col h-full min-h-0">
       {/* ── Search Input ── */}
+      {showSearchInput && (
       <div className="px-2.5 pt-2 pb-1.5 shrink-0">
         <div className="relative flex items-center w-full">
-          <Search className="absolute left-2.5 size-3.5 text-text-muted pointer-events-none" />
+          <Search className="absolute left-3 size-4 text-ink-3 pointer-events-none" />
           <input
             ref={searchInputRef}
             type="text"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search all components, apps, presets, tools..."
-            className="w-full h-8 pl-8 pr-7 text-[12px] rounded-[8px] border border-line/70 bg-surface-1 text-text placeholder:text-text-muted/70 focus:outline-hidden focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all"
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                focusResult(0);
+              } else if (e.key === 'Enter') {
+                e.preventDefault();
+                resultsRef.current?.querySelector<HTMLButtonElement>('[data-search-result]')?.click();
+              } else if (e.key === 'Escape' && query) {
+                e.stopPropagation();
+                onQueryChange('');
+              }
+            }}
+            aria-label="Search canvas items and actions"
+            placeholder="Search components, shapes, commands…"
+            className="w-full h-10 pl-9 pr-8 text-[12.5px] rounded-[10px] border border-line bg-paper text-ink placeholder:text-ink-3 focus:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/15 transition-colors"
           />
           {query && (
             <button
               type="button"
               onClick={() => onQueryChange('')}
-              className="absolute right-2 size-4 flex items-center justify-center rounded-full text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
-              title="Clear search"
+              className="absolute right-2 flex size-6 items-center justify-center rounded-full text-ink-3 hover:text-ink hover:bg-line-2 transition-colors cursor-pointer"
+              aria-label="Clear search"
             >
               <X className="size-3" />
             </button>
           )}
         </div>
       </div>
+      )}
+
+      {!query && selectedCategory === 'All Categories' && (
+        <div className="flex items-center gap-1.5 px-3 pb-1.5 text-[10.5px] text-ink-3">
+          <span className="shrink-0">Try</span>
+          {['DNS', 'Diamond', 'Save'].map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => {
+                onQueryChange(suggestion);
+                searchInputRef.current?.focus();
+              }}
+              className="rounded-md border border-line px-1.5 py-0.5 text-ink-2 hover:border-accent/50 hover:text-accent focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── Category Filter Pills ── */}
       <div className="px-2.5 py-1 shrink-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex items-center gap-1 min-w-max pb-0.5">
+        <div className="flex items-center gap-1 min-w-max pb-0.5" aria-label="Filter search results">
           {GLOBAL_FILTER_CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat;
             return (
@@ -290,10 +363,10 @@ export function GlobalInsertPanel({
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
                 className={cn(
-                  'px-2 py-0.5 rounded-full text-[10.5px] font-medium transition-all select-none cursor-pointer',
+                  'px-2.5 py-1 rounded-full border text-[10.5px] font-medium transition-colors select-none cursor-pointer',
                   isSelected
-                    ? 'bg-accent text-white shadow-2xs font-semibold'
-                    : 'bg-surface-2/80 text-text-muted hover:text-text hover:bg-surface-2'
+                    ? 'border-accent/40 bg-accent-soft text-accent font-semibold'
+                    : 'border-line bg-paper text-ink-2 hover:border-accent/30 hover:text-ink'
                 )}
               >
                 {cat}
@@ -303,36 +376,38 @@ export function GlobalInsertPanel({
         </div>
       </div>
 
+      <div className="flex items-center justify-between px-3 pt-1 pb-1.5 text-[10px] text-ink-3" role="status" aria-live="polite">
+        <span>{query ? `${searchResults.length} ${searchResults.length === 1 ? 'result' : 'results'}` : `Browse ${searchResults.length} items`}</span>
+        <span>↑↓ Navigate · Enter use</span>
+      </div>
+
       {/* ── Grouped Content List ── */}
-      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-3 space-y-3 pt-1">
+      <div ref={resultsRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-3 space-y-3 pt-1">
         {searchResults.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
             <Search className="size-6 text-text-muted/40 mb-2" />
             <p className="text-[12.5px] font-medium text-text">No matching items found</p>
             <p className="text-[11px] text-text-muted mt-0.5 max-w-[200px]">
-              No results for &ldquo;{query}&rdquo;. Try searching for React, Facebook, Postgres, or Tools.
+              Try a component name, shape, command, or a shorter phrase.
             </p>
           </div>
         ) : (
           groupedResults.map((group) => {
             const GroupIcon = GROUP_ICONS[group.group] || Boxes;
-            const badgeClass = GROUP_COLORS[group.group] || 'text-text-muted bg-surface-2';
 
             return (
-              <section key={group.group} className="space-y-1">
-                {/* Group Heading */}
+              <section key={group.group} className="space-y-1.5">
                 <div className="flex items-center justify-between px-1.5 py-0.5">
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted">
-                    <GroupIcon className="size-3" />
+                  <div className="flex items-center gap-1.5 text-[10.5px] font-semibold text-ink-2">
+                    <GroupIcon className="size-3.5 text-accent" />
                     <span>{group.group}</span>
                   </div>
-                  <span className="text-[9.5px] text-text-muted font-mono rounded bg-surface-2 px-1.5 py-0.2">
-                    {group.items.length}
+                  <span className="text-[10px] tabular-nums text-ink-3">
+                    {searchResults.filter((item) => (item.group || getItemGroup(item.category)) === group.group).length}
                   </span>
                 </div>
 
-                {/* Items in Group */}
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {group.items.map((item) => {
                     const isToolActive = item.action.kind === 'tool' && activeTool === item.action.tool;
                     const existingNode = findExistingCanvasNode(item);
@@ -342,8 +417,6 @@ export function GlobalInsertPanel({
                     return (
                       <div
                         key={item.id}
-                        role="button"
-                        tabIndex={0}
                         draggable={isDraggable}
                         onDragStart={(e) => {
                           isDraggingRef.current = true;
@@ -376,124 +449,78 @@ export function GlobalInsertPanel({
                             isDraggingRef.current = false;
                           }, 120);
                         }}
-                        onClick={(e) => {
-                          if (isDraggingRef.current) return;
-                          e.preventDefault();
-                          insertSearchItem(item);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            insertSearchItem(item);
-                          }
-                        }}
                         className={cn(
-                          'group flex items-center gap-2.5 p-2 rounded-[8px] border border-line/50 bg-card/60 hover:bg-surface-2/80 hover:border-line-hover transition-all duration-[120ms] select-none',
-                          isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
-                          isToolActive && 'border-accent bg-accent/10 shadow-2xs ring-1 ring-accent/30',
-                          existingNode && 'bg-accent/5 border-accent/25'
+                          'group flex min-h-12 items-center gap-1 rounded-[9px] border border-line bg-paper pr-1 transition-colors hover:border-accent/35 hover:bg-accent-soft/30 focus-within:border-accent/50 focus-within:bg-accent-soft/30',
+                          isDraggable && 'cursor-grab active:cursor-grabbing',
+                          isToolActive && 'border-accent/50 bg-accent-soft/50'
                         )}
                       >
-                        {/* Icon Container */}
-                        <div
-                          className="flex size-7 shrink-0 items-center justify-center rounded-[6px] bg-surface-2 border border-line/40 group-hover:scale-105 transition-transform"
-                          style={{ color: item.color }}
+                        <button
+                          type="button"
+                          data-search-result
+                          title={item.description}
+                          aria-label={`${existingNode ? 'Select existing' : isDraggable ? 'Insert' : 'Use'} ${item.label}`}
+                          onClick={() => {
+                            if (isDraggingRef.current) return;
+                            if (existingNode) focusExistingNode(existingNode);
+                            else insertSearchItem(item);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              e.preventDefault();
+                              searchInputRef.current?.focus();
+                            } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
+                              e.preventDefault();
+                              const buttons = resultsRef.current?.querySelectorAll<HTMLButtonElement>('[data-search-result]');
+                              if (!buttons) return;
+                              const index = Array.from(buttons).indexOf(e.currentTarget);
+                              if (e.key === 'Home') focusResult(0);
+                              else if (e.key === 'End') focusResult(buttons.length - 1);
+                              else if (e.key === 'ArrowDown') focusResult(Math.min(index + 1, buttons.length - 1));
+                              else if (index === 0) searchInputRef.current?.focus();
+                              else focusResult(index - 1);
+                            }
+                          }}
+                          className="flex min-w-0 flex-1 items-center gap-2 p-2 text-left outline-none cursor-pointer"
                         >
-                          {item.customIcon ? (
-                            <TechIcon name={item.customIcon} className="size-[16px]" color={item.color} />
-                          ) : ItemIcon ? (
-                            <ItemIcon className="size-4 stroke-[1.8]" />
-                          ) : (
-                            <Sparkles className="size-4" />
-                          )}
-                        </div>
-
-                        {/* Title & Description */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11.5px] font-semibold text-text truncate max-w-[130px]">
-                              {item.label}
+                          <span
+                            className="flex size-8 shrink-0 items-center justify-center rounded-[7px] border border-line/70 bg-line-2"
+                            style={{ color: item.color }}
+                          >
+                            {item.customIcon ? (
+                              <TechIcon name={item.customIcon} className="size-[17px]" color={item.color} />
+                            ) : ItemIcon ? (
+                              <ItemIcon className="size-[17px] stroke-[1.8]" />
+                            ) : (
+                              <Sparkles className="size-4" />
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[12px] font-semibold leading-4 text-ink">{item.label}</span>
+                            <span className="block truncate text-[10.5px] leading-4 text-ink-3">
+                              {existingNode ? 'On canvas · select' : item.subcategory || item.category}
                             </span>
-                            {item.badge && (
-                              <span
-                                className={cn(
-                                  'text-[8.5px] font-medium px-1 rounded-sm border shrink-0',
-                                  badgeClass
-                                )}
-                              >
-                                {item.badge}
-                              </span>
-                            )}
-                            {existingNode && (
-                              <span className="text-[8.5px] font-semibold text-accent bg-accent/15 border border-accent/30 px-1 rounded-sm shrink-0">
-                                On canvas
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-text-muted truncate mt-0.2">
-                            {item.description}
-                          </p>
-                        </div>
-
-                        {/* Action buttons (Focus, Duplicate, Insert) */}
-                        <div className="shrink-0 flex items-center gap-1">
+                          </span>
+                        </button>
+                        <div className="flex shrink-0 items-center pr-1">
                           {existingNode ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  focusExistingNode(existingNode);
-                                }}
-                                className="px-1.5 py-0.5 rounded text-[9.5px] font-medium bg-surface-2 hover:bg-surface-3 text-text border border-line transition-colors cursor-pointer flex items-center gap-0.5"
-                                title="Focus existing node on canvas"
-                              >
-                                <Crosshair className="size-2.5 text-accent" />
-                                Select
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  insertSearchItem(item);
-                                }}
-                                className="px-1.5 py-0.5 rounded text-[9.5px] font-medium bg-accent text-white hover:bg-accent/90 transition-colors cursor-pointer flex items-center gap-0.5 shadow-2xs"
-                                title="Insert a duplicate on canvas"
-                              >
-                                <Plus className="size-2.5" />
-                                Duplicate
-                              </button>
-                            </>
+                            <button
+                              type="button"
+                              onClick={() => insertSearchItem(item)}
+                              className="flex size-7 items-center justify-center rounded-md text-accent hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-accent"
+                              aria-label={`Insert another ${item.label}`}
+                              title="Insert another"
+                            >
+                              <Plus className="size-4" />
+                            </button>
                           ) : item.shortcut ? (
-                            <kbd className="px-1.5 py-0.5 rounded bg-surface-2 border border-line/60 text-[9px] font-mono text-text-muted">
-                              {item.shortcut}
-                            </kbd>
-                          ) : item.action.kind === 'preset' ? (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                insertSearchItem(item);
-                              }}
-                              className="text-[9.5px] font-medium text-accent bg-accent/15 hover:bg-accent/25 border border-accent/30 px-2 py-0.5 rounded transition-colors cursor-pointer"
-                            >
-                              Insert Preset
-                            </button>
-                          ) : item.action.kind === 'placement' ? (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                insertSearchItem(item);
-                              }}
-                              className="text-[9.5px] font-medium text-text-muted group-hover:text-accent bg-surface-2 group-hover:bg-accent/15 border border-line group-hover:border-accent/30 px-1.5 py-0.5 rounded transition-all cursor-pointer"
-                            >
-                              Insert
-                            </button>
+                            <kbd className="rounded border border-line bg-line-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-2">{item.shortcut}</kbd>
                           ) : isToolActive ? (
                             <Check className="size-3.5 text-accent" />
+                          ) : isDraggable ? (
+                            <Plus className="size-3.5 text-ink-3 group-hover:text-accent" />
                           ) : (
-                            <ChevronRight className="size-3 text-text-muted/50 group-hover:text-text group-hover:translate-x-0.5 transition-all" />
+                            <ChevronRight className="size-3.5 text-ink-3 group-hover:text-accent" />
                           )}
                         </div>
                       </div>
@@ -505,6 +532,30 @@ export function GlobalInsertPanel({
           })
         )}
       </div>
+      {visibleResults.length < searchResults.length && (
+        <p className="shrink-0 border-t border-line px-3 py-2 text-[10.5px] text-ink-3">
+          Showing {visibleResults.length} of {searchResults.length}. Type to narrow the results.
+        </p>
+      )}
     </div>
+    <Dialog open={clearOpen} onOpenChange={setClearOpen}>
+      <DialogContent className="max-w-[360px]">
+        <DialogHeader><DialogTitle className="text-[15px]">Clear canvas?</DialogTitle></DialogHeader>
+        <DialogBody className="pt-1.5">
+          <DialogDescription className="mt-0 text-[13px]">
+            Removes every component and connection. You can undo this.
+          </DialogDescription>
+        </DialogBody>
+        <DialogFooter className="justify-end border-t-0 pt-0">
+          <Button variant="secondary" onClick={() => setClearOpen(false)}>Cancel</Button>
+          <Button variant="danger-solid" onClick={() => {
+            useCanvasStore.getState().clearCanvas();
+            setClearOpen(false);
+            setLibraryCollapsed(true);
+          }}>Clear</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

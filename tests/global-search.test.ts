@@ -10,6 +10,20 @@ import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
 import type { SystemNodeType } from '@/features/canvas/types/canvas.types';
 
 describe('Global Search & Quick Insert Registry', () => {
+  it('ranks exact matches and requires every word in a query', () => {
+    expect(searchAllItems('DNS')[0]?.label).toBe('DNS');
+    const results = searchAllItems('api gateway');
+    expect(results[0]?.label).toBe('API Gateway');
+    expect(results.every((item) => item.label !== 'DNS')).toBe(true);
+  });
+
+  it('finds canvas commands and uses the current drawing shortcuts', () => {
+    expect(searchAllItems('save').some((item) => item.action.actionId === 'save-drawz')).toBe(true);
+    expect(searchAllItems('tips').some((item) => item.action.actionId === 'shortcuts')).toBe(true);
+    expect(searchAllItems('diamond').find((item) => item.id === 'tool-diamond')?.shortcut).toBe('D');
+    expect(searchAllItems('pencil').find((item) => item.id === 'tool-pencil')?.shortcut).toBe('B');
+  });
+
   it('loads items across all required categories', () => {
     const items = getGlobalSearchItems();
     expect(items.length).toBeGreaterThan(100);

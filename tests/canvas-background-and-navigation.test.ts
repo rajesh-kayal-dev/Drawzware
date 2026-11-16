@@ -27,6 +27,7 @@ describe('Canvas Background & Touchpad Navigation Options', () => {
     mockStore.clear();
     useSettingsStore.setState({
       canvasBackground: 'dots',
+      canvasBrightness: 100,
       theme: 'system',
       snap: true,
       minimap: false,
@@ -47,6 +48,17 @@ describe('Canvas Background & Touchpad Navigation Options', () => {
         useSettingsStore.getState().setCanvasBackground(bg);
         expect(useSettingsStore.getState().canvasBackground).toBe(bg);
       }
+    });
+
+    it('keeps canvas brightness within a comfortable adjustable range', () => {
+      const settings = useSettingsStore.getState();
+      expect(settings.canvasBrightness).toBe(100);
+      settings.setCanvasBrightness(125);
+      expect(useSettingsStore.getState().canvasBrightness).toBe(125);
+      settings.setCanvasBrightness(10);
+      expect(useSettingsStore.getState().canvasBrightness).toBe(60);
+      settings.setCanvasBrightness(200);
+      expect(useSettingsStore.getState().canvasBrightness).toBe(140);
     });
 
     it('supports subscribing to background changes across canvas components', () => {

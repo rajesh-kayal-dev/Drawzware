@@ -9,6 +9,7 @@ const LEGACY_THEME_KEY = 'system-design-canvas-theme';
 interface SettingsStore {
   theme: ThemePreference;
   canvasBackground: CanvasBackground;
+  canvasBrightness: number;
   snap: boolean;
   minimap: boolean;
   validation: boolean;
@@ -18,6 +19,7 @@ interface SettingsStore {
 
   setTheme: (theme: ThemePreference) => void;
   setCanvasBackground: (bg: CanvasBackground) => void;
+  setCanvasBrightness: (brightness: number) => void;
   setSnap: (value: boolean) => void;
   setMinimap: (value: boolean) => void;
   setValidation: (value: boolean) => void;
@@ -29,6 +31,7 @@ export const useSettingsStore = create<SettingsStore>()(
     (set) => ({
       theme: 'dark',
       canvasBackground: 'dots',
+      canvasBrightness: 100,
       snap: false,
       minimap: true,
       validation: true,
@@ -37,6 +40,7 @@ export const useSettingsStore = create<SettingsStore>()(
 
       setTheme: (theme) => set({ theme }),
       setCanvasBackground: (canvasBackground) => set({ canvasBackground }),
+      setCanvasBrightness: (canvasBrightness) => set({ canvasBrightness: Math.max(60, Math.min(140, canvasBrightness)) }),
       setSnap: (snap) => set({ snap }),
       setMinimap: (minimap) => set({ minimap }),
       setValidation: (validation) => set({ validation }),
@@ -59,9 +63,10 @@ export const useSettingsStore = create<SettingsStore>()(
       }),
       // Rehydrated manually in Providers so server and first client render match.
       skipHydration: true,
-      partialize: ({ theme, canvasBackground, snap, minimap, validation, animatedEdges }) => ({
+      partialize: ({ theme, canvasBackground, canvasBrightness, snap, minimap, validation, animatedEdges }) => ({
         theme,
         canvasBackground,
+        canvasBrightness,
         snap,
         minimap,
         validation,
