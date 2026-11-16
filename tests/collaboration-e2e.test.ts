@@ -157,6 +157,9 @@ describe('DrawzWare Phase 4: End-to-End Real Multi-Client Collaboration Validati
   }
 
   beforeAll(async () => {
+    if (typeof WebSocket !== 'function') {
+      throw new Error('Collaboration E2E tests require WebSocket. Enable it on Node 20 with NODE_OPTIONS=--experimental-websocket.');
+    }
     process.env.JWT_SECRET = JWT_SECRET;
     tokenA = jwt.sign({ id: userA.id, email: userA.email, isEmailVerified: true }, JWT_SECRET, { expiresIn: '2h' });
     tokenB = jwt.sign({ id: userB.id, email: userB.email, isEmailVerified: true }, JWT_SECRET, { expiresIn: '2h' });
