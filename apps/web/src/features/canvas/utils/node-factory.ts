@@ -87,7 +87,7 @@ export function createCanvasTextNode(
       description: '',
       techStack: [],
       fontSize: formatting?.fontSize ?? 16,
-      fontFamily: formatting?.fontFamily ?? 'sans',
+      fontFamily: formatting?.fontFamily ?? 'sketch',
       color: formatting?.color ?? 'var(--ink)',
       bold: formatting?.bold ?? false,
       italic: formatting?.italic ?? false,

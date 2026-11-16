@@ -18,6 +18,7 @@
   --note: oklch(0.97 0.04 90);
   --note-line: oklch(0.88 0.08 90);
   --canvas-neutral: oklch(0.94 0.005 80);
+  --shape-selection-line: color-mix(in srgb, var(--accent) 24%, transparent);
   --edge-mix: 55%;
   --shadow: 0 1px 2px rgb(30 20 10 / 0.04), 0 8px 24px -12px rgb(30 20 10 / 0.14);
   --shadow-lg: 0 2px 4px rgb(30 20 10 / 0.04), 0 16px 40px -16px rgb(30 20 10 / 0.2);
@@ -42,6 +43,7 @@
   --note: oklch(0.3 0.04 90);
   --note-line: oklch(0.42 0.07 90);
   --canvas-neutral: oklch(0.24 0.006 60);
+  --shape-selection-line: oklch(0.78 0.08 255 / 0.48);
   --edge-mix: 72%;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
   --shadow-lg: 0 2px 4px rgb(0 0 0 / 0.3), 0 16px 40px -16px rgb(0 0 0 / 0.6);

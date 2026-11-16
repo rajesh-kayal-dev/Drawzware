@@ -255,7 +255,7 @@ export const SystemNodeDataSchema = z.object({
   strokeWidth: z.number().optional(),
   text: z.string().optional(),
   fontSize: z.number().optional(),
-  fontFamily: z.enum(['sans', 'serif', 'mono', 'casual']).or(z.string()).optional(),
+  fontFamily: z.enum(['sketch', 'sans', 'serif', 'mono', 'casual']).or(z.string()).optional(),
   bold: z.boolean().optional(),
   italic: z.boolean().optional(),
   underline: z.boolean().optional(),

@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
 import { cleanWaypoints, perpendicularDistance, pointsToSvgPath, type Point } from '@drawzware/canvas-core';
 import type { SystemNodeData, SystemNode } from '@/features/canvas/types/canvas.types';
-import { createShapeNode } from '@/features/canvas/utils/node-factory';
+import { createCanvasTextNode, createShapeNode } from '@/features/canvas/utils/node-factory';
+import { getCanvasFontClass } from '@/features/canvas/utils/canvas-font';
 
 describe('Canvas UX and Drawing Tools (Sidebar, Toolbar, Straight Line, Arrow)', () => {
   beforeEach(() => {
@@ -171,6 +172,13 @@ describe('Canvas UX and Drawing Tools (Sidebar, Toolbar, Straight Line, Arrow)',
   });
 
   describe('5. Persistence and Diagram Compatibility', () => {
+    it('uses handwriting for new text while preserving an explicitly chosen font', () => {
+      expect(createCanvasTextNode({ x: 0, y: 0 }).data.fontFamily).toBe('sketch');
+      expect(createCanvasTextNode({ x: 0, y: 0 }, 'Title', { fontFamily: 'serif' }).data.fontFamily).toBe('serif');
+      expect(getCanvasFontClass()).toBe('font-sketch');
+      expect(getCanvasFontClass('serif')).toBe('font-serif');
+    });
+
     it('uses ink for new shapes and migrates only the old default blue stroke', () => {
       const fresh = createShapeNode('ellipse', { x: 0, y: 0 });
       const oldDefault = createShapeNode('diamond', { x: 150, y: 0 }, '', undefined, { shapeStroke: '#3b82f6' });

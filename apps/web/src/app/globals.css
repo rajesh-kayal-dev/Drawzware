@@ -4,6 +4,12 @@
 @import "../styles/tokens.css";
 @import "../styles/scanner.css";
 
+@font-face {
+  font-family: "Virgil";
+  src: url("/fonts/Virgil.woff2") format("woff2");
+  font-display: swap;
+}
+
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
@@ -45,6 +51,10 @@
   --shadow-1: var(--shadow);
   --shadow-2: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
+}
+
+.font-sketch {
+  font-family: "Virgil", "Segoe Print", cursive;
 }
 
 @layer base {

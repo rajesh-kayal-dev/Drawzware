@@ -267,7 +267,7 @@ function loadInitialTextFormatting() {
   if (typeof window === 'undefined') {
     return {
       fontSize: 16,
-      fontFamily: 'sans',
+      fontFamily: 'sketch',
       color: 'var(--ink)',
       bold: false,
       italic: false,
@@ -281,7 +281,7 @@ function loadInitialTextFormatting() {
       const parsed = JSON.parse(raw);
       return {
         fontSize: typeof parsed.fontSize === 'number' ? parsed.fontSize : 16,
-        fontFamily: typeof parsed.fontFamily === 'string' ? parsed.fontFamily : 'sans',
+        fontFamily: typeof parsed.fontFamily === 'string' ? parsed.fontFamily : 'sketch',
         color: typeof parsed.color === 'string' ? parsed.color : 'var(--ink)',
         bold: Boolean(parsed.bold),
         italic: Boolean(parsed.italic),
@@ -294,7 +294,7 @@ function loadInitialTextFormatting() {
   }
   return {
     fontSize: 16,
-    fontFamily: 'sans',
+    fontFamily: 'sketch',
     color: 'var(--ink)',
     bold: false,
     italic: false,
