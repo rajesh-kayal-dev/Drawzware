@@ -29,9 +29,9 @@ import { useSettingsStore, type CanvasBackground, type ThemePreference } from '@
 import { useTheme } from '@/shared/hooks/useTheme';
 import { useCollaborationStore } from '@/features/collaboration/stores/useCollaborationStore';
 import { useCanvasStore } from '@/features/canvas/stores/useCanvasStore';
-import { useProjectStore } from '@/features/projects/stores/useProjectStore';
 import { exportToPng, exportToSvg, exportToJson, exportFilename } from '@/features/import-export/utils/export';
-import { openDrawzProject, saveAsDrawzProject } from '@/features/projects/utils/file-operations';
+import { openDrawzProject } from '@/features/projects/utils/file-operations';
+import { saveCurrentCanvasAsDrawz } from '@/features/canvas/utils/save-canvas';
 import { downloadFile, cn } from '@/shared/utils/utils';
 import { toast } from '@/stores/useToastStore';
 import {
@@ -40,7 +40,6 @@ import {
   getCollaboratorInitial,
 } from '@/features/collaboration/utils/collaborator-helpers';
 import { EditProfileModal } from '@/features/collaboration/components/EditProfileModal';
-import type { Project } from '@drawzware/contracts';
 
 interface CanvasMoreMenuProps {
   projectId: string;
@@ -67,26 +66,9 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
   // 1. Export Handlers
   const handleSaveAsDrawz = async () => {
     if (isExportingDrawz) return;
-    const currentProject = useProjectStore.getState().projects.find((p) => p.id === projectId);
-    const { nodes, edges, viewport, diagramType, diagramData } = useCanvasStore.getState();
-    const projectToSave: Project = currentProject
-      ? { ...currentProject, nodes, edges, viewport, diagramType, diagramData }
-      : {
-          id: projectId,
-          name: projectName || 'Untitled Design',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          nodes,
-          edges,
-          viewport,
-          diagramType,
-          diagramData,
-        };
-
     setIsExportingDrawz(true);
     try {
-      await saveAsDrawzProject(projectToSave);
-      toast({ message: 'Saved as .drawz file', tone: 'ok' });
+      await saveCurrentCanvasAsDrawz(projectId, projectName);
     } catch {
       toast({ message: 'Failed to save project', tone: 'danger' });
     } finally {

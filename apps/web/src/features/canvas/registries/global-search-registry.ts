@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   MousePointer2,
   Square,
+  Diamond,
   Circle,
   ArrowUpRight,
   Minus,
@@ -19,6 +20,8 @@ import {
   ZoomIn,
   ZoomOut,
   Download,
+  FileDown,
+  Keyboard,
   Trash2,
 } from 'lucide-react';
 import type { CanvasTool, PlacementItem, SystemNodeType } from '@/features/canvas/types/canvas.types';
@@ -206,6 +209,18 @@ const TOOL_ITEMS: GlobalSearchItem[] = [
     action: { kind: 'tool', tool: 'circle' },
   },
   {
+    id: 'tool-diamond',
+    label: 'Diamond Shape',
+    category: 'Tools',
+    group: 'Tools',
+    subcategory: 'Drawing',
+    description: 'Draw a diamond without a label',
+    keywords: ['diamond', 'decision', 'shape', 'd'],
+    icon: Diamond,
+    shortcut: 'D',
+    action: { kind: 'tool', tool: 'diamond' },
+  },
+  {
     id: 'tool-arrow',
     label: 'Arrow Connector',
     category: 'Tools',
@@ -236,9 +251,9 @@ const TOOL_ITEMS: GlobalSearchItem[] = [
     group: 'Tools',
     subcategory: 'Drawing',
     description: 'Freehand sketching, drawing and wireframing pen',
-    keywords: ['pencile', 'pencil', 'pen', 'draw', 'sketch', 'brush', 'd'],
+    keywords: ['pencile', 'pencil', 'pen', 'draw', 'sketch', 'brush', 'b'],
     icon: Pencil,
-    shortcut: 'D',
+    shortcut: 'B',
     action: { kind: 'tool', tool: 'pencil' },
   },
   {
@@ -350,6 +365,29 @@ const TOOL_ITEMS: GlobalSearchItem[] = [
     icon: RotateCw,
     shortcut: 'Ctrl+Y',
     action: { kind: 'action', actionId: 'redo' },
+  },
+  {
+    id: 'tool-save-drawz',
+    label: 'Save As .drawz',
+    category: 'Tools',
+    group: 'Tools',
+    subcategory: 'File',
+    description: 'Download an editable copy of this canvas',
+    keywords: ['save', 'download', 'backup', 'file', 'drawz'],
+    icon: FileDown,
+    action: { kind: 'action', actionId: 'save-drawz' },
+  },
+  {
+    id: 'tool-shortcuts-help',
+    label: 'Keyboard shortcuts & tips',
+    category: 'Tools',
+    group: 'Tools',
+    subcategory: 'Help',
+    description: 'See the available canvas shortcuts',
+    keywords: ['tips', 'help', 'guide', 'keyboard', 'shortcuts'],
+    icon: Keyboard,
+    shortcut: '?',
+    action: { kind: 'action', actionId: 'shortcuts' },
   },
   {
     id: 'tool-export',
@@ -669,18 +707,8 @@ export function searchAllItems(
   const rawQ = query.trim().toLowerCase();
   if (!rawQ) return items;
 
-  // Split query into terms and expand typo/alias maps
   const queryWords = rawQ.split(/\s+/).filter(Boolean);
-  const searchWords = Array.from(
-    new Set(
-      queryWords.flatMap((word) => {
-        const expansions = TYPO_MAP[word];
-        return expansions ? [word, ...expansions] : [word];
-      })
-    )
-  );
-
-  return items.filter((item) => {
+  const ranked = items.flatMap((item, index) => {
     const labelLower = item.label.toLowerCase();
     const subcategoryLower = (item.subcategory || '').toLowerCase();
     const descLower = item.description.toLowerCase();
@@ -688,24 +716,39 @@ export function searchAllItems(
     const groupLower = (item.group || getItemGroup(item.category)).toLowerCase();
     const keywords = (item.keywords || []).map((k) => k.toLowerCase());
     const aliases = (item.aliases || []).map((a) => a.toLowerCase());
+    const shortcut = item.shortcut?.toLowerCase();
 
-    // Direct match against raw query
-    if (labelLower === rawQ || aliases.includes(rawQ) || labelLower.includes(rawQ)) {
-      return true;
+    const scoreTerm = (term: string): number => {
+      if (labelLower === term) return 100;
+      if (shortcut === term) return 95;
+      if (aliases.includes(term)) return 90;
+      if (labelLower.startsWith(term)) return 80;
+      if (aliases.some((alias) => alias.startsWith(term))) return 70;
+      if (term.length === 1) return 0;
+      if (labelLower.includes(term)) return 60;
+      if (keywords.some((keyword) => keyword === term)) return 50;
+      if (keywords.some((keyword) => keyword.includes(term))) return 40;
+      if (subcategoryLower.includes(term)) return 30;
+      if (categoryLower.includes(term) || groupLower.includes(term)) return 20;
+      if (descLower.includes(term)) return 10;
+      return 0;
+    };
+
+    let score = 0;
+    for (const word of queryWords) {
+      const variants = [word, ...(TYPO_MAP[word] || [])];
+      const wordScore = Math.max(...variants.map(scoreTerm));
+      if (wordScore === 0) return [];
+      score += wordScore;
     }
-
-    // Match across expanded search terms
-    return searchWords.some((term) => {
-      if (labelLower.includes(term)) return true;
-      if (aliases.some((a) => a.includes(term) || term.includes(a))) return true;
-      if (subcategoryLower.includes(term)) return true;
-      if (descLower.includes(term)) return true;
-      if (categoryLower.includes(term)) return true;
-      if (groupLower.includes(term)) return true;
-      if (keywords.some((k) => k.includes(term))) return true;
-      return false;
-    });
+    if (labelLower === rawQ) score += 200;
+    else if (labelLower.startsWith(rawQ)) score += 100;
+    return [{ item, index, score }];
   });
+
+  return ranked
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map(({ item }) => item);
 }
 
 /**
@@ -716,6 +759,7 @@ export function findMatchingCanvasNode<T extends { data?: Record<string, unknown
   item: GlobalSearchItem,
   nodes: T[]
 ): T | undefined {
+  if (item.action.kind !== 'placement') return undefined;
   const itemLabel = item.label.trim().toLowerCase();
   const customIcon =
     item.action.kind === 'placement' ? item.action.placement?.customIcon : undefined;

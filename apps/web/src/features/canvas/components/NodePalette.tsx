@@ -2463,6 +2463,7 @@ function LibrarySheet({
               query={query}
               onQueryChange={onQueryChange}
               searchInputRef={{ current: null }}
+              showSearchInput={false}
             />
           )}
           {sheetTab === 'diagrams' && (
