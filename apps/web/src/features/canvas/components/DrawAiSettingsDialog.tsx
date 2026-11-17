@@ -44,28 +44,34 @@ function PreviewNote({ children }: { children: React.ReactNode }) {
 }
 
 function ModelsView({ onViewChange }: { onViewChange: Props['onViewChange'] }) {
-  const [selected, setSelected] = useState<'free' | 'fast'>('free');
+  const [selected, setSelected] = useState<'basic' | 'advanced'>('basic');
 
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <p className="text-[11px] font-semibold text-ink-2">Built-in models</p>
-        <div className="overflow-hidden rounded-xl border border-line">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] font-semibold text-ink-2">Built-in models</p>
+          <span className="text-[11px] text-ink-2">8 requests total</span>
+        </div>
+        <div role="radiogroup" aria-label="Built-in models" className="overflow-hidden rounded-xl border border-line">
           {([
-            { id: 'free', name: 'Drawz Free', detail: 'For everyday diagram requests', icon: Layers },
-            { id: 'fast', name: 'Drawz Fast', detail: 'For quicker drafts', icon: Sparkles },
-          ] as const).map(({ id, name, detail, icon: Icon }) => (
+            { id: 'basic', name: 'Drawz Basic', detail: 'Documents, quick edits, and small changes', requests: 5, icon: Layers },
+            { id: 'advanced', name: 'Drawz Advanced', detail: 'Complete diagrams, architecture, and notes', requests: 3, icon: Sparkles },
+          ] as const).map(({ id, name, detail, requests, icon: Icon }) => (
             <button
               key={id}
               type="button"
               role="radio"
               aria-checked={selected === id}
               onClick={() => setSelected(id)}
-              className={`focus-ring flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-surface-2 ${id === 'fast' ? 'border-t border-line' : ''} ${selected === id ? 'bg-accent/10' : ''}`}
+              className={`focus-ring flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-surface-2 ${id === 'advanced' ? 'border-t border-line' : ''} ${selected === id ? 'bg-accent/10' : ''}`}
             >
               <Icon className="size-4 shrink-0 text-ink-2" strokeWidth={1.7} />
               <span className="min-w-0 flex-1">
-                <span className="block text-[12px] font-medium text-ink">{name}</span>
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] font-medium text-ink">
+                  {name}
+                  <span className="rounded-full border border-line bg-paper px-1.5 py-0.5 text-[10px] font-medium text-ink-2">{requests} requests</span>
+                </span>
                 <span className="block text-[11px] text-ink-2">{detail}</span>
               </span>
               {selected === id ? <Check className="size-4 text-accent" /> : <span className="size-4 rounded-full border border-line" />}
