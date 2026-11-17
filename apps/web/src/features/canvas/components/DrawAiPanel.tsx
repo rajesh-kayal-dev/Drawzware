@@ -54,9 +54,9 @@ export function DrawAiPanel() {
   };
 
   return (
-    <section data-theme={panelTheme} aria-label="Drawz AI workspace" className="animate-panel-in absolute top-4 bottom-4 right-4 z-20 flex w-[min(420px,calc(100vw-96px))] flex-col overflow-hidden rounded-2xl border border-line bg-paper text-ink shadow-[var(--shadow-xl)]">
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-line px-3.5">
-        <div className="flex items-center gap-2 text-[13px] font-semibold"><Sparkles className="size-4 text-accent" />Drawz AI</div>
+    <section data-theme={panelTheme} aria-label="Drawz AI workspace" className="animate-panel-in absolute inset-y-0 right-0 z-20 flex w-[min(420px,calc(100vw-96px))] flex-col overflow-hidden border-l border-line bg-paper text-ink shadow-[var(--shadow-xl)]">
+      <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-line px-5">
+        <div className="text-[14px] font-semibold tracking-tight">Drawz AI</div>
         <div className="flex items-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

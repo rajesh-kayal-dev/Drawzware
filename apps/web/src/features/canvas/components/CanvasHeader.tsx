@@ -355,6 +355,8 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
 
       {/* ── TOP-RIGHT ACTION BUTTONS: COLLABORATION ACTIONS & MORE MENU ── */}
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        {/* Share & Collaboration Actions (Live Avatar Stack, Invite, Share Dropdown) */}
+        <CollaborationHeaderActions onExportPng={handleExportPng} />
         <button
           type="button"
           aria-label={drawzAiOpen ? 'Close Drawz AI' : 'Open Drawz AI'}
@@ -367,17 +369,15 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
             }
           }}
           className={cn(
-            'focus-ring flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-semibold transition-colors',
+            'focus-ring flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-medium transition-colors',
             drawzAiOpen
-              ? 'border-accent/50 bg-accent/15 text-accent hover:bg-accent/25'
-              : 'border-line bg-paper text-ink hover:border-accent/40 hover:bg-accent/10'
+              ? 'border-accent/40 bg-accent/10 text-accent hover:bg-accent/15'
+              : 'border-line bg-paper text-ink-2 hover:bg-surface-2 hover:text-ink'
           )}
         >
           <Sparkles className="size-3.5" />
           <span>{drawzAiOpen ? 'Close' : 'Drawz AI'}</span>
         </button>
-        {/* Share & Collaboration Actions (Live Avatar Stack, Invite, Share Dropdown) */}
-        <CollaborationHeaderActions onExportPng={handleExportPng} />
 
         {/* Excalidraw-Style 3-Dots / Main Menu (Preferences, Theme, Background, Save/Export, Profile/Sign in) */}
         <CanvasMoreMenu projectId={projectId} projectName={projectName} />
