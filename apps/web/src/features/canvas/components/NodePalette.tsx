@@ -72,6 +72,7 @@ import {
   TechIcon,
 } from '@/lib/icons/tech-icons';
 import { ComponentIdentity } from './ComponentIdentity';
+import { DrawAiPanel } from './DrawAiPanel';
 import {
   EXPANDED_COMPONENTS,
   EXPANDED_COMPONENT_CATEGORIES,
@@ -2702,6 +2703,10 @@ export function NodePalette() {
   );
   const [scrollTarget] = useState<ScrollTarget | null>(null);
 
+  if (narrow && activeTab === 'draw-ai' && !collapsed) {
+    return <DrawAiPanel />;
+  }
+
   if (narrow) {
     return (
       <LibrarySheet
@@ -2737,7 +2742,9 @@ export function NodePalette() {
         }}
       />
 
-      {!collapsed && (
+      {!collapsed && activeTab === 'draw-ai' && <DrawAiPanel />}
+
+      {!collapsed && activeTab !== 'draw-ai' && (
         <LibraryPanel
           activeTab={activeTab}
           diagramType={diagramType}

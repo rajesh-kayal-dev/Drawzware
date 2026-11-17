@@ -18,6 +18,7 @@ import {
   Check,
   Grid,
   Settings2,
+  Sparkles,
   Sun,
   Workflow,
 } from 'lucide-react';
@@ -164,6 +165,11 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
   const hasComponents = useCanvasStore((s) => s.nodes.some((n) => n.type === 'system'));
   const startPresentation = useCanvasStore((s) => s.startPresentation);
   const setExportOpen = useCanvasStore((s) => s.setExportOpen);
+  const libraryActiveTab = useCanvasStore((s) => s.libraryActiveTab);
+  const libraryCollapsed = useCanvasStore((s) => s.libraryCollapsed);
+  const setLibraryActiveTab = useCanvasStore((s) => s.setLibraryActiveTab);
+  const setLibraryCollapsed = useCanvasStore((s) => s.setLibraryCollapsed);
+  const drawzAiOpen = libraryActiveTab === 'draw-ai' && !libraryCollapsed;
   const ThemeIcon = theme === 'dark' ? Sun : Moon;
   const themeLabel = theme === 'dark' ? 'Light theme' : 'Dark theme';
 
@@ -351,6 +357,27 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
       <div className="ml-auto flex shrink-0 items-center gap-2">
         {/* Share & Collaboration Actions (Live Avatar Stack, Invite, Share Dropdown) */}
         <CollaborationHeaderActions onExportPng={handleExportPng} />
+        <button
+          type="button"
+          aria-label={drawzAiOpen ? 'Close Drawz AI' : 'Open Drawz AI'}
+          aria-pressed={drawzAiOpen}
+          onClick={() => {
+            if (drawzAiOpen) setLibraryCollapsed(true);
+            else {
+              setLibraryActiveTab('draw-ai');
+              setLibraryCollapsed(false);
+            }
+          }}
+          className={cn(
+            'focus-ring flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-medium transition-colors',
+            drawzAiOpen
+              ? 'border-accent/40 bg-accent/10 text-accent hover:bg-accent/15'
+              : 'border-line bg-paper text-ink-2 hover:bg-surface-2 hover:text-ink'
+          )}
+        >
+          <Sparkles className="size-3.5" />
+          <span>{drawzAiOpen ? 'Close' : 'Drawz AI'}</span>
+        </button>
 
         {/* Excalidraw-Style 3-Dots / Main Menu (Preferences, Theme, Background, Save/Export, Profile/Sign in) */}
         <CanvasMoreMenu projectId={projectId} projectName={projectName} />
