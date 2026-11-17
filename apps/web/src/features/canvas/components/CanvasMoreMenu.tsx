@@ -18,7 +18,6 @@ import {
   Grid3X3,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -63,8 +62,6 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
   const startPresentation = useCanvasStore((s) => s.startPresentation);
   const setExportOpen = useCanvasStore((s) => s.setExportOpen);
   const clearCanvas = useCanvasStore((s) => s.clearCanvas);
-  const setLibraryActiveTab = useCanvasStore((s) => s.setLibraryActiveTab);
-  const setLibraryCollapsed = useCanvasStore((s) => s.setLibraryCollapsed);
 
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [isExportingDrawz, setIsExportingDrawz] = useState(false);
@@ -240,17 +237,6 @@ export function CanvasMoreMenu({ projectId, projectName }: CanvasMoreMenuProps) 
               Export image…
             </span>
             <span className="text-[10px] text-ink-3 font-mono">Ctrl+Shift+E</span>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            onSelect={() => {
-              setLibraryActiveTab('draw-ai');
-              setLibraryCollapsed(false);
-            }}
-            className="cursor-pointer flex items-center gap-2 px-2.5 py-1.5 text-[12.5px] font-medium text-ink rounded-lg hover:bg-surface-2"
-          >
-            <Sparkles className="size-3.5 text-accent" />
-            Draw AI
           </DropdownMenuItem>
 
           <DropdownMenuItem

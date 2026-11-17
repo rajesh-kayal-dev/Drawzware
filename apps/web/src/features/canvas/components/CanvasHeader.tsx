@@ -18,6 +18,7 @@ import {
   Check,
   Grid,
   Settings2,
+  Sparkles,
   Sun,
   Workflow,
 } from 'lucide-react';
@@ -164,6 +165,11 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
   const hasComponents = useCanvasStore((s) => s.nodes.some((n) => n.type === 'system'));
   const startPresentation = useCanvasStore((s) => s.startPresentation);
   const setExportOpen = useCanvasStore((s) => s.setExportOpen);
+  const libraryActiveTab = useCanvasStore((s) => s.libraryActiveTab);
+  const libraryCollapsed = useCanvasStore((s) => s.libraryCollapsed);
+  const setLibraryActiveTab = useCanvasStore((s) => s.setLibraryActiveTab);
+  const setLibraryCollapsed = useCanvasStore((s) => s.setLibraryCollapsed);
+  const drawzAiOpen = libraryActiveTab === 'draw-ai' && !libraryCollapsed;
   const ThemeIcon = theme === 'dark' ? Sun : Moon;
   const themeLabel = theme === 'dark' ? 'Light theme' : 'Dark theme';
 
@@ -349,6 +355,27 @@ export function CanvasHeader({ projectId, projectName }: { projectId: string; pr
 
       {/* ── TOP-RIGHT ACTION BUTTONS: COLLABORATION ACTIONS & MORE MENU ── */}
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          aria-label={drawzAiOpen ? 'Close Drawz AI' : 'Open Drawz AI'}
+          aria-pressed={drawzAiOpen}
+          onClick={() => {
+            if (drawzAiOpen) setLibraryCollapsed(true);
+            else {
+              setLibraryActiveTab('draw-ai');
+              setLibraryCollapsed(false);
+            }
+          }}
+          className={cn(
+            'focus-ring flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-semibold transition-colors',
+            drawzAiOpen
+              ? 'border-accent/50 bg-accent/15 text-accent hover:bg-accent/25'
+              : 'border-line bg-paper text-ink hover:border-accent/40 hover:bg-accent/10'
+          )}
+        >
+          <Sparkles className="size-3.5" />
+          <span>{drawzAiOpen ? 'Close' : 'Drawz AI'}</span>
+        </button>
         {/* Share & Collaboration Actions (Live Avatar Stack, Invite, Share Dropdown) */}
         <CollaborationHeaderActions onExportPng={handleExportPng} />
 

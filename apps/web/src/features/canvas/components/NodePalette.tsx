@@ -2703,6 +2703,10 @@ export function NodePalette() {
   );
   const [scrollTarget] = useState<ScrollTarget | null>(null);
 
+  if (narrow && activeTab === 'draw-ai' && !collapsed) {
+    return <DrawAiPanel />;
+  }
+
   if (narrow) {
     return (
       <LibrarySheet
@@ -2738,7 +2742,7 @@ export function NodePalette() {
         }}
       />
 
-      {!collapsed && activeTab === 'draw-ai' && <DrawAiPanel onCollapse={() => setCollapsed(true)} />}
+      {!collapsed && activeTab === 'draw-ai' && <DrawAiPanel />}
 
       {!collapsed && activeTab !== 'draw-ai' && (
         <LibraryPanel
