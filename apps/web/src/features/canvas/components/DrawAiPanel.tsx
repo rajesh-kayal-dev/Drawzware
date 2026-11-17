@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, type FormEvent, type KeyboardEvent } from 'react';
-import { ArrowUp, BookOpen, Database, Ellipsis, File, FileText, GitBranch, Layers, Link2, Menu, Network, Plus, Puzzle, Sparkles, Workflow } from 'lucide-react';
+import { useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
+import { ArrowUp, BookOpen, Database, Ellipsis, File, FileText, GitBranch, Layers, Link2, Menu, Network, Plus, Sparkles, Workflow } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
 import { useSettingsStore } from '@/features/settings/stores/useSettingsStore';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { toast } from '@/stores/useToastStore';
+import { DrawAiSettingsDialog, type DrawAiSettingsView } from './DrawAiSettingsDialog';
 
 const diagramTypes = [
   { label: 'Architecture Diagram', icon: Network },
@@ -33,6 +34,9 @@ export function DrawAiPanel() {
   const [submittedPrompt, setSubmittedPrompt] = useState('');
   const [conversations, setConversations] = useState<string[]>([]);
   const [conversationQuery, setConversationQuery] = useState('');
+  const [settingsView, setSettingsView] = useState<DrawAiSettingsView | null>(null);
+  const [panelWidth, setPanelWidth] = useState(420);
+  const resizeStart = useRef<{ x: number; width: number; pointerId: number } | null>(null);
   const filteredConversations = conversations.filter((conversation) =>
     conversation.toLowerCase().includes(conversationQuery.trim().toLowerCase())
   );
@@ -53,8 +57,50 @@ export function DrawAiPanel() {
     }
   };
 
+  const clampPanelWidth = (width: number) => Math.max(360, Math.min(width, 560, window.innerWidth - 96));
+
+  const startResize = (event: PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    resizeStart.current = {
+      x: event.clientX,
+      width: event.currentTarget.parentElement?.getBoundingClientRect().width ?? panelWidth,
+      pointerId: event.pointerId,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const moveResize = (event: PointerEvent<HTMLDivElement>) => {
+    if (resizeStart.current?.pointerId !== event.pointerId) return;
+    event.stopPropagation();
+    setPanelWidth(clampPanelWidth(resizeStart.current.width + resizeStart.current.x - event.clientX));
+  };
+
   return (
-    <section data-theme={panelTheme} aria-label="Drawz AI workspace" className="animate-panel-in absolute inset-y-0 right-0 z-20 flex w-[min(420px,calc(100vw-96px))] flex-col overflow-hidden border-l border-line bg-paper text-ink shadow-[var(--shadow-xl)]">
+    <section data-theme={panelTheme} aria-label="Drawz AI workspace" className="animate-panel-in absolute inset-y-0 right-0 z-20 flex flex-col border-l border-line bg-paper text-ink shadow-[var(--shadow-xl)]" style={{ width: `min(${panelWidth}px, calc(100vw - 96px))` }}>
+      <div
+        role="separator"
+        aria-label="Resize Drawz AI panel"
+        aria-orientation="vertical"
+        aria-valuemin={360}
+        aria-valuemax={560}
+        aria-valuenow={panelWidth}
+        tabIndex={0}
+        title="Drag to resize"
+        onPointerDown={startResize}
+        onPointerMove={moveResize}
+        onPointerUp={() => { resizeStart.current = null; }}
+        onPointerCancel={() => { resizeStart.current = null; }}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            event.preventDefault();
+            setPanelWidth((width) => clampPanelWidth(width + (event.key === 'ArrowLeft' ? 20 : -20)));
+          }
+        }}
+        className="focus-ring group absolute inset-y-0 -left-2 z-10 hidden w-4 cursor-col-resize items-center justify-center touch-none md:flex"
+      >
+        <span className="h-12 w-1 rounded-full bg-line transition-colors group-hover:bg-accent/60 group-focus-visible:bg-accent" />
+      </div>
       <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-line px-5">
         <div className="text-[14px] font-semibold tracking-tight">Drawz AI</div>
         <div className="flex items-center gap-1">
@@ -83,11 +129,10 @@ export function DrawAiPanel() {
               <button type="button" aria-label="Drawz AI options" className="focus-ring flex size-7 items-center justify-center rounded-lg text-ink-2 hover:bg-line-2 hover:text-ink"><Ellipsis className="size-4" /></button>
             </DropdownMenuTrigger>
             <DropdownMenuContent data-theme={panelTheme} align="end" className="w-[186px] border-line bg-paper p-1.5 text-ink shadow-[var(--shadow-xl)]">
-              <DropdownMenuItem onSelect={() => toast({ message: 'Models are not available yet' })} className="text-[11px] text-ink focus:bg-line-2"><Layers className="size-4" />Models</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => toast({ message: 'Adding models is not available yet' })} className="text-[11px] text-ink focus:bg-line-2"><Plus className="size-4" />Add models</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => toast({ message: 'MCP is not available yet' })} className="text-[11px] text-ink focus:bg-line-2"><Link2 className="size-4" />MCP</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => toast({ message: 'Plugins are not available yet' })} className="text-[11px] text-ink focus:bg-line-2"><Puzzle className="size-4" />Plugins</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => toast({ message: 'Skills are not available yet' })} className="text-[11px] text-ink focus:bg-line-2"><Sparkles className="size-4" />Skills</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setSettingsView('models')} className="text-[11px] text-ink focus:bg-line-2"><Layers className="size-4" />Models</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setSettingsView('add-model')} className="text-[11px] text-ink focus:bg-line-2"><Plus className="size-4" />Add models</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setSettingsView('mcp')} className="text-[11px] text-ink focus:bg-line-2"><Link2 className="size-4" />MCP</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setSettingsView('skills')} className="text-[11px] text-ink focus:bg-line-2"><Sparkles className="size-4" />Skills</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -134,6 +179,7 @@ export function DrawAiPanel() {
           <div className="flex items-center justify-between px-1"><button type="button" onClick={() => toast({ message: 'Adding references is not available yet' })} aria-label="Add reference" className="focus-ring flex size-7 items-center justify-center rounded-lg text-ink-2 hover:bg-line-2 hover:text-ink"><Plus className="size-4" /></button><button type="submit" disabled={!prompt.trim()} aria-label="Send prompt" className="focus-ring flex size-7 items-center justify-center rounded-lg bg-accent text-accent-ink hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"><ArrowUp className="size-4" /></button></div>
         </form>
       </div>
+      <DrawAiSettingsDialog view={settingsView} onViewChange={setSettingsView} theme={panelTheme} />
     </section>
   );
 }
