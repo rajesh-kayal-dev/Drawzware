@@ -72,6 +72,7 @@ import {
   TechIcon,
 } from '@/lib/icons/tech-icons';
 import { ComponentIdentity } from './ComponentIdentity';
+import { DrawAiPanel } from './DrawAiPanel';
 import {
   EXPANDED_COMPONENTS,
   EXPANDED_COMPONENT_CATEGORIES,
@@ -2230,6 +2231,23 @@ function LibraryRail({
 
       <div aria-hidden className="mx-1 my-1 h-px w-full bg-line" />
 
+      <button
+        type="button"
+        aria-label="Draw AI"
+        onClick={() => onSelectTab('draw-ai')}
+        className={cn(
+          'focus-ring flex flex-col items-center justify-center gap-1 w-full py-2 px-0.5 rounded-[8px] transition-colors cursor-pointer overflow-hidden',
+          activeTab === 'draw-ai' && !collapsed
+            ? 'bg-accent/15 text-accent shadow-2xs font-semibold ring-1 ring-accent/30'
+            : 'text-text-muted hover:text-text hover:bg-surface-2'
+        )}
+      >
+        <Sparkles className="size-[18px] shrink-0" />
+        <span className="text-[9px] leading-none tracking-tight truncate max-w-full">Draw AI</span>
+      </button>
+
+      <div aria-hidden className="mx-1 my-1 h-px w-full bg-line" />
+
       {/* ── BOTTOM NAVIGATION: DIAGRAMS, COMPONENTS, SHAPES, STEPS ── */}
       {/* 0. Diagrams */}
       <button
@@ -2737,7 +2755,9 @@ export function NodePalette() {
         }}
       />
 
-      {!collapsed && (
+      {!collapsed && activeTab === 'draw-ai' && <DrawAiPanel onCollapse={() => setCollapsed(true)} />}
+
+      {!collapsed && activeTab !== 'draw-ai' && (
         <LibraryPanel
           activeTab={activeTab}
           diagramType={diagramType}

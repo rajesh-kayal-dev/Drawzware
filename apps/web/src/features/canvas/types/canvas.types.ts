@@ -14,7 +14,7 @@ export type CanvasTool =
   | 'text'
   | 'junction';
 
-export type LibraryTab = 'all' | 'diagrams' | 'components' | 'shapes' | 'steps';
+export type LibraryTab = 'all' | 'diagrams' | 'components' | 'shapes' | 'steps' | 'draw-ai';
 
 export interface DrawingFormatting {
   strokeColor: string;
