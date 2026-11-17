@@ -113,6 +113,13 @@ Copy `.env.example` to `.env` in `apps/api/`:
 - `GET /api/diagrams/:diagramId` — Retrieve diagram metadata and latest snapshot.
 - `PATCH /api/diagrams/:diagramId` — Update diagram title or type (`owner` or `editor`).
 
+### Drawz AI (Phase 1)
+- `GET /api/ai/usage` — Return the authenticated user's lifetime Basic (5) and Advanced (3) allowances, including active reservations.
+- `GET /api/ai/conversations?limit=20&offset=0` — List the user's conversations, newest first.
+- `GET /api/ai/conversations/:conversationId?limit=20&offset=0` — Load a conversation and its messages. Another user's conversation returns 404.
+
+All AI routes require the existing bearer-token authentication. This phase exposes no prompt submission or model endpoint; quota reservation and completion are internal service operations for later integration.
+
 ---
 
 ## 5. Development & Testing

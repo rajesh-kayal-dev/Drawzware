@@ -13,6 +13,7 @@ import {
   invitationSignupHandler,
 } from "./routes/workspace.routes.js";
 import { diagramRoutes } from "./routes/diagram.routes.js";
+import { aiRoutes } from "./routes/ai.routes.js";
 
 export function createApp(): Express {
   const app = express();
@@ -55,6 +56,7 @@ export function createApp(): Express {
   // Modular resource routes
   app.use("/api/workspaces", workspaceRoutes);
   app.use("/api", diagramRoutes);
+  app.use("/api/ai", aiRoutes);
 
   // 404 Handler
   app.use(notFoundHandler);
